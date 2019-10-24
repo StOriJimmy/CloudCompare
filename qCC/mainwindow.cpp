@@ -2630,6 +2630,7 @@ void MainWindow::enableUIItems(dbTreeSelectionInfo& selInfo)
 	m_UI->actionComputeGeometricFeature->setEnabled(atLeastOneCloud);
 	m_UI->actionRemoveDuplicatePoints->setEnabled(atLeastOneCloud);
 	m_UI->actionFitPlane->setEnabled(atLeastOneEntity);
+	m_UI->actionFitPlaneProxy->setEnabled(atLeastOneCloud);
 	m_UI->actionFitSphere->setEnabled(atLeastOneCloud);
 	m_UI->actionLevel->setEnabled(atLeastOneEntity);
 	m_UI->actionFitFacet->setEnabled(atLeastOneEntity);
@@ -2738,7 +2739,11 @@ void MainWindow::enableUIItems(dbTreeSelectionInfo& selInfo)
 
 	m_UI->actionRegister->setEnabled(exactlyTwoEntities);
 	m_UI->actionInterpolateColors->setEnabled(exactlyTwoEntities && atLeastOneColor);
-	m_UI->actionPointPairsAlign->setEnabled(exactlyOneEntity || exactlyTwoEntities);
+	m_UI->actionPointPairsAlign->setEnabled(atLeastOneEntity);
+	m_UI->actionBBCenterToOrigin->setEnabled(atLeastOneEntity);
+	m_UI->actionBBMinCornerToOrigin->setEnabled(atLeastOneEntity);
+	m_UI->actionBBMaxCornerToOrigin->setEnabled(atLeastOneEntity);
+
 	m_UI->actionAlign->setEnabled(exactlyTwoEntities); //Aurelien BEY le 13/11/2008
 	m_UI->actionCloudCloudDist->setEnabled(exactlyTwoClouds);
 	m_UI->actionCloudMeshDist->setEnabled(exactlyTwoEntities && atLeastOneMesh);
@@ -4135,6 +4140,7 @@ void MainWindow::doActionSubdivideMesh()
 
 	//ccProgressDialog pDlg(true, this);
 	//pDlg.setAutoClose(false);
+	bool warningIssued = false;
 
 	for (ccHObject *entity : getSelectedEntities())
 	{
@@ -4161,16 +4167,17 @@ void MainWindow::doActionSubdivideMesh()
 					subdividedMesh->setDisplay(mesh->getDisplay());
 					mesh->redrawDisplay();
 					mesh->setEnabled(false);
-					addToDB(subdividedMesh, entity->getDBSourceType());
+					addToDB(subdividedMesh);
 				}
 				else
 				{
 					ccConsole::Warning(QString("[Subdivide] Failed to subdivide mesh '%1' (not enough memory?)").arg(mesh->getName()));
 				}
 			}
-			else
+			else if (!warningIssued)
 			{
 				ccLog::Warning("[Subdivide] Works only on real meshes!");
+				warningIssued = true;
 			}
 		}
 	}
