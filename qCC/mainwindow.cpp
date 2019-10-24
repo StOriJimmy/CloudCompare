@@ -2718,6 +2718,8 @@ void MainWindow::enableUIItems(dbTreeSelectionInfo& selInfo)
 
 	//actionCreatePlane->setEnabled(true);
 	m_UI->actionEditPlane->setEnabled(selInfo.planeCount == 1);
+	m_UI->actionFlipPlane->setEnabled(selInfo.planeCount != 0);
+	m_UI->actionComparePlanes->setEnabled(selInfo.planeCount == 2);
 
 	m_UI->actionFindBiggestInnerRectangle->setEnabled(exactlyOneCloud);
 
@@ -14842,25 +14844,7 @@ void MainWindow::doActionOpenDatabase()
 	settings.setValue(ccPS::CurrentPath(), currentPath);
 	settings.endGroup();
 
-<<<<<<< HEAD
 	DataBaseHObject* load_database = DataBaseHObject::Create(database_name);
-=======
-	m_UI->actionScalarFieldFromColor->setEnabled(atLeastOneEntity && atLeastOneColor);
-	m_UI->actionComputeMeshAA->setEnabled(atLeastOneCloud);
-	m_UI->actionComputeMeshLS->setEnabled(atLeastOneCloud);
-	m_UI->actionMeshScanGrids->setEnabled(atLeastOneGrid);
-	//actionComputeQuadric3D->setEnabled(atLeastOneCloud);
-	m_UI->actionComputeBestFitBB->setEnabled(atLeastOneEntity);
-	m_UI->actionComputeGeometricFeature->setEnabled(atLeastOneCloud);
-	m_UI->actionRemoveDuplicatePoints->setEnabled(atLeastOneCloud);
-	m_UI->actionFitPlane->setEnabled(atLeastOneEntity);
-	m_UI->actionFitPlaneProxy->setEnabled(atLeastOneEntity);
-	m_UI->actionFitSphere->setEnabled(atLeastOneCloud);
-	m_UI->actionLevel->setEnabled(atLeastOneEntity);
-	m_UI->actionFitFacet->setEnabled(atLeastOneEntity);
-	m_UI->actionFitQuadric->setEnabled(atLeastOneCloud);
-	m_UI->actionSubsample->setEnabled(atLeastOneCloud);
->>>>>>> a8dbddebf29e2cd4ebf132b8a38a7d4101304d23
 
 	if (load_database->load()) {
 		addToDB_Main(load_database);
@@ -14920,7 +14904,6 @@ void MainWindow::doActionSaveDatabase()
 	result = FileIOFilter::SaveToFile(sel, bin_file, parameters, BinFilter::GetFileFilter());
 }
 
-<<<<<<< HEAD
 void MainWindow::doActionEditDatabase()
 {
 	if (!m_pbdrPrjDlg) { m_pbdrPrjDlg = new bdrProjectDlg(this); m_pbdrPrjDlg->setModal(true); }
@@ -14941,12 +14924,6 @@ void MainWindow::doActionEditDatabase()
 		}
 	}
 }
-=======
-	//actionCreatePlane->setEnabled(true);
-	m_UI->actionEditPlane->setEnabled(selInfo.planeCount == 1);
-	m_UI->actionFlipPlane->setEnabled(selInfo.planeCount != 0);
-	m_UI->actionComparePlanes->setEnabled(selInfo.planeCount == 2);
->>>>>>> a8dbddebf29e2cd4ebf132b8a38a7d4101304d23
 
 void MainWindow::addToDatabase(QStringList files, ccHObject * import_pool, bool remove_exist, bool auto_sort)
 {
