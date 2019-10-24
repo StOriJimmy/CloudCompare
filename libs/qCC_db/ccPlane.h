@@ -113,6 +113,9 @@ public:
 	std::vector<CCVector3> getProfile() { return m_profile; }
 	CCVector3 getProfileCenter();
 
+	//! Flips the plane
+	void flip();
+
 protected:
 
 	//inherited from ccDrawable

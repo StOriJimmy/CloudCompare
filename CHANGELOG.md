@@ -9,8 +9,16 @@ v2.11 (Anoia) - (in development)
     - Tools > Registration > Move bounding-box center to origin
     - Tools > Registration > Move bounding-box min corner to origin
     - Tools > Registration > Move bounding-box max corner to origin
+  - Add smooth zoom when middle mouse button is pressed
+  - Roll view around view-vector when pressing SHIFT and left mouse button
+  - Edit > Plane > Flip: to flip the selected planes
+  - Edit > Plane > Compare: to compare the two selected planes (angle and relative distances)
+  - Edit > Mesh > Flip triangles: to flip the triangles (vertices) in case they are defined in the wrong order
 
 - Improvements
+  - Align (Point-pair based registration) tool
+    - can now be used with several entities (both several aligned and several reference entities)
+	- option to pick the center of sphere entities as registration point(CC will ask whether to use the sphere center or not when picking a point anywhere on a sphere entity)
   - Clipping box tool:
     - option to select the extracted contour type (LOWER, UPPER or FULL)
 	  - The 'up' direction is always Z for slices normal to X or Y (the local X, Y or Z directions of the active cross-section)
@@ -27,6 +35,7 @@ v2.11 (Anoia) - (in development)
 		- Can be called on any number of clouds or meshes
 		- (the tool was already accessible in V2.10, but in a very limited way)
 	- the 'FWF_O' command (to load LAS files with associated waveform data) nows properly supports the '-GLOBAL_SHIFT' option
+	- no more popup will appear when loading a raster file via the command line mode in SILENT mode (raster is never loaded as a textured quad, and invalid points are always ignored and not loaded)
   - Raster import:
     - new "Apply all" option when CC asks whether invalid pixels of a raster should be ignored or not
   - Point picking:
@@ -36,6 +45,7 @@ v2.11 (Anoia) - (in development)
     - labels picked on a mesh can be used to re-orient the camera (right-click on the label entry in the DB)
     - note: for now, labels associated to meshes are not preserved when cloning or merging the meshes
     - points are now exclusively picked inside the current fustrum (no more points behind the camera)
+	- the center of sphere (entities) can now be picked (a popup will let the user choose to select the sphere center or a point on the surface)
   - Graphical segmentation:
     - points are now exclusively segmented inside/outside the frustrum
   - Plugins:
@@ -63,6 +73,9 @@ v2.11 (Anoia) - (in development)
 	- CloudCompare can now load ASCII files with mixed whitespaces (spaces / tabs)
 	- the ASCII load dialog option has now an option to load numerical values with a comma as digit separator
 		('use comma as decimal character' checkbox)
+  - E57 files:
+    - Sensors are now automatically created below each scan (if a sensor position is defined in the file)
+	    (they can be used to orient the normals for instance)
   - Unroll
 	- ability to set the start and stop angles for the cone unrolling options
 	- new unrolling mode: 'Straightened cone' (the previous one has been renamed 'Straightened cone (fixed radius)'). This new mode unrolls the cone as a cylinder but with a varying radius.
@@ -97,6 +110,7 @@ v2.11 (Anoia) - (in development)
 	- the Unroll dialog was not enabling all the apex coordinate fields after switching from Cylinder to Cone mode
 	- the Clipping-box tool 'edit' dialog would sometimes move the box in an unepected way when opening and closing it without making any change
 	- M3C2: the 'subsampling' option was not properly restored when loading the parameters from a file (if 'SubsampleEnabled = false')
+	- Orienting normals with a sensor position could lead to a crash
 
 v2.10.3 (Zephyrus) - 13/06/2019
 ----------------------

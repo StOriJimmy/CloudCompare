@@ -398,6 +398,8 @@ private slots:
 	
 	void doActionCreatePlane();
 	void doActionEditPlane();
+	void doActionFlipPlane();
+	void doActionComparePlanes();
 
 	void doActionDeleteScanGrids();
 	void doActionSmoothMeshSF();
@@ -418,6 +420,7 @@ private slots:
 	void doActionFlagMeshVertices();
 	void doActionSmoothMeshLaplacian();
 	void doActionSubdivideMesh();
+	void doActionFlipMeshTriangles();
 	void doActionComputeCPS();
 	void doActionShowWaveDialog();
 	void doActionCompressFWFData();

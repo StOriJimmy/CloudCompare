@@ -115,6 +115,8 @@
 #include "ccUnrollDlg.h"
 #include "ccVolumeCalcTool.h"
 #include "ccWaveformDialog.h"
+#include "ccEntitySelectionDlg.h"
+
 #include "bdrSettingBDSegDlg.h"
 #include "bdrSettingGrdFilterDlg.h"
 #include "bdrProjectDlg.h"
@@ -742,6 +744,7 @@ void MainWindow::connectActions()
 	connect(m_UI->actionSamplePointsOnMesh,			&QAction::triggered, this, &MainWindow::doActionSamplePointsOnMesh);
 	connect(m_UI->actionSmoothMeshLaplacian,		&QAction::triggered, this, &MainWindow::doActionSmoothMeshLaplacian);
 	connect(m_UI->actionSubdivideMesh,				&QAction::triggered, this, &MainWindow::doActionSubdivideMesh);
+	connect(m_UI->actionFlipMeshTriangles,			&QAction::triggered, this, &MainWindow::doActionFlipMeshTriangles);
 	connect(m_UI->actionMeasureMeshSurface,			&QAction::triggered, this, &MainWindow::doActionMeasureMeshSurface);
 	connect(m_UI->actionMeasureMeshVolume,			&QAction::triggered, this, &MainWindow::doActionMeasureMeshVolume);
 	connect(m_UI->actionFlagMeshVertices,			&QAction::triggered, this, &MainWindow::doActionFlagMeshVertices);
@@ -753,6 +756,8 @@ void MainWindow::connectActions()
 	//"Edit > Plane" menu
 	connect(m_UI->actionCreatePlane,				&QAction::triggered, this, &MainWindow::doActionCreatePlane);
 	connect(m_UI->actionEditPlane,					&QAction::triggered, this, &MainWindow::doActionEditPlane);
+	connect(m_UI->actionFlipPlane,					&QAction::triggered, this, &MainWindow::doActionFlipPlane);
+	connect(m_UI->actionComparePlanes,				&QAction::triggered, this, &MainWindow::doActionComparePlanes);
 	//"Edit > Sensor > Ground-Based lidar" menu
 	connect(m_UI->actionShowDepthBuffer,			&QAction::triggered, this, &MainWindow::doActionShowDepthBuffer);
 	connect(m_UI->actionExportDepthBuffer,			&QAction::triggered, this, &MainWindow::doActionExportDepthBuffer);
@@ -4172,6 +4177,31 @@ void MainWindow::doActionSubdivideMesh()
 	updateUI();
 }
 
+void MainWindow::doActionFlipMeshTriangles()
+{
+	bool warningIssued = false;
+	for (ccHObject *entity : getSelectedEntities())
+	{
+		if (entity->isKindOf(CC_TYPES::MESH))
+		{
+			//single mesh?
+			if (entity->isA(CC_TYPES::MESH))
+			{
+				ccMesh* mesh = static_cast<ccMesh*>(entity);
+				mesh->flipTriangles();
+				mesh->prepareDisplayForRefresh();
+			}
+			else if (!warningIssued)
+			{
+				ccLog::Warning("[Flip triangles] Works only on real meshes!");
+				warningIssued = true;
+			}
+		}
+	}
+
+	refreshAll();
+}
+
 void MainWindow::doActionMeasureMeshSurface()
 {
 	for (ccHObject *entity : getSelectedEntities())
@@ -4418,6 +4448,79 @@ void MainWindow::doActionEditPlane()
 	ccPlaneEditDlg* peDlg = new ccPlaneEditDlg(m_pickingHub, this);
 	peDlg->initWithPlane(plane);
 	peDlg->show();
+}
+
+void MainWindow::doActionFlipPlane()
+{
+	if (!haveSelection())
+	{
+		assert(false);
+		return;
+	}
+
+	for (ccHObject* entity : m_selectedEntities)
+	{
+		ccPlane* plane = ccHObjectCaster::ToPlane(entity);
+		if (plane)
+		{
+			plane->flip();
+			plane->prepareDisplayForRefresh();
+		}
+	}
+
+	refreshAll();
+	updatePropertiesView();
+}
+
+void MainWindow::doActionComparePlanes()
+{
+	if (m_selectedEntities.size() != 2)
+	{
+		ccConsole::Error("Select 2 planes!");
+		return;
+	}
+
+	if (!m_selectedEntities[0]->isKindOf(CC_TYPES::PLANE) ||
+		!m_selectedEntities[1]->isKindOf(CC_TYPES::PLANE))
+	{
+		ccConsole::Error("Select 2 planes!");
+		return;
+	}
+
+	ccPlane* p1 = ccHObjectCaster::ToPlane(m_selectedEntities[0]);
+	ccPlane* p2 = ccHObjectCaster::ToPlane(m_selectedEntities[1]);
+
+	QStringList info;
+	info << QString("Plane 1: %1").arg(p1->getName());
+	ccLog::Print(QString("[Compare] ") + info.last());
+
+	info << QString("Plane 2: %1").arg(p2->getName());
+	ccLog::Print(QString("[Compare] ") + info.last());
+
+	CCVector3 N1, N2;
+	PointCoordinateType d1, d2;
+	p1->getEquation(N1, d1);
+	p2->getEquation(N2, d2);
+
+	double angle_rad = N1.angle_rad(N2);
+	info << QString("Angle P1/P2: %1 deg.").arg(angle_rad * CC_RAD_TO_DEG);
+	ccLog::Print(QString("[Compare] ") + info.last());
+
+	PointCoordinateType planeEq1[4] = { N1.x, N1.y, N1.z, d1 };
+	PointCoordinateType planeEq2[4] = { N2.x, N2.y, N2.z, d2 };
+	CCVector3 C1 = p1->getCenter();
+	ScalarType distCenter1ToPlane2 = CCLib::DistanceComputationTools::computePoint2PlaneDistance(&C1, planeEq2);
+	info << QString("Distance Center(P1)/P2: %1").arg(distCenter1ToPlane2);
+	ccLog::Print(QString("[Compare] ") + info.last());
+
+	CCVector3 C2 = p2->getCenter();
+	ScalarType distCenter2ToPlane1 = CCLib::DistanceComputationTools::computePoint2PlaneDistance(&C2, planeEq1);
+	info << QString("Distance Center(P2)/P1: %1").arg(distCenter2ToPlane1);
+	ccLog::Print(QString("[Compare] ") + info.last());
+
+	//pop-up summary
+	QMessageBox::information(this, "Plane comparison", info.join("\n"));
+	forceConsoleDisplay();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -14739,7 +14842,25 @@ void MainWindow::doActionOpenDatabase()
 	settings.setValue(ccPS::CurrentPath(), currentPath);
 	settings.endGroup();
 
+<<<<<<< HEAD
 	DataBaseHObject* load_database = DataBaseHObject::Create(database_name);
+=======
+	m_UI->actionScalarFieldFromColor->setEnabled(atLeastOneEntity && atLeastOneColor);
+	m_UI->actionComputeMeshAA->setEnabled(atLeastOneCloud);
+	m_UI->actionComputeMeshLS->setEnabled(atLeastOneCloud);
+	m_UI->actionMeshScanGrids->setEnabled(atLeastOneGrid);
+	//actionComputeQuadric3D->setEnabled(atLeastOneCloud);
+	m_UI->actionComputeBestFitBB->setEnabled(atLeastOneEntity);
+	m_UI->actionComputeGeometricFeature->setEnabled(atLeastOneCloud);
+	m_UI->actionRemoveDuplicatePoints->setEnabled(atLeastOneCloud);
+	m_UI->actionFitPlane->setEnabled(atLeastOneEntity);
+	m_UI->actionFitPlaneProxy->setEnabled(atLeastOneEntity);
+	m_UI->actionFitSphere->setEnabled(atLeastOneCloud);
+	m_UI->actionLevel->setEnabled(atLeastOneEntity);
+	m_UI->actionFitFacet->setEnabled(atLeastOneEntity);
+	m_UI->actionFitQuadric->setEnabled(atLeastOneCloud);
+	m_UI->actionSubsample->setEnabled(atLeastOneCloud);
+>>>>>>> a8dbddebf29e2cd4ebf132b8a38a7d4101304d23
 
 	if (load_database->load()) {
 		addToDB_Main(load_database);
@@ -14799,6 +14920,7 @@ void MainWindow::doActionSaveDatabase()
 	result = FileIOFilter::SaveToFile(sel, bin_file, parameters, BinFilter::GetFileFilter());
 }
 
+<<<<<<< HEAD
 void MainWindow::doActionEditDatabase()
 {
 	if (!m_pbdrPrjDlg) { m_pbdrPrjDlg = new bdrProjectDlg(this); m_pbdrPrjDlg->setModal(true); }
@@ -14819,6 +14941,12 @@ void MainWindow::doActionEditDatabase()
 		}
 	}
 }
+=======
+	//actionCreatePlane->setEnabled(true);
+	m_UI->actionEditPlane->setEnabled(selInfo.planeCount == 1);
+	m_UI->actionFlipPlane->setEnabled(selInfo.planeCount != 0);
+	m_UI->actionComparePlanes->setEnabled(selInfo.planeCount == 2);
+>>>>>>> a8dbddebf29e2cd4ebf132b8a38a7d4101304d23
 
 void MainWindow::addToDatabase(QStringList files, ccHObject * import_pool, bool remove_exist, bool auto_sort)
 {
@@ -15801,4 +15929,77 @@ void MainWindow::doActionClearEmptyItems()
 // 			}
 // 		}
 // 	}
+}
+
+void MainWindow::doActionFlipPlane()
+{
+	if (!haveSelection())
+	{
+		assert(false);
+		return;
+	}
+
+	for (ccHObject* entity : m_selectedEntities)
+	{
+		ccPlane* plane = ccHObjectCaster::ToPlane(entity);
+		if (plane)
+		{
+			plane->flip();
+			plane->prepareDisplayForRefresh();
+		}
+	}
+
+	refreshAll();
+	updatePropertiesView();
+}
+
+void MainWindow::doActionComparePlanes()
+{
+	if (m_selectedEntities.size() != 2)
+	{
+		ccConsole::Error("Select 2 planes!");
+		return;
+	}
+
+	if (!m_selectedEntities[0]->isKindOf(CC_TYPES::PLANE) ||
+		!m_selectedEntities[1]->isKindOf(CC_TYPES::PLANE))
+	{
+		ccConsole::Error("Select 2 planes!");
+		return;
+	}
+
+	ccPlane* p1 = ccHObjectCaster::ToPlane(m_selectedEntities[0]);
+	ccPlane* p2 = ccHObjectCaster::ToPlane(m_selectedEntities[1]);
+
+	QStringList info;
+	info << QString("Plane 1: %1").arg(p1->getName());
+	ccLog::Print(QString("[Compare] ") + info.last());
+
+	info << QString("Plane 2: %1").arg(p2->getName());
+	ccLog::Print(QString("[Compare] ") + info.last());
+
+	CCVector3 N1, N2;
+	PointCoordinateType d1, d2;
+	p1->getEquation(N1, d1);
+	p2->getEquation(N2, d2);
+
+	double angle_rad = N1.angle_rad(N2);
+	info << QString("Angle P1/P2: %1 deg.").arg(angle_rad * CC_RAD_TO_DEG);
+	ccLog::Print(QString("[Compare] ") + info.last());
+
+	PointCoordinateType planeEq1[4] = { N1.x, N1.y, N1.z, d1 };
+	PointCoordinateType planeEq2[4] = { N2.x, N2.y, N2.z, d2 };
+	CCVector3 C1 = p1->getCenter();
+	ScalarType distCenter1ToPlane2 = CCLib::DistanceComputationTools::computePoint2PlaneDistance(&C1, planeEq2);
+	info << QString("Distance Center(P1)/P2: %1").arg(distCenter1ToPlane2);
+	ccLog::Print(QString("[Compare] ") + info.last());
+
+	CCVector3 C2 = p2->getCenter();
+	ScalarType distCenter2ToPlane1 = CCLib::DistanceComputationTools::computePoint2PlaneDistance(&C2, planeEq1);
+	info << QString("Distance Center(P2)/P1: %1").arg(distCenter2ToPlane1);
+	ccLog::Print(QString("[Compare] ") + info.last());
+
+	//pop-up summary
+	QMessageBox::information(this, "Plane comparison", info.join("\n"));
+	forceConsoleDisplay();
 }
