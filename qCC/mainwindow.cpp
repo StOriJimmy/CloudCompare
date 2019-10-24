@@ -10672,44 +10672,80 @@ void MainWindow::deactivateComparisonMode(int result)
 
 void MainWindow::activateRegisterPointPairTool()
 {
-	if (!haveSelection() || m_selectedEntities.size() > 2)
+	if (!haveSelection())
 	{
-		ccConsole::Error("Select one or two entities (point cloud or mesh)!");
+		ccConsole::Error("Select at least one entity (point cloud or mesh)!");
 		return;
 	}
 
-	ccHObject* aligned = m_selectedEntities[0];
-	ccHObject* reference = m_selectedEntities.size() > 1 ? m_selectedEntities[1] : nullptr;
-
-	ccGenericPointCloud* cloud1 = ccHObjectCaster::ToGenericPointCloud(aligned);
-	ccGenericPointCloud* cloud2 = (reference ? ccHObjectCaster::ToGenericPointCloud(reference) : nullptr);
-	if (!cloud1 || (m_selectedEntities.size() > 1 && !cloud2))
+	ccHObject::Container alignedEntities, refEntities;
+	try
 	{
-		ccConsole::Error("Select point clouds or meshes only!");
-		return;
-	}
+		ccHObject::Container entities;
+		entities.reserve(m_selectedEntities.size());
 
-	//if we have 2 entities, we must ask the user which one is the 'aligned' one and which one is the 'reference' one
-	if (reference)
-	{
-		ccOrderChoiceDlg dlg(	m_selectedEntities[0], "Aligned",
-								m_selectedEntities[1], "Reference",
-								this );
-		if (!dlg.exec())
+		for (ccHObject* entity : m_selectedEntities)
+		{
+			//for now, we only handle clouds or meshes
+			if (entity->isKindOf(CC_TYPES::POINT_CLOUD) || entity->isKindOf(CC_TYPES::MESH))
+			{
+				entities.push_back(entity);
+			}
+		}
+
+		if (entities.empty())
+		{
+			ccConsole::Error("Select at least one entity (point cloud or mesh)!");
 			return;
+		}
+		else if (entities.size() == 1)
+		{
+			alignedEntities = entities;
+		}
+		else
+		{
+			std::vector<int> indexes;
+			if (!ccEntitySelectionDialog::SelectEntities(entities, indexes, this, tr("Select aligned entities")))
+			{
+				//process cancelled by the user
+				return;
+			}
 
-		aligned = dlg.getFirstEntity();
-		reference = dlg.getSecondEntity();
+			//add the selected indexes as 'aligned' entities
+			alignedEntities.reserve(indexes.size());
+			for (size_t i = 0; i < indexes.size(); ++i)
+			{
+				alignedEntities.push_back(entities[indexes[i]]);
+			}
+
+			//add the others as 'reference' entities
+			assert(indexes.size() <= entities.size());
+			refEntities.reserve(entities.size() - indexes.size());
+			for (size_t i = 0; i < entities.size(); ++i)
+			{
+				if (std::find(indexes.begin(), indexes.end(), i) == indexes.end())
+				{
+					refEntities.push_back(entities[i]);
+				}
+			}
+		}
+	}
+	catch (const std::bad_alloc&)
+	{
+		ccLog::Error(tr("Not enough memory"));
+		return;
 	}
 
-	//we disable all windows
-	disableAllBut(0);
-
-	if (!m_pprDlg)
+	if (alignedEntities.empty())
 	{
-		m_pprDlg = new ccPointPairRegistrationDlg(m_pickingHub, this, this);
-		connect(m_pprDlg, &ccOverlayDialog::processFinished, this, &MainWindow::deactivateRegisterPointPairTool);
-		registerOverlayDialog(m_pprDlg, Qt::TopRightCorner);
+		ccLog::Error(tr("No aligned entity selected"));
+		return;
+	}
+
+	//deselect all entities
+	if (m_ccRoot)
+	{
+		m_ccRoot->unselectAllEntities();
 	}
 
 	ccGLWindow* win = new3DView(true);
@@ -10719,8 +10755,20 @@ void MainWindow::activateRegisterPointPairTool()
 		return;
 	}
 
-	if (!m_pprDlg->init(win, aligned, reference))
+	//we disable all windows
+	disableAllBut(win);
+
+	if (!m_pprDlg)
+	{
+		m_pprDlg = new ccPointPairRegistrationDlg(m_pickingHub, this, this);
+		connect(m_pprDlg, &ccOverlayDialog::processFinished, this, &MainWindow::deactivateRegisterPointPairTool);
+		registerOverlayDialog(m_pprDlg, Qt::TopRightCorner);
+	}
+
+	if (!m_pprDlg->init(win, alignedEntities, &refEntities))
+	{
 		deactivateRegisterPointPairTool(false);
+	}
 
 	freezeUI(true);
 
