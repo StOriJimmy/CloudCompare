@@ -4,9 +4,9 @@
 
 ## Prerequisites
 
-1.  Clone the main repository and its submodules from the main git(hub) server: <https://github.com/cloudcompare/trunk>
+1.  Clone the main repository and its submodules from the main git(hub) server: <https://github.com/cloudcompare/CloudCompare>
 
-    `git clone --recursive https://github.com/cloudcompare/trunk.git`
+    `git clone --recursive https://github.com/cloudcompare/CloudCompare.git`
 
 2.  Install [CMake](http://www.cmake.org) (3.0 or newer)
 3.  Install Qt (http://www.qt.io/ - for *Linux/Mac OS X*: qt-sdk)
@@ -14,13 +14,13 @@
 
 4. Make sure you have a C++11 compliant compiler (gcc 4.7+ / clang / Visual 2013 and newer)
 
-*To compile the project with older versions of Qt (from 4.8 to 5.4) or with a non C++11 compliant compiler, you'll have to stick with the https://github.com/cloudcompare/trunk/releases/tag/v2.6.3.1 version*
+*To compile the project with older versions of Qt (from 4.8 to 5.4) or with a non C++11 compliant compiler, you'll have to stick with the https://github.com/cloudcompare/CloudCompare/releases/tag/v2.6.3.1 version*
 
 ## Generating the project
 
 1. Launch CMake GUI (`cmake-qt-gui` on Linux, the CMake application on Mac OS X)
   - *(for more convenience, you should check the "Grouped" check-box)*
-  - set the `Where is the source code` field to your local repository (for instance `C:\CloudCompare\trunk`)
+  - set the `Where is the source code` field to your local repository (for instance `C:\CloudCompare\CloudCompare`)
   - set the `Where to build the binaries` field to ... almost anywhere you want **apart from the same folder as above or the *Program Files* folder (on Windows)**. (for instance: `C:\CloudCompare\build`)
   - click the `Configure` button
   - select the generator for the project  
@@ -33,14 +33,13 @@
   - on the first run you may have to manually set the **QT5_ROOT_PATH** variable. Make it point to your installation of Qt (on Windows it's where the 'bin' folder lies - e.g. *Qt\5.6\msvc2013_64*)
 
 2. Before clicking on the 'Generate' button, you may want to set some more options. If you expand the `OPTION` group, you'll be able to set some general options:
-  - `OPTION_BUILD_CC_VIEWER`: whether or not to build the ccViewer side project (ON by default)
-  - `OPTION_SUPPORT_MAC_PDMS_FORMAT`: to add support for PDMS .mac scripts (*CAD format*)
-  - `OPTION_USE_DXFLIB`: to add support for DXF files in CloudCompare/ccViewer with **dxflib** - see [below](#optional-setup-for-dxflib-support)
-  - `OPTION_USE_FBX_SDK`: to add support for FBX files in CloudCompare/ccViewer with the official **FBX SDK** - see [below](#optional-setup-for-fbx-sdk-support)
+  - `OPTION_BUILD_CCVIEWER`: whether or not to build the ccViewer side project (ON by default)
+  - `OPTION_USE_DXF_LIB`: to add support for DXF files in CloudCompare/ccViewer with **dxflib** - see [below](#optional-setup-for-dxflib-support)
+  - `PLUGIN_IO_QFBX`: to add support for FBX files in CloudCompare/ccViewer with the official **FBX SDK** - see [below](#optional-setup-for-fbx-sdk-support)
   - `OPTION_USE_GDAL`: to add support for a lot of raster files in CloudCompare/ccViewer with **GDAL** library - see [below](#optional-setup-for-gdal-support)
-  - `OPTION_USE_LIBE57`: to add support for E57 files in CloudCompare/ccViewer with **libE57** - see [below](#optional-setup-for-libe57-support)
+  - `PLUGIN_IO_QE57`: to add support for E57 files in CloudCompare/ccViewer with **libE57** - see [below](#optional-setup-for-libe57-support)
   - `OPTION_USE_SHAPE_LIB`: to add support for SHP files in CloudCompare/ccViewer
-  - `OPTION_PDAL_LAS`: to add support for LAS files in CloudCompare/ccViewer with **PDAL** - see [below](#optional-setup-for-las-using-pdal)
+  - `PLUGIN_IO_QPDAL`: to add support for LAS files in CloudCompare/ccViewer with **PDAL** - see [below](#optional-setup-for-las-using-pdal)
 
   The following are Windows-only options:
   - `OPTION_MP_BUILD`: for Visual Studio only *(multi-process build --> much faster but uses a lot of CPU power)*
@@ -112,7 +111,7 @@ If you want to use or debug plugins in DEBUG mode while using a single configura
 If you want to compile CloudCompare (and ccViewer) with LAS/LAZ files support, you'll need:
 
 1. [PDAL](https://pdal.io/)
-2. Set `OPTION_PDAL_LAS=TRUE`
+2. Set `PLUGIN_IO_QPDAL=TRUE`
 
 If your PDAL installation is not correctly picked up by CMake, 
 set the `PDAL_DIR` to the path containing `PDALConfig.cmake`.
@@ -121,8 +120,8 @@ set the `PDAL_DIR` to the path containing `PDALConfig.cmake`.
 
 If you want to compile CloudCompare (and ccViewer) with LibE57 files support, you'll need:
 
-1. [Boost](http://www.boost.org/) multi-thread static libraries
-2. [Xerces-C++](http://xerces.apache.org/xerces-c) multi-thread **static** libraries
+1. [Xerces-C++](http://xerces.apache.org/xerces-c) multi-thread **static** libraries
+    - On Ubuntu install the package `libxerces-c-dev`
     - On Visual C++ (Windows):
         1. select the `Static Debug` or `Static Release` configurations
         2. you'll have to manually modify the `XercesLib` project options so that the `C/C++ > Code Generation > Runtime Library` are of DLL type in both release and debug modes (i.e. `/MD` in release or `/MDd` in debug)
@@ -130,14 +129,8 @@ If you want to compile CloudCompare (and ccViewer) with LibE57 files support, yo
     - only the XercesLib project neet to be compiled
     - eventually, CMake will look for the resulting files in `/include` (instead of `/src`) and `/lib` (without the Release or Debug subfolders). By default the visual project will put them in `/Build/WinXX/VCXX/StaticXXX`. Therefore you should create a custom folder with the right organization and copy the files there.
 
-3. [LibE57](http://libe57.org) (*last tested version: 1.1.312 on Windows*)
-    - **WARNING**: with Visual Studio (at least), you'll need the libraries compiled with `/MD` (=DLL Multithreaded) in release mode and `/MDd` in debug mode. You may have to replace all `/MT` by `/MD` in the main libE57 root CMake file (or in `cmake/c_flag_overrides.cmake` and `cmake/cxx_flag_overrides.cmake` if there's no `/MT` in it)
-    - If you found `set(Boost_USE_STATIC_RUNTIME ON)` in the CMake file, comment it
-    - **the version 1.1.312 of libE57 has a small glitch that must be manually patched**:
-        1.  open `E57FoundationImpl.cpp` and browse to the `CheckedFile::operator<<(float f)` method (line 4670)
-        2.  set the output precision to 8 instead of 7! (otherwise the interal checks for precision loss may fail and libE57 will throw an exception)
-
-The CloudCompare CMake project will only require that you set the path where libE57 has been installed (`LIBE57_INSTALL_DIR`)
+2. [LibE57](https://github.com/asmaloney/libE57Format) (*last tested version: 2.0.1 on Windows*)
+    - Checkout the submodule in `plugins/core/IO/qE57IO/extern/libE57Format` or download and extract the latest [libE57Format](https://github.com/asmaloney/libE57Format) release
 
 ### [Optional] Setup for PCL (required by qPCL)
 

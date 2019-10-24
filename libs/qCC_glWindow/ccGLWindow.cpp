@@ -759,7 +759,7 @@ void ccGLWindow::handleLoggedMessage(const QOpenGLDebugMessage& message)
 	default:
 		sevStr = "notification";
 		break;
-	};
+	}
 
 	//Decode source
 	QString sourceStr;
@@ -1740,7 +1740,7 @@ void ccGLWindow::paintGL()
 
 	if (	m_autoPickPivotAtCenter
 		&&	!m_mouseMoved
-		&&	(renderingParams.hasAutoPivotCandidates[0] || m_stereoModeEnabled && renderingParams.hasAutoPivotCandidates[1])
+		&&	(renderingParams.hasAutoPivotCandidates[0] || (m_stereoModeEnabled && renderingParams.hasAutoPivotCandidates[1]))
 		&&	!renderingParams.nextLODState.inProgress)
 	{
 		CCVector3d pivot;
@@ -4004,6 +4004,14 @@ void ccGLWindow::mousePressEvent(QMouseEvent *event)
 			emit leftButtonClicked(event->x(), event->y());
 		}
 	}
+	if (event->buttons() & Qt::MiddleButton)
+	{
+		//middle click = zooming
+		if (m_interactionFlags & INTERACT_SIG_MB_CLICKED)
+		{
+			emit middleButtonClicked(event->x(), event->y());
+		}
+	}
 	else
 	{
 		event->ignore();
@@ -4297,14 +4305,24 @@ void ccGLWindow::mouseMoveEvent(QMouseEvent *event)
 				//case LockedAxisMode:
 				{
 					static CCVector3d s_lastMouseOrientation;
-					if (!m_mouseMoved)
-					{
-						//on the first time, we must compute the previous orientation (the camera hasn't moved yet)
-						s_lastMouseOrientation = convertMousePositionToOrientation(m_lastMousePos.x(), m_lastMousePos.y());
-					}
-
 					CCVector3d currentMouseOrientation = convertMousePositionToOrientation(x, y);
-					rotMat = ccGLMatrixd::FromToRotation(s_lastMouseOrientation, currentMouseOrientation);
+
+					if (QApplication::keyboardModifiers() & Qt::ShiftModifier)
+					{
+						//rotate around the current viewport (roll camera)
+						double angle_rad = 2.0 * M_PI * dx/width();
+						rotMat.initFromParameters(angle_rad, CCVector3d(0, 0, 1), CCVector3d(0, 0, 0));
+					}
+					else
+					{
+						if (!m_mouseMoved)
+						{
+							//on the first time, we must compute the previous orientation (the camera hasn't moved yet)
+							s_lastMouseOrientation = convertMousePositionToOrientation(m_lastMousePos.x(), m_lastMousePos.y());
+						}
+						// unconstrained rotation following mouse position
+						rotMat = ccGLMatrixd::FromToRotation(s_lastMouseOrientation, currentMouseOrientation);
+					}
 
 					//if (rotationMode == LockedAxisMode)
 					//{
@@ -4424,12 +4442,13 @@ void ccGLWindow::mouseMoveEvent(QMouseEvent *event)
 			}
 		}
 	}
-	else if (event->buttons() & Qt::MiddleButton)	// XYLIU
+	else if ((event->buttons() & Qt::MiddleButton)) // zoom
 	{
-		float wheelDelta_deg = -dy * 2.0f;
-		onWheelEvent(wheelDelta_deg);
+		//middle button = zooming
+		float pseudo_wheelDelta_deg = static_cast<float>(-dy) * 2.0f; // XYLIU
+		onWheelEvent(pseudo_wheelDelta_deg);
 
-		emit mouseWheelRotated(wheelDelta_deg);
+		emit mouseWheelRotated(pseudo_wheelDelta_deg);
 	}
 
 	m_mouseMoved = true;
@@ -4631,6 +4650,14 @@ void ccGLWindow::mouseReleaseEvent(QMouseEvent *event)
 		}
 
 		m_activeItems.clear();
+	}
+	else if (event->button() == Qt::MiddleButton)
+	{
+		if (mouseHasMoved)
+		{
+			event->accept();
+			toBeRefreshed();
+		}
 	}
 
 	resetCursor();
