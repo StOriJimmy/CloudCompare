@@ -1,4 +1,4 @@
-//##########################################################################
+﻿//##########################################################################
 //#                                                                        #
 //#                              CLOUDCOMPARE                              #
 //#                                                                        #
@@ -117,6 +117,7 @@
 #include "ccWaveformDialog.h"
 #include "bdrSettingBDSegDlg.h"
 #include "bdrSettingGrdFilterDlg.h"
+#include "bdrProjectDlg.h"
 
 //other
 #include "ccCropTool.h"
@@ -166,6 +167,8 @@
 #include "stocker_parser.h"
 #include "polyfit/basic/logger.h"
 #endif // USE_STOCKER
+
+#include "BlockDBaseIO.h"
 
 #include <QDate>
 #include <QFuture>
@@ -247,6 +250,7 @@ MainWindow::MainWindow()
 	, m_GCSvr_prj_id(0)
 	, m_pbdrSettingBDSegDlg(nullptr)
 	, m_pbdrSettingGrdFilterDlg(nullptr)
+	, m_pbdrPrjDlg(nullptr)
 {
 	m_UI->setupUi( this );
 
@@ -1033,6 +1037,7 @@ void MainWindow::connectActions()
 	connect(m_UI->createBuildingProjectToolButton,	&QAbstractButton::clicked, this, &MainWindow::doActionCreateBuildingProject);
 	connect(m_UI->loadSubstanceToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionLoadSubstance);
 	
+	connect(m_UI->actionImageLiDARRegistration,		&QAction::triggered, this, &MainWindow::doActionImageLiDARRegistration);
 
 	//! Segmentation
 	connect(m_UI->actionGroundFilteringBatch,		&QAction::triggered, this, &MainWindow::doActionGroundFilteringBatch);
@@ -1042,14 +1047,16 @@ void MainWindow::connectActions()
 	connect(m_UI->actionBuildingSegmentEditor,		&QAction::triggered, this, &MainWindow::doActionBuildingSegmentEditor);
 	connect(m_UI->actionPointClassEditor,			&QAction::triggered, this, &MainWindow::doActionPointClassEditor);
 
-	connect(m_UI->actionSettingsGroundFiltering, &QAction::triggered, this, &MainWindow::doAactionSettingsGroundFiltering);
-	connect(m_UI->actionSettingsClassification, &QAction::triggered, this, &MainWindow::doActionSettingsClassification);
-	connect(m_UI->actionSettingsBuildingSeg, &QAction::triggered, this, &MainWindow::doActionSettingsBuildingSeg);
+	connect(m_UI->actionSettingsGroundFiltering,	&QAction::triggered, this, &MainWindow::doAactionSettingsGroundFiltering);
+	connect(m_UI->actionSettingsClassification,		&QAction::triggered, this, &MainWindow::doActionSettingsClassification);
+	connect(m_UI->actionSettingsBuildingSeg,		&QAction::triggered, this, &MainWindow::doActionSettingsBuildingSeg);
 
 	//! schedule
-	connect(m_UI->actionScheduleProjectID, &QAction::triggered, this, &MainWindow::doActionScheduleProjectID);
+	connect(m_UI->actionScheduleProjectID,			&QAction::triggered, this, &MainWindow::doActionScheduleProjectID);
+	connect(m_UI->actionScheduleGCServer,			&QAction::triggered, this, &MainWindow::doActionScheduleGCServer);
+	connect(m_UI->actionScheduleGCNode,				&QAction::triggered, this, &MainWindow::doActionScheduleGCNode);
 	
-	connect(m_UI->actionClearEmptyItems, &QAction::triggered, this, &MainWindow::doActionClearEmptyItems);
+	connect(m_UI->actionClearEmptyItems,			&QAction::triggered, this, &MainWindow::doActionClearEmptyItems);
 	
 }
 
@@ -2155,12 +2162,15 @@ void MainWindow::forceConsoleDisplay()
 	}
 }
 
-ccHObject* MainWindow::askUserToSelect(CC_CLASS_ENUM type, ccHObject* defaultCloudEntity/*=0*/, QString inviteMessage/*=QString()*/)
+ccHObject* MainWindow::askUserToSelect(CC_CLASS_ENUM type, ccHObject* defaultCloudEntity/*=0*/, QString inviteMessage/*=QString()*/, ccHObject* root /*= nullptr*/)
 {
 	ccHObject::Container entites;
-	ccDBRoot* root = db(getCurrentDB());
+	if (!root) {
+		ccDBRoot* db_root_ = db(getCurrentDB());
+		if (db_root_) root = db_root_->getRootEntity();
+	}
 	if (root) {
-		root->getRootEntity()->filterChildren(entites, true, type, true);
+		root->filterChildren(entites, true, type, true);
 	}
 	
 	if (entites.empty()) {
@@ -2908,8 +2918,8 @@ void MainWindow::echoImageCursorPos(const CCVector3d & P, bool b3d)
 
 void MainWindow::pointSnapBufferChanged(int buffer)
 {
-	if (GetActiveGLWindow())
-		GetActiveGLWindow()->setPointPickBuffer(buffer);
+	if (getActiveGLWindow())
+		getActiveGLWindow()->setPointPickBuffer(buffer);
 }
 
 void MainWindow::setStatusImageCoord(const CCVector3d & P, bool b3d)
@@ -7975,7 +7985,7 @@ void MainWindow::createComponentsClouds(ccGenericPointCloud* cloud,
 		if (db_prj) {
 			ccHObject* product_pool = db_prj->getProductSegmented(); 
 			if (product_pool) {
-				ccGroup = getChildGroupByName(product_pool, cloud->getName());
+				ccGroup = getChildGroupByName(product_pool, cloud->getName(), true);
 			}
 		}
 		if (!ccGroup) {
@@ -12308,23 +12318,28 @@ void MainWindow::doActionBDPlaneSegmentation()
 		return;
 	}
 
-	// check have not normals
-	ccHObject::Container normal_container;
-	for (auto & cloudObj : _container) {
-		ccPointCloud* entity_cloud = ccHObjectCaster::ToPointCloud(cloudObj);
-		if (!entity_cloud->hasNormals()) {
-			normal_container.push_back(cloudObj);
-		}
-	}
-	if (!normal_container.empty()) {
-		if (!ccEntityAction::computeNormals(normal_container, this))
-			return;
-	}
 
 	if (!m_pbdrPSDlg) m_pbdrPSDlg = new bdrPlaneSegDlg(this);
+	m_pbdrPSDlg->setPointClouds(_container);
 	if (!m_pbdrPSDlg->exec()) {
 		return;
 	}
+
+	if (!m_pbdrPSDlg->PlaneSegATPSRadioButton->isChecked()) {
+		// check have not normals
+		ccHObject::Container normal_container;
+		for (auto & cloudObj : _container) {
+			ccPointCloud* entity_cloud = ccHObjectCaster::ToPointCloud(cloudObj);
+			if (!entity_cloud->hasNormals()) {
+				normal_container.push_back(cloudObj);
+			}
+		}
+		if (!normal_container.empty()) {
+			if (!ccEntityAction::computeNormals(normal_container, this))
+				return;
+		}
+	}
+
 	double merge_threshold(-1), split_threshold(-1);
 	if (m_pbdrPSDlg->MergeCheckBox->isChecked()) {
 		merge_threshold = m_pbdrPSDlg->MergeThresholdDoubleSpinBox->value();		
@@ -12384,18 +12399,21 @@ void MainWindow::doActionBDPlaneSegmentation()
 			double nfa_epsilon = m_pbdrPSDlg->APTSNFASpinBox->value();
 			double normal_theta = m_pbdrPSDlg->APTSNormalSpinBox->value();
 
-			seged = PlaneSegmentationATPS(cloudObj,
-				support_pts, 
-				curvature_delta, 
-				distance_eps, 
-				cluster_eps,
-				nfa_epsilon,
-				normal_theta, 
-				todo_point);
+			if (m_pbdrPSDlg->autoParaCheckBox->isChecked()) {
+				seged = PlaneSegmentationATPS(cloudObj, todo_point);
+			}
+			else {
+				seged = PlaneSegmentationATPS(cloudObj, todo_point,
+					&support_pts,
+					&curvature_delta,
+					&distance_eps,
+					&cluster_eps,
+					&nfa_epsilon,
+					&normal_theta);
+			}
 		}
 		if (todo_point->size() == 0) {
-			delete todo_point;
-			todo_point = false;
+			removeFromDB(todo_point);
 		}
 
 		if (seged) {
@@ -14447,7 +14465,7 @@ ccHObject * MainWindow::getCameraGroup(QString name)
 
 void MainWindow::doActionShowBestImage()
 {
-	ccGLWindow* glwin = GetActiveGLWindow(); assert(glwin); if (!glwin) return;
+	ccGLWindow* glwin = getActiveGLWindow(); assert(glwin); if (!glwin) return;
 	ccViewportParameters params = glwin->getViewportParameters();
 	ccGLCameraParameters camParas; glwin->getGLCameraParameters(camParas);
 
@@ -14670,7 +14688,7 @@ void MainWindow::doActionCreateDatabase()
 
 	QString database_name = QFileDialog::getExistingDirectory(this,
 		tr("Open Directory"),
-		QFileInfo(currentPath).absolutePath(),
+		QFileInfo(currentPath).absoluteFilePath(),
 		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 	
 	if (database_name.isEmpty()) {
@@ -14678,74 +14696,25 @@ void MainWindow::doActionCreateDatabase()
 	}
 
 	//save last loading parameters
-	currentPath = QFileInfo(database_name).absolutePath();
+	currentPath = QFileInfo(database_name).absoluteFilePath();
 	settings.setValue(ccPS::CurrentPath(), currentPath);
 	settings.endGroup();
 
 	//QString database_name = QInputDialog::getText(this, "new database", "Database name", QLineEdit::Normal, QDate::currentDate().toString("yyyy-MM-dd"));
 	//! create a database
-	DataBaseHObject* new_database = new DataBaseHObject(QFileInfo(database_name).completeBaseName());
-	new_database->setPath(QFileInfo(database_name).absoluteFilePath());
-	addToDB_Main(new_database);
-
-	//! point clouds
-	{
-		ccHObject* points = new_database->getPointCloudGroup();
-		if (!points) {
-			return;
+	DataBaseHObject* new_database = DataBaseHObject::Create(database_name);
+	if (new_database) {
+		//! project settings dialog
+		if (!m_pbdrPrjDlg) { m_pbdrPrjDlg = new bdrProjectDlg(this); m_pbdrPrjDlg->setModal(true); }
+		m_pbdrPrjDlg->linkWithProject(new_database);
+		m_pbdrPrjDlg->setProjectPath(new_database->getPath(), false);
+		if (m_pbdrPrjDlg->exec() && new_database->load()) {
+			addToDB_Main(new_database);
 		}
-		points->setLocked(true);
-	}
-
-	//! images
-	{
-		ccHObject* images = new_database->getImagesGroup();
-		if (!images) {
-			return;
+		else {
+			delete new_database;
+			new_database = nullptr;
 		}
-		images->setLocked(true);
-	}
-
-	//! miscellaneous
-	{
-		ccHObject* misc = new_database->getMiscsGroup();
-		if (!misc) {
-			return;
-		}
-		misc->setLocked(true);
-	}
-
-	//! products
-	{
-		ccHObject* products = new_database->getProductGroup();
-		if (!products) {
-			return;
-		}
-		products->setLocked(true);
-
-		ccHObject* groundFilter = new_database->getProductFiltered();
-		if (!groundFilter) {
-			return;
-		}
-		groundFilter->setLocked(true);
-
-		ccHObject* classified = new_database->getProductClassified();
-		if (!classified) {
-			return;
-		}
-		classified->setLocked(true);
-
-		ccHObject* segments = new_database->getProductSegmented();
-		if (!segments) {
-			return;
-		}
-		segments->setLocked(true);
-
-		ccHObject* models = new_database->getProductModels();
-		if (!models) {
-			return;
-		}
-		models->setLocked(true);
 	}
 }
 
@@ -14761,13 +14730,25 @@ void MainWindow::doActionOpenDatabase()
 		QFileInfo(currentPath).absolutePath(),
 		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
+	if (!QFileInfo(database_name).exists())	{
+		return;
+	}
+
 	//save last loading parameters
 	currentPath = QFileInfo(database_name).absolutePath();
 	settings.setValue(ccPS::CurrentPath(), currentPath);
 	settings.endGroup();
 
-	//! find the bin
-	QString bin_file = database_name + "/" + QFileInfo(database_name).completeBaseName() + ".bin";
+	DataBaseHObject* load_database = DataBaseHObject::Create(database_name);
+
+	if (load_database->load()) {
+		addToDB_Main(load_database);
+		return;
+	}	
+	else if (load_database) {
+		delete load_database;
+		load_database = nullptr;
+	}
 
 	CCVector3d loadCoordinatesShift(0, 0, 0);
 	bool loadCoordinatesTransEnabled = false;
@@ -14781,10 +14762,12 @@ void MainWindow::doActionOpenDatabase()
 	}
 	CC_FILE_ERROR result = CC_FERR_NO_ERROR;
 
+	//! find the bin
+	QString bin_file = database_name + "/" + QFileInfo(database_name).completeBaseName() + ".bin";
 	ccHObject* newGroup = FileIOFilter::LoadFromFile(bin_file, parameters, result, QString());
 	if (!newGroup) return;
 
-	DataBaseHObject* load_database = new DataBaseHObject(*newGroup);
+	load_database = new DataBaseHObject(*newGroup);
 	load_database->setName(QFileInfo(database_name).completeBaseName());
 	load_database->setPath(QFileInfo(database_name).absoluteFilePath());
 	newGroup->transferChildren(*load_database);
@@ -14814,6 +14797,27 @@ void MainWindow::doActionSaveDatabase()
 
 	//specific case: BIN format			
 	result = FileIOFilter::SaveToFile(sel, bin_file, parameters, BinFilter::GetFileFilter());
+}
+
+void MainWindow::doActionEditDatabase()
+{
+	if (!m_pbdrPrjDlg) { m_pbdrPrjDlg = new bdrProjectDlg(this); m_pbdrPrjDlg->setModal(true); }
+	
+	DataBaseHObject* projObj = getCurrentMainDatabase();
+	if (!projObj) {
+		//! new
+		doActionCreateDatabase();
+		return;
+	}
+	
+	m_pbdrPrjDlg->linkWithProject(projObj);
+	m_pbdrPrjDlg->setProjectPath(projObj->getPath());
+	if (m_pbdrPrjDlg->exec()) {
+		if (projObj->load()) {
+			addToDB_Main(projObj);
+			projObj->setDisplay_recursive(projObj->getDisplay() ? projObj->getDisplay() : getActiveGLWindow());
+		}
+	}
 }
 
 void MainWindow::addToDatabase(QStringList files, ccHObject * import_pool, bool remove_exist, bool auto_sort)
@@ -14921,27 +14925,45 @@ ccHObject::Container MainWindow::addPointsToDatabase(QStringList files, ccHObjec
 }
 
 //QStringList s_import_filters;
+ccHObject::Container MainWindow::getMainDatabases(bool check_enable)
+{
+	ccHObject* root = db(CC_TYPES::DB_MAINDB)->getRootEntity();
+	return GetEnabledObjFromGroup(root, CC_TYPES::ST_PROJECT, check_enable, true);
+}
+
+DataBaseHObject* MainWindow::getCurrentMainDatabase(bool check_enable)
+{
+	ccHObject* baseObj = nullptr;
+	ccHObject::Container dbs = getMainDatabases(check_enable);
+	if (dbs.size() == 1 && dbs.front()) {
+		baseObj = dbs.front();
+	}
+	else if (dbs.size() > 1) {
+		if (haveSelection() && isDatabaseProject(getSelectedEntities().front())) {
+			baseObj = getSelectedEntities().front();
+		}
+		else {
+			baseObj = askUserToSelect(CC_TYPES::ST_PROJECT, dbs.front(), "please select the current active project", db(CC_TYPES::DB_MAINDB)->getRootEntity());
+		}
+	}
+	return ToDatabaseProject(baseObj);
+}
+
+DataBaseHObject * MainWindow::getCurrentMainDatabase()
+{
+	DataBaseHObject* baseObj = getCurrentMainDatabase(true);
+	if (!baseObj) {
+		baseObj = getCurrentMainDatabase(false);
+	}
+	return baseObj;
+}
 
 void MainWindow::doActionImportData()
 {
-	//! any database?
-	ccHObject* root = db(CC_TYPES::DB_MAINDB)->getRootEntity();
-	ccHObject* current_database = nullptr; ccHObject::Container dbs;
-	for (size_t i = 0; i < root->getChildrenNumber(); i++) {
-		if (isDatabaseProject(root->getChild(i))) {
-			dbs.push_back(root->getChild(i));
-		}
-	}
-	if (dbs.empty()) {
+	if (!haveSelection()) {
 		return;
 	}
-	if (dbs.size() > 1) {
-		current_database = askUserToSelect(CC_TYPES::ST_PROJECT);
-	}
-	else {
-		current_database = dbs.front();
-	}
-	if (!current_database) { return; }
+	ccHObject* import_pool = m_selectedEntities.front();
 	 
 	//persistent settings
 	QSettings settings;
@@ -14953,16 +14975,9 @@ void MainWindow::doActionImportData()
 	const QStringList filterStrings = FileIOFilter::ImportFilterList();
 	const QString &allFilter = filterStrings.at(0);
 
-	if (!filterStrings.contains(currentOpenDlgFilter))
-	{
+	if (!filterStrings.contains(currentOpenDlgFilter)) {
 		currentOpenDlgFilter = allFilter;
 	}
-
-	if (!haveSelection()) {
-		return;
-	}
-	ccHObject* import_pool = m_selectedEntities.front();
-
 	//file choosing dialog
 	QStringList selectedFiles = QFileDialog::getOpenFileNames(this,
 		tr("Open file(s)"),
@@ -14978,11 +14993,6 @@ void MainWindow::doActionImportData()
 	settings.setValue(ccPS::CurrentPath(), currentPath);
 	settings.setValue(ccPS::SelectedInputFilter(), currentOpenDlgFilter);
 	settings.endGroup();
-
-	if (currentOpenDlgFilter == allFilter)
-	{
-		currentOpenDlgFilter.clear(); //this way FileIOFilter will try to guess the file type automatically!
-	}
 
 	addPointsToDatabase(selectedFiles, import_pool, true, true, true);
 }
@@ -15037,10 +15047,6 @@ void MainWindow::doActionImportFolder()
 	}
 	
 	addPointsToDatabase(files, import_pool, true, true, true);
-}
-
-void MainWindow::doActionEditDatabase()
-{
 }
 
 void MainWindow::doActionCreateBuildingProject()
@@ -15160,7 +15166,7 @@ void MainWindow::doActionCreateBuildingProject()
 						"image list (*.txt)");
 				if (QFileInfo(Filename).exists()) {
 					QStringList list; list.append(Filename);
-					QStringList file = copyFilesToDir(list, image_dir);
+					QStringList file = moveFilesToDir(list, image_dir, false);
 					if (!file.isEmpty() && QFileInfo(file.front()).exists()) {
 						image_list = file.front();
 					}
@@ -15177,7 +15183,7 @@ void MainWindow::doActionCreateBuildingProject()
 					"sfm out (*.out)");
 			if (QFileInfo(Filename).exists()) {
 				QStringList list; list.append(Filename);
-				QStringList file = copyFilesToDir(list, image_dir);
+				QStringList file = moveFilesToDir(list, image_dir, false);
 				if (!file.isEmpty() && QFileInfo(file.front()).exists()) {
 					sfm_out = file.front();
 				}
@@ -15239,6 +15245,14 @@ inline QString getCmdLine(ccHObject* db_prj, QString task_name, int prj_id)
 	else return getCmdLine(prj_path + "/", task_name, prj_id);
 }
 
+inline QString getCmdLine(ccHObject* db_prj, BlockDB::BLOCK_TASK_ID task_id, int prj_id)
+{
+	QString prj_path = db_prj->getPath();
+	if (!QFileInfo(prj_path).exists())
+		return QString();
+	else return getCmdLine(prj_path + "/", QString::fromLatin1(BlockDB::g_strTaskTagName[task_id]), prj_id);
+}
+
 inline QStringList createTasksFiles(DataBaseHObject* db_prj,
 	ccHObject::Container tasks,
 	QString if_dir_name,
@@ -15289,6 +15303,83 @@ inline QStringList createTasksFiles(DataBaseHObject* db_prj,
 	return result_files;
 }
 
+inline QStringList createTasksFiles(DataBaseHObject* db_prj,
+	const std::vector<BlockDB::blkPtCldInfo>& tasks,
+	BlockDB::BLOCK_TASK_ID task_id,
+	QString exe_relative_path,
+	QString gcTsk_relative_path,
+	QString output_suffix,
+	QStringList para_settings)
+{
+	QStringList result_files;
+
+	//! generate tsk
+	char strIfDir[256]; sprintf(strIfDir, "%s%s%s%s%s", db_prj->getPath().toStdString().c_str(), "/", IF_PROCESS_DIR, "/", BlockDB::g_strTaskDirName[task_id]);
+	QString if_dir = QString::fromLocal8Bit(strIfDir); StCreatDir(if_dir);
+	QString tsk_dir = if_dir + "/TSK"; StCreatDir(tsk_dir);
+	QString output_dir = if_dir + "/OUTPUT"; StCreatDir(output_dir);
+	QStringList tsk_files;
+	for (auto task : tasks) {
+		//! .task
+		QString tsk_file = tsk_dir + "/" + QString::fromLocal8Bit(task.sName) + ".tsk";
+
+		//! input and output file
+		QString result_file = output_dir + "/" + QString::fromLocal8Bit(task.sName) + output_suffix;
+		if (output_suffix.isEmpty() || output_suffix == "/" || output_suffix == "\\") {
+			StCreatDir(result_file);
+		}
+		FILE* fp = fopen(tsk_file.toStdString().c_str(), "w");
+		fprintf(fp, "%s", task.sPath);
+		if (task_id == BlockDB::TASK_ID_FILTER) {
+			fprintf(fp, " ");
+		}
+		else {
+			fprintf(fp, "\n");
+		}
+
+		fprintf(fp, "%s\n", result_file.toStdString().c_str());
+		for (QString para : para_settings) {
+			fprintf(fp, "%s\n", para.toStdString().c_str());
+		}
+		fclose(fp);
+		tsk_files.append(tsk_file);
+		result_files.append(result_file);
+	}
+	//! generate gctsk
+	QString exe_path = QCoreApplication::applicationDirPath() + exe_relative_path;
+	QString gctsk_path = if_dir + gcTsk_relative_path;
+	FILE* fp = fopen(gctsk_path.toStdString().c_str(), "w");
+	fprintf(fp, "%d\n", tasks.size());
+	for (auto & tsk : tsk_files) {
+		fprintf(fp, "%s %s\n", exe_path.toStdString().c_str(), tsk.toStdString().c_str());
+	}
+	fclose(fp);
+	return result_files;
+}
+
+void MainWindow::doActionImageLiDARRegistration()
+{
+	DataBaseHObject* baseObj = getCurrentMainDatabase();
+	if (!baseObj) { ccLog::Error(QString::fromLocal8Bit("请先载入工程!")); return; }
+
+	if (baseObj->m_blkData) {
+		if (!baseObj->m_blkData->saveProject(true)) {
+			QMessageBox::critical(this, "Error!", QString::fromLocal8Bit("无法生成配准工程"));
+			return;
+		}
+	}
+	QString exe_path = QCoreApplication::applicationDirPath() + "/bin/Registration/RegisLiDAR_Image.exe";
+	std::string regis_path;
+	baseObj->m_blkData->getMetaValue(REGISPRJ_PATH_KEY, regis_path);
+	QString xml = QString::fromStdString(regis_path);
+	if (QFileInfo(xml).exists()) {
+		QProcess::execute(exe_path + " " + xml);
+	}
+	else {
+		QMessageBox::critical(this, "Error!", QString::fromLocal8Bit("无法打开配准工程"));
+	}
+}
+
 void LoadSettingsFiltering()
 {
 
@@ -15296,20 +15387,21 @@ void LoadSettingsFiltering()
 
 void MainWindow::doActionGroundFilteringBatch()
 {
-	if (!haveSelection()) {
-		return;
-	}
-	ccHObject* sel = m_selectedEntities.front();
-	DataBaseHObject* db_prj = GetRootDataBase(sel);
-	if (!db_prj) { return; }
+	DataBaseHObject* baseObj = getCurrentMainDatabase();
+	if (!baseObj) { ccLog::Error(QString::fromLocal8Bit("请先载入工程!")); return; }
 
-	ccHObject::Container tasks;
-	{
-		if (sel->isGroup()) {
-			tasks = GetEnabledObjFromGroup(sel, CC_TYPES::POINT_CLOUD, true, false);
+	//! get valid data by level
+	std::vector<BlockDB::blkPtCldInfo> poinclouds;
+	BlockDB::BLOCK_PtCldLevel _level = BlockDB::PCLEVEL_STRIP;
+	for (auto & pt : baseObj->m_blkData->getPtClds()) {
+		if (pt.level == _level && pt.nGroupID == baseObj->m_blkData->projHdr().groupID) {
+			poinclouds.push_back(pt);
 		}
-		else if (sel->isA(CC_TYPES::POINT_CLOUD)) {
-			tasks.push_back(sel);
+	}
+	_level = BlockDB::PCLEVEL_TILE;
+	for (auto & pt : baseObj->m_blkData->getPtClds()) {
+		if (pt.level == _level && pt.nGroupID == baseObj->m_blkData->projHdr().groupID) {
+			poinclouds.push_back(pt);
 		}
 	}
 
@@ -15320,56 +15412,66 @@ void MainWindow::doActionGroundFilteringBatch()
 		QStringList para_settings = m_pbdrSettingGrdFilterDlg->getParameters();
 		//! filters
 		QString output_suffix = ".las";
-		result_files = createTasksFiles(db_prj, tasks,
-			"IF_FILTERING",
+		result_files = createTasksFiles(baseObj, poinclouds,
+			BlockDB::TASK_ID_FILTER,
 			"/bin/FILTERING/filtering_knl.exe",
-			"/filtering.gctsk",
+			"/filtering.gtsk",
 			output_suffix,
 			para_settings);
 	}
 
-	QString cmd = getCmdLine(db_prj, "FILTERING", m_GCSvr_prj_id);
+	QString cmd = getCmdLine(baseObj, BlockDB::TASK_ID_FILTER, baseObj->m_blkData->projHdr().projectID);
 	std::cout << "cmd: " << cmd.toStdString() << std::endl;
 	if (cmd.isEmpty()) return;
 
-	ccHObject* product_pool = db_prj->getProductFiltered(); if (!product_pool) { return; }
+	//! whether wait for results
+	QMessageBox *messageBox = new QMessageBox(this);
+	messageBox->setIcon(QMessageBox::Question);
+	messageBox->setWindowTitle(QString::fromLocal8Bit("结果自动返回"));
+	messageBox->setText(QString::fromLocal8Bit("是否等待界面返回滤波结果?"));
+	messageBox->addButton(QString::fromLocal8Bit("否"), QMessageBox::RejectRole);
+	messageBox->addButton(QString::fromLocal8Bit("是"), QMessageBox::AcceptRole);
+	bool waitForResult = (messageBox->exec() == QDialog::Accepted);
 
-	QScopedPointer<ccProgressDialog> pDlg(nullptr);
-	pDlg.reset(new ccProgressDialog(false, this));
-	pDlg->setMethodTitle(QObject::tr("Ground Filtering"));
-	pDlg->setInfo(QObject::tr("Please wait... filtering in progress"));
-	pDlg->setRange(0, 0);
-	pDlg->setModal(false);
-	pDlg->start();
+	if (waitForResult) {
+		QScopedPointer<ccProgressDialog> pDlg(nullptr);
+		pDlg.reset(new ccProgressDialog(false, this));
+		pDlg->setMethodTitle(QObject::tr("Ground Filtering"));
+		pDlg->setInfo(QObject::tr("Please wait... filtering in progress"));
+		pDlg->setRange(0, 0);
+		pDlg->setModal(false);
+		pDlg->start();
 
-	QFutureWatcher<void> executer;
-	connect(&executer, &QFutureWatcher<void>::finished, this, [=]() {
-		QStringList new_results = moveFilesToDir(result_files, product_pool->getPath());
-		addPointsToDatabase(new_results, product_pool, true, true, true);
-		//addToDatabase(new_results, product_pool);
-	});
-	QObject::connect(&executer, SIGNAL(finished()), pDlg.data(), SLOT(reset()));
-	executer.setFuture(QtConcurrent::run([&cmd]() { QProcess::execute(cmd); }));
-	pDlg->exec();
-	executer.waitForFinished();
+		QFutureWatcher<void> executer;
+		connect(&executer, &QFutureWatcher<void>::finished, this, [=]() {
+			//! the results should be moved to dirs in the check process
+			baseObj->parseResults(BlockDB::TASK_ID_FILTER, result_files, 1);
+			//! otherwise open dialog --> import folders automatically
+			baseObj->retrieveResults(BlockDB::TASK_ID_FILTER);
+			
+			QMessageBox::information(this, "Finished!", "The filtering task is completed");
+		});
+		QObject::connect(&executer, SIGNAL(finished()), pDlg.data(), SLOT(reset()));
+		executer.setFuture(QtConcurrent::run([&cmd]() { QProcess::execute(cmd); }));
+		pDlg->exec();
+		executer.waitForFinished();
+	}
+	else {
+		QProcess::startDetached(cmd);
+	}
 }
 
 void MainWindow::doActionClassificationBatch()
 {
-	if (!haveSelection()) {
-		return;
-	}
-	ccHObject* sel = m_selectedEntities.front();
-	DataBaseHObject* db_prj = GetRootDataBase(sel);
-	if (!db_prj) { return; }
-	
-	ccHObject::Container tasks;
-	{
-		if (sel->isGroup()) {
-			tasks = GetEnabledObjFromGroup(sel, CC_TYPES::POINT_CLOUD, true, false);
-		}
-		else if (sel->isA(CC_TYPES::POINT_CLOUD)) {
-			tasks.push_back(sel);
+	DataBaseHObject* baseObj = getCurrentMainDatabase();
+	if (!baseObj) { ccLog::Error(QString::fromLocal8Bit("请先载入工程!")); return; }
+
+	//! get valid data by level
+	std::vector<BlockDB::blkPtCldInfo> poinclouds;
+	BlockDB::BLOCK_PtCldLevel _level = BlockDB::PCLEVEL_FILTER;
+	for (auto & pt : baseObj->m_blkData->getPtClds()) {
+		if (pt.level == _level && pt.nGroupID == baseObj->m_blkData->projHdr().groupID) {
+			poinclouds.push_back(pt);
 		}
 	}
 
@@ -15379,117 +15481,122 @@ void MainWindow::doActionClassificationBatch()
 		QStringList para_settings;
 		//! filters
 		QString output_suffix = ".las";		
-		result_files = createTasksFiles(db_prj, tasks,
-			"IF_CLASSIFICATION",
+		result_files = createTasksFiles(baseObj, poinclouds,
+			BlockDB::TASK_ID_CLASS,
 			"/bin/CLASSIFY/Classify_KNL.exe",
-			"/classification.gctsk",
+			"/classification.gtsk",
 			output_suffix,
 			para_settings);
 	}
 
-	QString cmd = getCmdLine(db_prj, "CLASSIFICATION", m_GCSvr_prj_id);
+	QString cmd = getCmdLine(baseObj, BlockDB::TASK_ID_FILTER, baseObj->m_blkData->projHdr().projectID);
 	std::cout << "cmd: " << cmd.toStdString() << std::endl;
 	if (cmd.isEmpty()) return;
 
-	ccHObject* product_pool = db_prj->getProductClassified(); if (!product_pool) { return; }
-	
-  	QScopedPointer<ccProgressDialog> pDlg(nullptr);
-  	pDlg.reset(new ccProgressDialog(false, this));
-  	pDlg->setMethodTitle(QObject::tr("Classification"));
-  	pDlg->setInfo(QObject::tr("Please wait... classifying in progress"));
-  	pDlg->setRange(0, 0);
-  	pDlg->setModal(false);
-  	pDlg->start();
+	//! whether wait for results
+	QMessageBox *messageBox = new QMessageBox(this);
+	messageBox->setIcon(QMessageBox::Question);
+	messageBox->setWindowTitle(QString::fromLocal8Bit("结果自动返回"));
+	messageBox->setText(QString::fromLocal8Bit("是否等待界面返回分类结果?"));
+	messageBox->addButton(QString::fromLocal8Bit("否"), QMessageBox::RejectRole);
+	messageBox->addButton(QString::fromLocal8Bit("是"), QMessageBox::AcceptRole);
+	bool waitForResult = (messageBox->exec() == QDialog::Accepted);
+		
+	if (waitForResult) {
+		QScopedPointer<ccProgressDialog> pDlg(nullptr);
+		pDlg.reset(new ccProgressDialog(false, this));
+		pDlg->setMethodTitle(QObject::tr("Classification"));
+		pDlg->setInfo(QObject::tr("Please wait... classifying in progress"));
+		pDlg->setRange(0, 0);
+		pDlg->setModal(false);
+		pDlg->start();
 
-	QFutureWatcher<void> executer;
-	connect(&executer, &QFutureWatcher<void>::finished, this, [=]() {
-		QStringList new_results = moveFilesToDir(result_files, product_pool->getPath());
-		addPointsToDatabase(new_results, product_pool, true, true, true);
-		//addToDatabase(new_results, product_pool);
-	});
-	QObject::connect(&executer, SIGNAL(finished()), pDlg.data(), SLOT(reset()));
-	executer.setFuture(QtConcurrent::run([&cmd]() { QProcess::execute(cmd); }));
-	pDlg->exec();
-	executer.waitForFinished();
+		QFutureWatcher<void> executer;
+		connect(&executer, &QFutureWatcher<void>::finished, this, [=]() {
+			//! the results should be moved to dirs in the check process
+			baseObj->parseResults(BlockDB::TASK_ID_CLASS, result_files, 1);
+			//! otherwise open dialog --> import folders automatically
+			baseObj->retrieveResults(BlockDB::TASK_ID_CLASS);
+
+			QMessageBox::information(this, "Finished!", "The classification task is completed");
+		});
+		QObject::connect(&executer, SIGNAL(finished()), pDlg.data(), SLOT(reset()));
+		executer.setFuture(QtConcurrent::run([&cmd]() { QProcess::execute(cmd); }));
+		pDlg->exec();
+		executer.waitForFinished();
+	}
+	else {
+		QProcess::startDetached(cmd);
+	}
 }
 
 void MainWindow::doActionBuildingSegmentationBatch()
 {
-	if (!haveSelection()) {
-		return;
-	}
-	ccHObject* sel = m_selectedEntities.front();
-	DataBaseHObject* db_prj = GetRootDataBase(sel);
-	if (!db_prj) { return; }
+	DataBaseHObject* baseObj = getCurrentMainDatabase();
+	if (!baseObj) { ccLog::Error(QString::fromLocal8Bit("请先载入工程!")); return; }
 
-	ccHObject::Container tasks;
-	if (sel->isGroup()) {
-		tasks = GetEnabledObjFromGroup(sel, CC_TYPES::POINT_CLOUD, true, false);
+	//! get valid data by level
+	std::vector<BlockDB::blkPtCldInfo> poinclouds;
+	BlockDB::BLOCK_PtCldLevel _level = BlockDB::PCLEVEL_CLASS;
+	for (auto & pt : baseObj->m_blkData->getPtClds()) {
+		if (pt.level == _level && pt.nGroupID == baseObj->m_blkData->projHdr().groupID) {
+			poinclouds.push_back(pt);
+		}
 	}
-	else if (sel->isA(CC_TYPES::POINT_CLOUD)) {
-		tasks.push_back(sel);
-	}
-	
+
 	QStringList result_files;
 	{
 		//! parameters
-		if (!m_pbdrSettingBDSegDlg) { m_pbdrSettingBDSegDlg = new bdrSettingBDSegDlg(this); }
-		QStringList para_settings = m_pbdrSettingBDSegDlg->getParameters();
-		// it's a directory
-		QString output_suffix = "/";
-		result_files = createTasksFiles(db_prj, tasks,
-			"IF_BUILDINGSEG",
-			"/bin/BUILDINGSEG/BUILDINGSEG_KNL.exe", 
-			"/BUILDINGSEG.gctsk",
-			output_suffix, para_settings);
+		QStringList para_settings;
+		//! filters
+		QString output_suffix = ".las";
+		result_files = createTasksFiles(baseObj, poinclouds,
+			BlockDB::TASK_ID_BDSEG,
+			"/bin/BUILDINGSEG/BUIDINGSEG_KNL.exe",
+			"/segmentation.gtsk",
+			output_suffix,
+			para_settings);
 	}
 
-	QString cmd = getCmdLine(db_prj, "BUILDINGSEG", m_GCSvr_prj_id);
+	QString cmd = getCmdLine(baseObj, BlockDB::TASK_ID_BDSEG, baseObj->m_blkData->projHdr().projectID);
 	std::cout << "cmd: " << cmd.toStdString() << std::endl;
 	if (cmd.isEmpty()) return;
 
-	ccHObject* product_pool = db_prj->getProductSegmented(); if (!product_pool) { return; }
+	//! whether wait for results
+	QMessageBox *messageBox = new QMessageBox(this);
+	messageBox->setIcon(QMessageBox::Question);
+	messageBox->setWindowTitle(QString::fromLocal8Bit("结果自动返回"));
+	messageBox->setText(QString::fromLocal8Bit("是否等待界面返回分割结果?"));
+	messageBox->addButton(QString::fromLocal8Bit("否"), QMessageBox::RejectRole);
+	messageBox->addButton(QString::fromLocal8Bit("是"), QMessageBox::AcceptRole);
+	bool waitForResult = (messageBox->exec() == QDialog::Accepted);
 
-	QScopedPointer<ccProgressDialog> pDlg(nullptr);
-	pDlg.reset(new ccProgressDialog(false, this));
-	pDlg->setMethodTitle(QObject::tr("Building Segmentation"));
-	pDlg->setInfo(QObject::tr("Please wait... building segmentation in progress"));
-	pDlg->setRange(0, 0);
-	pDlg->setModal(false);
-	pDlg->start();
-	
-	QFutureWatcher<void> executer;
-	connect(&executer, &QFutureWatcher<void>::finished, this, [=]() {
-		//! get result files
-		QStringList nameFilters; nameFilters << "*.las" << "*.laz" << "*.ply" << "*.obj";
-		for (QString res : result_files) {
-			QString result_dir = res;
-			if (res.back() == "/" || res.back() == "\\") {
-				result_dir.chop(1);
-			}
-			ccHObject* pool = getChildGroupByName(product_pool, QFileInfo(result_dir).fileName());
-			if (pool) {
-				QStringList building_files = QDir(res).entryList(nameFilters, QDir::Files | QDir::Readable, QDir::Name);
-				for (size_t i = 0; i < building_files.size(); i++) {
-					QString & s = const_cast<QString&>(building_files.at(i));
-					s = result_dir + "/" + s;
-				}
-				QStringList new_results = moveFilesToDir(building_files, pool->getPath());
-				ccHObject::Container added_files = addPointsToDatabase(new_results, pool, true, false, false);
-				int bd_num = GetMaxNumberExcludeChildPrefix(pool, BDDB_BUILDING_PREFIX) + 1;
-				for (ccHObject* pc : added_files) {
-					pc->setName(BuildingNameByNumber(bd_num++));
-				}
-				db(pool->getDBSourceType())->sortItemChildren(pool, ccDBRoot::SORT_A2Z);
-			}
-		}
-		refreshAll();
-		updateUI();
-	});
-	QObject::connect(&executer, SIGNAL(finished()), pDlg.data(), SLOT(reset()));
-	executer.setFuture(QtConcurrent::run([&cmd]() { QProcess::execute(cmd); }));
-	pDlg->exec();
-	executer.waitForFinished();
+	if (waitForResult) {
+		QScopedPointer<ccProgressDialog> pDlg(nullptr);
+		pDlg.reset(new ccProgressDialog(false, this));
+		pDlg->setMethodTitle(QObject::tr("Building segmentation"));
+		pDlg->setInfo(QObject::tr("Please wait... segmentation in progress"));
+		pDlg->setRange(0, 0);
+		pDlg->setModal(false);
+		pDlg->start();
+
+		QFutureWatcher<void> executer;
+		connect(&executer, &QFutureWatcher<void>::finished, this, [=]() {
+			//! the results should be moved to dirs in the check process
+			baseObj->parseResults(BlockDB::TASK_ID_BDSEG, result_files, 1);
+			//! otherwise open dialog --> import folders automatically
+			baseObj->retrieveResults(BlockDB::TASK_ID_BDSEG);
+
+			QMessageBox::information(this, "Finished!", "The segmentation task is completed");
+		});
+		QObject::connect(&executer, SIGNAL(finished()), pDlg.data(), SLOT(reset()));
+		executer.setFuture(QtConcurrent::run([&cmd]() { QProcess::execute(cmd); }));
+		pDlg->exec();
+		executer.waitForFinished();
+	}
+	else {
+		QProcess::startDetached(cmd);
+	}
 }
 
 void MainWindow::doActionPointClassEditor()
@@ -15653,11 +15760,26 @@ void MainWindow::doActionSettingsBuildingSeg()
 
 void MainWindow::doActionScheduleProjectID()
 {
-	bool ok;
-	int getint = QInputDialog::getInt(this, "Compute Kd-tree", "Max error per leaf cell:", m_GCSvr_prj_id, 0, 99, 1, &ok);
-	if (ok) {
-		m_GCSvr_prj_id = getint;
+	DataBaseHObject* base = getCurrentMainDatabase();
+	if (base) {
+		bool ok;
+		int getint = QInputDialog::getInt(this, "Project ID", "Project ID:", base->m_blkData->projHdr().projectID, 0, 99, 1, &ok);
+		if (ok) {
+			base->m_blkData->projHdr().projectID = getint;
+		}
 	}
+}
+
+void MainWindow::doActionScheduleGCServer()
+{
+	QString runPath = QCoreApplication::applicationDirPath() + "/bin/WGCS/GCSvr.exe";
+	QProcess::startDetached(runPath, QStringList(runPath));
+}
+
+void MainWindow::doActionScheduleGCNode()
+{
+	QString runPath = QCoreApplication::applicationDirPath() + "/bin/WGCS/GCNode.exe";
+	QProcess::startDetached(runPath, QStringList(runPath));
 }
 
 void MainWindow::doActionClearEmptyItems()

@@ -76,11 +76,14 @@ class bdrPlaneEditorDlg;
 class bdrSettingBDSegDlg;
 class bdrSettingGrdFilterDlg;
 
+class bdrProjectDlg;
+
 class PolyFitObj;
 
 class StDBMainRoot;
 class StDBBuildingRoot;
 class StDBImageRoot;
+class DataBaseHObject;
 
 namespace Ui {
 	class MainWindow;
@@ -237,6 +240,11 @@ public:
 
 	ccHObject* getCameraGroup(QString name);
 	void setStatusImageCoord(const CCVector3d & P, bool b3d);
+
+	ccHObject::Container getMainDatabases(bool check_enable);
+
+	DataBaseHObject* getCurrentMainDatabase(bool check_enable);
+	DataBaseHObject* getCurrentMainDatabase();
 
 private slots:
 	//! Creates a new 3D GL sub-window
@@ -622,12 +630,14 @@ private slots:
 
 	void doActionCreateDatabase();
 	void doActionOpenDatabase();
-	void doActionSaveDatabase();
+	void doActionSaveDatabase();	
 	void doActionImportData();
 	void doActionImportFolder();
 	void doActionEditDatabase();
 	void doActionCreateBuildingProject();
 	void doActionLoadSubstance();
+
+	void doActionImageLiDARRegistration();
 
 	void doActionGroundFilteringBatch();
 	void doActionClassificationBatch();
@@ -643,6 +653,8 @@ private slots:
 	void doActionSettingsBuildingSeg();
 	
 	void doActionScheduleProjectID();
+	void doActionScheduleGCServer();
+	void doActionScheduleGCNode();
 
 	void doActionClearEmptyItems();
 
@@ -840,7 +852,7 @@ private:
 
 	//////////////////////////////////////////////////////////////////////////
 	// XYLIU
-	ccHObject* askUserToSelect(CC_CLASS_ENUM type, ccHObject* defaultCloudEntity = 0, QString inviteMessage = QString());
+	ccHObject* askUserToSelect(CC_CLASS_ENUM type, ccHObject* defaultCloudEntity = 0, QString inviteMessage = QString(), ccHObject* root = nullptr);
 
 	void doActionToggleDrawBBox();
 
@@ -863,6 +875,8 @@ private:
 
 	bdrSettingBDSegDlg* m_pbdrSettingBDSegDlg;
 	bdrSettingGrdFilterDlg* m_pbdrSettingGrdFilterDlg;
+
+	bdrProjectDlg* m_pbdrPrjDlg;
 
 	PolyFitObj* polyfit_obj;
 	int m_GCSvr_prj_id;

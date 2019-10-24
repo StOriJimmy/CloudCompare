@@ -13,25 +13,43 @@ class ccBBox;
 #define IMAGE_MARKER_DISPLAY_Z 1
 
 //! 2.5D data editor (generic interface)
-class bdr2Point5DimEditor
+class bdr2Point5DEditor 
+{
+public:
+	bdr2Point5DEditor();
+	~bdr2Point5DEditor();
+	ccGLWindow* getGLWindow() { return m_glWindow; }
+
+	virtual void init2DView();
+	//! Creates the 2D view
+	virtual void create2DView(QFrame* parentFrame);
+
+	//! Updates the 2D display zoom	// left bottom
+	virtual void update2DDisplayZoom(ccBBox& box, CCVector3d up = CCVector3d(0, 1, 0));
+
+	virtual void clearAll();
+protected:
+	//! 2D display
+	ccGLWindow* m_glWindow;
+};
+
+class bdr2Point5DimEditor : public bdr2Point5DEditor
 {
 public:
 	//! Default constructor
 	bdr2Point5DimEditor();
 
 	//! Destructor
-	virtual ~bdr2Point5DimEditor();
+	~bdr2Point5DimEditor();
 
-	void clearAll();
-
-public: //standard methods
-
-	//! Updates the 2D display zoom	// left bottom
-	virtual void update2DDisplayZoom(ccBBox& box, CCVector3d up = CCVector3d(0, 1, 0));
+	
 
 public:
+	
+	virtual void init2DView() override;
 	//! Creates the 2D view
-	void create2DView(QFrame* parentFrame);
+	virtual void create2DView(QFrame* parentFrame) override;
+	virtual void clearAll() override;
 
 	void setAssociate3DView(ccGLWindow* win);
 	ccGLWindow* getAssociate3DView() { return m_associate_3DView; }
@@ -42,13 +60,9 @@ public:
 	//! left-bottom
 	bool FromGlobalToImage(const CCVector3 & P_global, CCVector3 & P_local, bool withLensError = true);
 
-	void init2DView();
-
 	void setImage(QString image_path);
 	void setImageAndCamera(ccCameraSensor* cam);
 	ccImage* getImage() { return m_image; }
-
-	ccGLWindow* getGLWindow() { return m_glWindow; }
 
 	ccHObject* projectToImage(ccHObject* obj);
 
@@ -58,9 +72,6 @@ public: // buttons
 	void ZoomFit();
 
 protected: //members
-
-	//! 2D display
-	ccGLWindow* m_glWindow;
 
 	//! associate 3d view
 	ccGLWindow* m_associate_3DView;

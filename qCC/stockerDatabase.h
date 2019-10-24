@@ -1,19 +1,3 @@
-//##########################################################################
-//#                                                                        #
-//#                              CLOUDCOMPARE                              #
-//#                                                                        #
-//#  This program is free software; you can redistribute it and/or modify  #
-//#  it under the terms of the GNU General Public License as published by  #
-//#  the Free Software Foundation; version 2 or later of the License.      #
-//#                                                                        #
-//#  This program is distributed in the hope that it will be useful,       #
-//#  but WITHOUT ANY WARRANTY; without even the implied warranty of        #
-//#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the          #
-//#  GNU General Public License for more details.                          #
-//#                                                                        #
-//#          COPYRIGHT: EDF R&D / TELECOM ParisTech (ENST-TSI)             #
-//#                                                                        #
-//##########################################################################
 
 #ifndef __STOCKER_DATABASE_HEADER__
 #define __STOCKER_DATABASE_HEADER__
@@ -27,8 +11,7 @@
 #include "StPrimGroup.h"
 
 #include "buildercore/StBuilder.h"
-
-//class BDBaseHObject;
+#include "BlockDBaseIO.h"
 
 #define BDDB_PLANESEG_PREFIX		"Plane"
 #define BDDB_BOUNDARY_PREFIX		"Boundary"
@@ -60,32 +43,75 @@
 #define BDDB_LOD3MODEL_SUFFIX		".lod3.model"
 #define BDDB_TODOGROUP_SUFFIX		".todo"
 
+enum importDataType
+{
+	IMPORT_POINTS,
+	IMPORT_IMAGES,
+	IMPORT_MISCS,
+	IMPORT_MODELS,
+	IMPORT_POSTGIS,
+	IMPORT_TYPE_END,
+};
+
+Q_DECLARE_METATYPE(BlockDB::blkDataInfo*)
+Q_DECLARE_METATYPE(BlockDB::blkCameraInfo)
+
+#define BLK_DATA_METAKEY "BlkDataInfo"
+
+#define PtCld_Dir_NAME "pointClouds"
+#define IMAGE_Dir_NAME "images"
+#define MISCS_Dir_NAME "miscs"
+#define PRODS_Dir_NAME "products"
+
 class DataBaseHObject : public BDBaseHObject_
 {
 public:
-	DataBaseHObject(QString name = QString()) :
-		BDBaseHObject_(name) {
+	DataBaseHObject(QString name = QString()) 
+		: BDBaseHObject_(name)
+		, m_blkData(new BlockDB::BlockDBaseIO)
+	{
 		setDBSourceType(CC_TYPES::DB_MAINDB);
 	}
-	DataBaseHObject(const ccHObject& s) :
-		BDBaseHObject_(s) {
+	DataBaseHObject(const StHObject& s) 
+		: BDBaseHObject_(s) 
+		, m_blkData(new BlockDB::BlockDBaseIO) 
+	{
+		setPath(s.getPath());
 		setDBSourceType(CC_TYPES::DB_MAINDB);
 	}
-	~DataBaseHObject() {}
+	~DataBaseHObject() {
+		if (m_blkData) { delete m_blkData; m_blkData = nullptr; }
+	}
+	virtual inline void setPath(const QString& tp) override;
 
 	using Container = std::vector<DataBaseHObject *>;
 
 public:
-	ccHObject* getPointCloudGroup();
-	ccHObject* getImagesGroup();
-	ccHObject* getMiscsGroup();
-	ccHObject* getProductGroup();
-	ccHObject* getProductItem(QString name);
-	ccHObject* getProductFiltered();
-	ccHObject* getProductClassified();
-	ccHObject* getProductSegmented();
-	ccHObject* getProductModels();
+	StHObject* getPointCloudGroup();
+	StHObject* getImagesGroup();
+	StHObject* getMiscsGroup();
+	StHObject* getProductGroup();
+	StHObject* getProductItem(QString name);
+	StHObject* getProductFiltered();
+	StHObject* getProductClassified();
+	StHObject* getProductSegmented();
+	StHObject* getProductModels();
+
+	static DataBaseHObject* Create(QString absolute_path);
+	bool addData(StHObject* obj, BlockDB::blkDataInfo* info, bool exist_info);
+	bool addDataExist(BlockDB::blkDataInfo* info);
+	void clear();
+	bool load();
+	bool save();
+	bool parseResults(BlockDB::BLOCK_TASK_ID task_id, QStringList results, int copy_mode);
+	bool retrieveResults(BlockDB::BLOCK_TASK_ID task_id);
+	// copy mode, 0 - copy, 1 - move, 2 - use the origin path
+	bool retrieveResults(BlockDB::BLOCK_TASK_ID task_id, QStringList results, int copy_mode);
+
+	BlockDB::BlockDBaseIO* m_blkData;
 };
+
+StHObject * createObjectFromBlkDataInfo(BlockDB::blkDataInfo * info, bool return_scene = false);
 
 class BDBaseHObject : public BDBaseHObject_
 {
@@ -94,7 +120,7 @@ public:
 		BDBaseHObject_(name) {
 		setDBSourceType(CC_TYPES::DB_BUILDING);
 	}
-	BDBaseHObject(const ccHObject& s) :
+	BDBaseHObject(const StHObject& s) :
 		BDBaseHObject_(s) {
 		setDBSourceType(CC_TYPES::DB_BUILDING);
 	}
@@ -115,7 +141,7 @@ public:
 	StBlockGroup * GetBlockGroup(QString building_name);
 	StPrimGroup * GetHypothesisGroup(QString building_name);
 	
-	ccHObject* GetTodoGroup(QString building_name);
+	StHObject* GetTodoGroup(QString building_name);
 	ccPointCloud* GetTodoPoint(QString buildig_name);
 	ccPointCloud* GetTodoLine(QString buildig_name);
 	stocker::Vec3d ToLocal(stocker::Vec3d pt) { return (pt + global_shift)*global_scale; }
@@ -137,7 +163,7 @@ public:
 		BDBaseHObject_(name) {
 		setDBSourceType(CC_TYPES::DB_IMAGE);
 	}
-	BDImageBaseHObject(const ccHObject& s) :
+	BDImageBaseHObject(const StHObject& s) :
 		BDBaseHObject_(s) {
 		setDBSourceType(CC_TYPES::DB_IMAGE);
 	}
@@ -146,23 +172,32 @@ public:
 	using Container = std::vector<BDImageBaseHObject *>;
 };
 
-inline bool isDatabaseProject(ccHObject* object) {
-	return (object->isA(CC_TYPES::ST_PROJECT) && object->getDBSourceType() == CC_TYPES::DB_MAINDB);
+inline bool isDatabaseProject(StHObject* object) {
+	return object && object->isA(CC_TYPES::ST_PROJECT) && object->getDBSourceType() == CC_TYPES::DB_MAINDB;
 }
-inline bool isBuildingProject(ccHObject* object) {
-	return (object->isA(CC_TYPES::ST_PROJECT) && object->getDBSourceType() == CC_TYPES::DB_BUILDING);
+inline DataBaseHObject* ToDatabaseProject(StHObject* object) {
+	return isDatabaseProject(object) ? static_cast<DataBaseHObject*>(object) : nullptr;
 }
-inline bool isImageProject(ccHObject* object) {
-	return (object->isA(CC_TYPES::ST_PROJECT) && object->getDBSourceType() == CC_TYPES::DB_IMAGE);
+inline bool isBuildingProject(StHObject* object) {
+	return object && object->isA(CC_TYPES::ST_PROJECT) && object->getDBSourceType() == CC_TYPES::DB_BUILDING;
+}
+inline BDBaseHObject* ToBuildingProject(StHObject* object) {
+	return isBuildingProject(object) ? static_cast<BDBaseHObject*>(object) : nullptr;
+}
+inline bool isImageProject(StHObject* object) {
+	return object && object->isA(CC_TYPES::ST_PROJECT) && object->getDBSourceType() == CC_TYPES::DB_IMAGE;
+}
+inline BDImageBaseHObject* ToImageProject(StHObject* object) {
+	return isImageProject(object) ? static_cast<BDImageBaseHObject*>(object) : nullptr;
 }
 
-DataBaseHObject* GetRootDataBase(ccHObject* obj);
-BDBaseHObject* GetRootBDBase(ccHObject* obj);
-BDImageBaseHObject* GetRootImageBase(ccHObject* obj);
+DataBaseHObject* GetRootDataBase(StHObject* obj);
+BDBaseHObject* GetRootBDBase(StHObject* obj);
+BDImageBaseHObject* GetRootImageBase(StHObject* obj);
 
-ccHObject* getChildGroupByName(ccHObject* group, QString name, bool auto_create = true, bool add_to_db = true);
+StHObject* getChildGroupByName(StHObject* group, QString name, bool auto_create = false, bool add_to_db = false, bool keep_dir_hier = false);
 
-ccHObject * findChildByName(ccHObject * parent, bool recursive, QString filter, bool strict, CC_CLASS_ENUM type_filter = CC_TYPES::OBJECT, bool auto_create = false, ccGenericGLDisplay * inDisplay = 0);
+StHObject * findChildByName(StHObject * parent, bool recursive, QString filter, bool strict, CC_CLASS_ENUM type_filter = CC_TYPES::OBJECT, bool auto_create = false, ccGenericGLDisplay * inDisplay = 0);
 
 inline QString BuildingNameByNumber(int number) {
 	char name[256];
@@ -171,11 +206,11 @@ inline QString BuildingNameByNumber(int number) {
 }
 
 //! return -1 if no child exists
-int GetMaxNumberExcludeChildPrefix(ccHObject * obj, QString prefix);
+int GetMaxNumberExcludeChildPrefix(StHObject * obj, QString prefix);
 
 bool StCreatDir(QString dir);
 
-QStringList moveFilesToDir(QStringList list, QString dir);
-QStringList copyFilesToDir(QStringList list, QString dir);
+// return new result files, if force success, will return all the existing files whatever the files are successfully moved or not
+QStringList moveFilesToDir(QStringList list, QString dir, bool remove_old, QStringList* failed_files = nullptr, bool force_success = false);
 
 #endif
