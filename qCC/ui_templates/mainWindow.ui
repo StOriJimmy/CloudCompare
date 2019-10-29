@@ -1191,6 +1191,29 @@
             </widget>
            </item>
            <item>
+            <widget class="QToolButton" name="EditDatabaseToolButton">
+             <property name="toolTip">
+              <string>database settings</string>
+             </property>
+             <property name="statusTip">
+              <string>database settings</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/setting.png</normaloff>:/CC/Stocker/images/stocker/setting.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QToolButton" name="ImportDataToolButton">
              <property name="toolTip">
               <string>import data</string>
@@ -1230,29 +1253,6 @@
              <property name="icon">
               <iconset resource="../icones.qrc">
                <normaloff>:/CC/Stocker/images/stocker/buildingblack.png</normaloff>:/CC/Stocker/images/stocker/buildingblack.png</iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>20</width>
-               <height>20</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QToolButton" name="EditDatabaseToolButton">
-             <property name="toolTip">
-              <string>database settings</string>
-             </property>
-             <property name="statusTip">
-              <string>database settings</string>
-             </property>
-             <property name="text">
-              <string>...</string>
-             </property>
-             <property name="icon">
-              <iconset resource="../icones.qrc">
-               <normaloff>:/CC/Stocker/images/stocker/setting.png</normaloff>:/CC/Stocker/images/stocker/setting.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -5076,7 +5076,7 @@ QTreeView::branch:open:has-children:has-siblings  {
   <action name="actionScheduleGCNode">
    <property name="text">
     <string>本机节点GCNode</string>
-    </property>
+   </property>
   </action>
   <action name="actionFlipPlane">
    <property name="text">
