@@ -107,6 +107,13 @@ public:
 	**/
 	void getEquation(CCVector3& N, PointCoordinateType& constVal) const override;
 
+	//! Returns the equation of the plane
+	/** Equation:
+		planeEquation plane equation : [a, b, c, d] as 'ax+by+cz=d'
+		Same equation used in Neighbourhood and DistanceComputationTools 
+	**/
+	const PointCoordinateType* getEquation();
+
 	bool isVerticalToDirection(CCVector3 dir, double angle_degree = 15);
 
 	void setProfile(std::vector<CCVector3> profile, bool update = false);

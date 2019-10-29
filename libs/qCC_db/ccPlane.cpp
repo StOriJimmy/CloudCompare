@@ -122,6 +122,17 @@ void ccPlane::getEquation(CCVector3& N, PointCoordinateType& constVal) const
 	constVal = m_transformation.getTranslationAsVec3D().dot(N);
 }
 
+const PointCoordinateType* ccPlane::getEquation()
+{
+	PointCoordinateType m_PlaneEquation[4];
+	CCVector3 N = getNormal();
+	m_PlaneEquation[0] = N.x;
+	m_PlaneEquation[1] = N.y;
+	m_PlaneEquation[2] = N.z;
+	m_PlaneEquation[3] = getCenter().dot(N); //a point on the plane dot the plane normal
+	return m_PlaneEquation;
+}
+
 bool ccPlane::isVerticalToDirection(CCVector3 dir, double angle_degree)
 {
 	double err_angle = angle_degree * CC_DEG_TO_RAD;
