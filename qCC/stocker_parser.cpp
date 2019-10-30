@@ -1,20 +1,3 @@
-//##########################################################################
-//#                                                                        #
-//#                              CLOUDCOMPARE                              #
-//#                                                                        #
-//#  This program is free software; you can redistribute it and/or modify  #
-//#  it under the terms of the GNU General Public License as published by  #
-//#  the Free Software Foundation; version 2 or later of the License.      #
-//#                                                                        #
-//#  This program is distributed in the hope that it will be useful,       #
-//#  but WITHOUT ANY WARRANTY; without even the implied warranty of        #
-//#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the          #
-//#  GNU General Public License for more details.                          #
-//#                                                                        #
-//#          COPYRIGHT: EDF R&D / TELECOM ParisTech (ENST-TSI)             #
-//#                                                                        #
-//##########################################################################
-
 #include "stocker_parser.h"
 
 #include "ccHObject.h"
@@ -35,6 +18,8 @@
 #include "polyfit/model/map_enumerator.h"
 #include "polyfit/model/map_serializer.h"
 #include "builderlod2/lod2parser.h"
+#include "builderpoly/builderpoly.h"
+
 using namespace stocker;
 #endif // USE_STOCKER
 
@@ -685,13 +670,14 @@ ccPolyline* AddPolygonAsPolyline(stocker::Contour3d points, QString name, ccColo
 	for (size_t i = 0; i < cloudObj->size(); i++) {
 		polylineObj->addPointIndex(i);
 	}
-	if (close) {
-		polylineObj->addPointIndex(0);
-		polylineObj->setClosed(true);
-	}
-	else {
-		polylineObj->setClosed(false);
-	}
+// 	if (close) {
+// 		polylineObj->addPointIndex(0);
+// 		polylineObj->setClosed(true);
+// 	}
+// 	else {
+// 		polylineObj->setClosed(false);
+// 	}
+	polylineObj->setClosed(close);
 	polylineObj->addChild(cloudObj);
 
 	return polylineObj;
@@ -2687,7 +2673,7 @@ void SubstituteFootPrintContour(StFootPrint* footptObj, stocker::Contour3d point
 	}
 }
 
-bool PackFootprints(ccHObject* buildingObj)
+bool PackFootprints(ccHObject* buildingObj, int method)
 {
 	try {
 		BDBaseHObject* baseObj = GetRootBDBase(buildingObj); if (!baseObj) return false;
@@ -2714,13 +2700,44 @@ bool PackFootprints(ccHObject* buildingObj)
 			layers_planes_points.push_back(planes_points);
 
 			Contour3d ft_pts;
-			for (auto & pt : ftObj->getPoints(false)) {
+			for (auto & pt : ftObj->getPoints(true)) {
 				ft_pts.emplace_back(pt.x, pt.y, pt.z);
 			}
 			footprints_points.push_back(ft_pts);
 		}
 		std::vector<stocker::Contour3d> footprints_points_pp;
-		if (!FootPrintsPlanarPartition(layers_planes_points, footprints_points, footprints_points_pp)) return false;
+		
+		if (method == 1) {
+			if (!FootPrintsPlanarPartition(layers_planes_points, footprints_points, footprints_points_pp)) return false;
+		}
+		else if (method == 0) {
+			stocker::PolygonPartition poly_partition;
+			std::vector<Polyline3d> polygons;
+			std::vector<Contour3d> polygons_points;
+			for (auto & poly : footprints_points) {
+				polygons.push_back(stocker::MakeLoopPolylinefromContour(poly));
+			}
+			for (auto & poly : layers_planes_points) {
+				Contour3d pts;
+				for (auto & pt : poly) {
+					pts.insert(pts.end(), pt.begin(), pt.end());
+				}
+				polygons_points.push_back(pts);
+			}
+
+			//TODO: should give outlines rather than polygons
+			poly_partition.setPolygon(polygons, polygons_points);
+			poly_partition.run();
+			std::vector<Outline3d> results;
+			poly_partition.getResultPolygon(results);
+			for (auto & poly : results)	{
+				if (poly.empty()) continue;
+				//! for now, no holes for footprint
+				footprints_points_pp.push_back(ToContour(poly.front(), 0));
+			}
+		}
+
+		if (footprints_points_pp.empty()) return false;
 
 		for (size_t i = 0; i < footprints.size(); i++) {
 			footprints[i]->setEnabled(false);
@@ -2729,7 +2746,7 @@ bool PackFootprints(ccHObject* buildingObj)
 		int biggest = GetMaxNumberExcludeChildPrefix(blockgroup_obj, BDDB_FOOTPRINT_PREFIX);
 		for (size_t i = 0; i < footprints_points_pp.size(); i++) {
 			QString name = BDDB_FOOTPRINT_PREFIX + QString::number(++biggest);
-			StFootPrint* footptObj = AddPolygonAsFootprint(footprints_points_pp[i], "", ccColor::magenta, true);
+			StFootPrint* footptObj = AddPolygonAsFootprint(footprints_points_pp[i], name, ccColor::magenta, true);
 
 			footptObj->setComponentId(0);
 			footptObj->setHighest(build_unit.ground_height);

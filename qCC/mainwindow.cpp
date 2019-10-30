@@ -14159,9 +14159,21 @@ void MainWindow::doActionBDFootPrintPack()
 	ccHObject* bd_entity = GetParentBuilding(entity);
 	if (!bd_entity) return;
 
+	QStringList methods;
+	methods.append("optimization");
+	methods.append("pprepair");
+	
+	bool ok;
+	QString used_method = QInputDialog::getItem(this, "Pack Footprint", "method", methods, 0, false, &ok);
+	if (!ok) return;
+
+	int method = 0;
+	if (used_method == "optimization") method = 0;	
+	else if (used_method == "pprepair")	method = 1;
+
 	ProgStart("polygon partition")
 	try	{
-		if (!PackFootprints(bd_entity)) {
+		if (!PackFootprints(bd_entity, method)) {
 			return;
 		}
 		addToDB(bd_entity, bd_entity->getDBSourceType());
@@ -14422,7 +14434,7 @@ void MainWindow::doActionBDLoD2Generation()
 					continue;
 				}
 				if (m_pbdrSettingLoD2Dlg->PolygonPartitionGroupBox->isChecked()) {
-					PackFootprints(bd_entity);
+					PackFootprints(bd_entity, 1);
 				}
 			}
 		}

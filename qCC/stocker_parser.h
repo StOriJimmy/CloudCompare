@@ -200,7 +200,7 @@ ccHObject * LoD1FromFootPrint(ccHObject * buildingObj);
 
 ccHObject * LoD2FromFootPrint(ccHObject * entity);
 
-bool PackFootprints(ccHObject * buildingObj);
+bool PackFootprints(ccHObject * buildingObj, int method);
 
 //! settings.x - xybias, y - zbias, z - minPts
 void GetPlanesInsideFootPrint(ccHObject * footprint, ccHObject * prim_group, CCVector3 settings, bool bVertical, bool clearExisting);
