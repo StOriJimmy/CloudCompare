@@ -2727,9 +2727,10 @@ bool PackFootprints(ccHObject* buildingObj, int method)
 
 			//TODO: should give outlines rather than polygons
 			poly_partition.setPolygon(polygons, polygons_points);
-			poly_partition.runBP();
-			std::vector<Outline3d> results;
-			poly_partition.getResultPolygon(results);
+			if (!poly_partition.runBP()) {
+				return false;
+			}
+			std::vector<Outline3d> results = poly_partition.getResultPolygon();
 			for (auto & poly : results)	{
 				if (poly.empty()) continue;
 				//! for now, no holes for footprint
