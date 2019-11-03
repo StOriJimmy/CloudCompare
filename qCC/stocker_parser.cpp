@@ -2711,7 +2711,6 @@ bool PackFootprints(ccHObject* buildingObj, int method)
 			if (!FootPrintsPlanarPartition(layers_planes_points, footprints_points, footprints_points_pp)) return false;
 		}
 		else if (method == 0) {
-			stocker::PolygonPartition poly_partition;
 			std::vector<Polyline3d> polygons;
 			std::vector<Contour3d> polygons_points;
 			for (auto & poly : footprints_points) {
@@ -2725,6 +2724,14 @@ bool PackFootprints(ccHObject* buildingObj, int method)
 				polygons_points.push_back(pts);
 			}
 
+			stocker::PolygonPartition poly_partition;
+			if (!buildingObj->getPath().isEmpty()) {
+				poly_partition.m_output_dir = QFileInfo(buildingObj->getPath()).absoluteFilePath().toStdString() + "/footprints";
+			}
+			else {
+				poly_partition.m_output_dir = QFileInfo(QString::fromStdString(build_unit.file_path.ori_points)).absolutePath().toStdString() + "/footprints";
+			}
+			
 			//TODO: should give outlines rather than polygons
 			poly_partition.setPolygon(polygons, polygons_points);
 			if (!poly_partition.runBP()) {
