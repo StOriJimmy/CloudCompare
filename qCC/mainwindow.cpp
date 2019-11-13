@@ -14558,29 +14558,25 @@ void MainWindow::doActionBDTextureMapping()
 	if (!haveSelection()) return;
 	ccHObject* entity = getSelectedEntities().front();
 
-	ccHObject::Container plane_container = GetPlaneEntitiesBySelected(entity);
-	if (plane_container.empty()) {
-		dispToConsole("[BDRecon] Please select  (group of) planes / buildings", ERR_CONSOLE_MESSAGE);
-		return;
-	}
-
-	//! fast mapping for each plane entity
-	if (!plane_container.empty())	{
-		for (ccHObject* planeObj : plane_container) {
-			try	{
-				FastPlanarTextureMapping(planeObj);
+	{
+		ccPlane* planeObj = GetPlaneFromPlaneOrCloud(entity);
+		if (planeObj) {
+			try {
+				if (FastPlanarTextureMapping(planeObj))
+				{
+					refreshAll();
+					UpdateUI();
+				}
 			}
 			catch (std::runtime_error& e) {
 				dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
 				dispToConsole("[BDRecon] Fast Planar Texture Mapping failed!", ERR_CONSOLE_MESSAGE);
-				return;
-			}			
+			}
+			return;
 		}
-		refreshAll();
-		UpdateUI();
-		return;
 	}
-	else {
+	
+	{
 		//! real tex-recon, generate obj mesh and then load the textured mesh
 		if (entity->getName().endsWith(BDDB_POLYFITOPTM_SUFFIX)) {
 

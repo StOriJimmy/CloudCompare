@@ -63,6 +63,7 @@ ccHObject::Container GetPlaneEntitiesBySelected(ccHObject * select);
 ccHObject::Container GetBuildingEntitiesBySelected(ccHObject * select);
 ccPlane * GetPlaneFromCloud(ccHObject * entity);
 ccPlane * GetPlaneFromPlaneOrCloud(ccHObject * entity);
+ccHObject * GetPlaneEntityFromPrimGroup(ccHObject * prim, QString name);
 vcg::Plane3d GetVcgPlane(ccHObject * planeObj);
 
 ccPlane* FitPlaneAndAddChild(ccPointCloud* cloud, const vcg::Plane3d* plane_para = nullptr);
