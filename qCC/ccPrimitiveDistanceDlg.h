@@ -1,6 +1,3 @@
-#ifndef CC3DMOUSEMANAGER_H
-#define CC3DMOUSEMANAGER_H
-
 //##########################################################################
 //#                                                                        #
 //#                              CLOUDCOMPARE                              #
@@ -14,50 +11,47 @@
 //#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the          #
 //#  GNU General Public License for more details.                          #
 //#                                                                        #
-//#          COPYRIGHT: CloudCompare project                               #
+//#          COPYRIGHT:  Chris Brown                                       #
 //#                                                                        #
 //##########################################################################
 
-#include <QObject>
+#ifndef CC_PRIMITIVE_DISTANCE_DIALOG_HEADER
+#define CC_PRIMITIVE_DISTANCE_DIALOG_HEADER
 
-class QAction;
-class QMenu;
+//Qt
+#include <QDialog>
+#include <QString>
 
-class ccMainAppInterface;
-class Mouse3DInput;
+#include <ui_primitiveDistanceDlg.h>
 
+class ccHObject;
+class ccPointCloud;
+class ccGenericPointCloud;
+class ccGenericMesh;
 
-class cc3DMouseManager : public QObject
+//! Dialog for cloud sphere or cloud plane comparison setting
+class ccPrimitiveDistanceDlg: public QDialog, public Ui::primitiveDistanceDlg
 {
 	Q_OBJECT
 
 public:
-	cc3DMouseManager( ccMainAppInterface *appInterface, QObject *parent );
-	~cc3DMouseManager();
 
-	//! Gets the menu associated with the 3D mouse
-	QMenu	*menu() { return m_menu; }
+	//! Default constructor
+	ccPrimitiveDistanceDlg(QWidget* parent = nullptr);
 
-private:
-	void enableDevice(bool state, bool silent);
-	void releaseDevice();
+	//! Default destructor
+	~ccPrimitiveDistanceDlg();
 
-	void setupMenu();
+	bool signedDistances() { return signedDistCheckBox->isChecked(); }
+	bool flipNormals() { return flipNormalsCheckBox->isChecked(); }
 
-	void on3DMouseKeyUp(int key);
-	void on3DMouseCMDKeyUp(int cmd);
-	void on3DMouseKeyDown(int key);
-	void on3DMouseCMDKeyDown(int cmd);
-	void on3DMouseMove(std::vector<float> &vec);
-	void on3DMouseReleased();
+public slots:
+	void applyAndExit();
+	void cancelAndExit();
 
 
-	ccMainAppInterface *m_appInterface;
-
-	Mouse3DInput *m3dMouseInput;
-
-	QMenu *m_menu;
-	QAction *m_actionEnable;
+protected slots:
+	void toggleSigned(bool);
 };
 
 #endif

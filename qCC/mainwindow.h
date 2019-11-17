@@ -489,6 +489,7 @@ private slots:
 	//Entities comparison
 	void doActionCloudCloudDist();
 	void doActionCloudMeshDist();
+	void doActionCloudPrimitiveDist();
 	void deactivateComparisonMode(int);
 	void doActionCloudModelDist();
 
