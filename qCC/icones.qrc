@@ -91,6 +91,7 @@
     <file>images/ccClone.png</file>
     <file>images/ccCloudCloudDistance.png</file>
     <file>images/ccCloudMeshDistance.png</file>
+	<file>images/ccCloudPrimitiveDistance.png</file>
     <file>images/ccComputeStat.png</file>
     <file>images/ccDeleteSF.png</file>
     <file>images/ccFilterByValue.png</file>
