@@ -26,9 +26,6 @@ bdrPlaneSegDlg::bdrPlaneSegDlg(QWidget* parent)
 }
 void bdrPlaneSegDlg::onAutoChecked(bool state)
 {
-	supportPointsSpinBox->setDisabled(state);
-	DistanceEpsilonDoubleSpinBox->setDisabled(state);
-	ClusterEpsilonDoubleSpinBox->setDisabled(state);
 	APTSCurvatureSpinBox->setDisabled(state);
 	APTSNFASpinBox->setDisabled(state);
 	APTSNormalSpinBox->setDisabled(state);
