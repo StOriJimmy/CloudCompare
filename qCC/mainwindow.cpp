@@ -12563,14 +12563,15 @@ void MainWindow::doActionBDPlaneSegmentation()
 			double curvature_delta = m_pbdrPSDlg->APTSCurvatureSpinBox->value();
 			double nfa_epsilon = m_pbdrPSDlg->APTSNFASpinBox->value();
 			double normal_theta = m_pbdrPSDlg->APTSNormalSpinBox->value();
-
+			bool iter_times = m_pbdrPSDlg->ATPSIterOneRadioButton->isChecked();
 			if (m_pbdrPSDlg->autoParaCheckBox->isChecked()) {
-				seged = PlaneSegmentationATPS(cloudObj, todo_point);
+				seged = PlaneSegmentationATPS(cloudObj, todo_point, &iter_times);
 			}
 			else {
 				seged = PlaneSegmentationATPS(cloudObj, todo_point,
+					&iter_times,
 					&support_pts,
-					&curvature_delta,
+					&curvature_delta,					
 					&distance_eps,
 					&cluster_eps,
 					&nfa_epsilon,

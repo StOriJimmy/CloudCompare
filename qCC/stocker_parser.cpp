@@ -842,7 +842,7 @@ ccHObject* PlaneSegmentationRansac(ccHObject* entity,
 	theta_t: the threshold of normal vector angle for hybrid region growing. (0.2618)
 */
 ccHObject* PlaneSegmentationATPS(ccHObject* entity,
-	ccPointCloud* todo_cloud,
+	ccPointCloud* todo_cloud, bool* iter_times,
 	int* kappa_t, double* delta_t, double* tau_t, 
 	double* gamma_t, double* epsilon_t, double* theta_t)
 {
@@ -850,14 +850,15 @@ ccHObject* PlaneSegmentationATPS(ccHObject* entity,
 		 
 	ATPS::ATPS_Plane atps_plane;
 	if (kappa_t && delta_t && tau_t && gamma_t && epsilon_t && theta_t) {
-		atps_plane.set_parameters(*kappa_t, *delta_t, *tau_t, *gamma_t, *epsilon_t, *theta_t);
+		atps_plane.set_parameters(*kappa_t, *delta_t, *tau_t, *gamma_t, *epsilon_t, *theta_t, 0);
 	}
-	else {
-		double average_spacing = GetPointsAverageSpacing(entity_cloud);
-		atps_plane = ATPS::ATPS_Plane(average_spacing);
+	if (iter_times) {
+		atps_plane.set_iter(static_cast<int>(*iter_times));
 	}
 
 	std::vector<ATPS::SVPoint3d> points = GetPointsFromCloud3d<ATPS::SVPoint3d>(entity_cloud);
+	double res = atps_plane.get_res(points);
+	
 	std::vector<ATPS::SVPoint3d> unassigned_points;
 	std::vector<std::vector<ATPS::SVPoint3d>> planes_points;
 	std::vector<std::vector<double>> params;

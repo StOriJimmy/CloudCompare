@@ -2,6 +2,10 @@
 
 //local
 #include "mainwindow.h"
+#include <QMessageBox>
+
+#include <ppl.h>
+#include <concurrent_vector.h>
 
 #include <ccOctree.h>
 #ifdef PCATPS_SUPPORT
@@ -15,9 +19,22 @@ bdrPlaneSegDlg::bdrPlaneSegDlg(QWidget* parent)
 {
 	setupUi(this);
 	setWindowFlags(windowFlags()&~Qt::WindowCloseButtonHint);
+	connect(autoParaCheckBox, &QAbstractButton::toggled, this, &bdrPlaneSegDlg::onAutoChecked);
 	connect(autoParaToolButton, &QAbstractButton::clicked, this, &bdrPlaneSegDlg::DeducePara);
 	connect(buttonBox, SIGNAL(accepted()), this, SLOT(Execute()));
 	connect(buttonBox, SIGNAL(rejected()), this, SLOT(exitSafe()));
+}
+void bdrPlaneSegDlg::onAutoChecked(bool state)
+{
+	supportPointsSpinBox->setDisabled(state);
+	DistanceEpsilonDoubleSpinBox->setDisabled(state);
+	ClusterEpsilonDoubleSpinBox->setDisabled(state);
+	APTSCurvatureSpinBox->setDisabled(state);
+	APTSNFASpinBox->setDisabled(state);
+	APTSNormalSpinBox->setDisabled(state);
+	maxNormDevAngleSpinBox->setDisabled(state);
+	probaDoubleSpinBox->setDisabled(state);
+	GrowingRadiusDoubleSpinBox->setDisabled(state);	
 }
 
 void bdrPlaneSegDlg::DeducePara()
@@ -26,8 +43,30 @@ void bdrPlaneSegDlg::DeducePara()
 		return;
 	}
 	if (PlaneSegATPSRadioButton->isChecked()) {
-		double average_spacing = GetPointsAverageSpacing(m_point_clouds.front());
-		ATPS::ATPS_Plane atps_plane(average_spacing);
+
+		ATPS::ATPS_Plane atps_plane;
+		ProgStart("Please wair...Deduce parameters automatically...")
+		try
+		{
+			ccPointCloud* cloud = ccHObjectCaster::ToPointCloud(m_point_clouds.front());
+			if (!cloud) { QMessageBox::critical(this, "Error", "error point cloud"); ProgEnd return; }
+			Concurrency::concurrent_vector<ATPS::SVPoint3d> points;
+			points.reserve(cloud->size());
+			Concurrency::parallel_for(unsigned(0), cloud->size(), [&](unsigned i) {
+				const CCVector3* pt = cloud->getPoint(i);
+				points.push_back({ pt->x, pt->y, pt->z });
+			});
+			QCoreApplication::processEvents();
+			atps_plane.get_res({ points.begin(), points.end() });
+		}
+		catch (const std::exception& e) {
+			QMessageBox::critical(this, "Cannot deduce params", QString::fromStdString(e.what()));
+			ProgEnd
+			return;
+		}
+		
+		ProgEnd
+
 		supportPointsSpinBox->setValue(atps_plane.get_kappa());
 		APTSCurvatureSpinBox->setValue(atps_plane.get_delta());
 		DistanceEpsilonDoubleSpinBox->setValue(atps_plane.get_tau());

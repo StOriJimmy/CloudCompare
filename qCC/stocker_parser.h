@@ -77,11 +77,15 @@ ccPointCloud * AddPointsAsPlane(std::vector<T> points, QString name, ccColor::Rg
 
 ccPointCloud* AddSegmentsAsPlane(stocker::Polyline3d lines, QString lines_prefix, ccColor::Rgb col, ccHObject* _exist_cloud = nullptr);
 
+ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, int min_pts, double distance_epsilon, double seed_raius, double growing_radius, double merge_threshold = -1, double split_threshold = -1);
 ccHObject* PlaneSegmentationRansac(ccHObject* entity, int min_pts, double distance_epsilon, double seed_raius, double normal_threshold, double ransac_probability, double merge_threshold = -1, double split_threshold = -1, ccPointCloud* todo_cloud = nullptr);
-ccHObject * PlaneSegmentationATPS(ccHObject * entity, ccPointCloud * todo_cloud, int* kappa_t = nullptr, double* delta_t = nullptr, double* tau_t = nullptr, double* gamma_t = nullptr, double* epsilon_t = nullptr, double* theta_t = nullptr);
+ccHObject * PlaneSegmentationATPS(ccHObject * entity, ccPointCloud * todo_cloud, bool* iter_times = nullptr,
+	int* kappa_t = nullptr, double* delta_t = nullptr, double* tau_t = nullptr, 
+	double* gamma_t = nullptr, double* epsilon_t = nullptr, double* theta_t = nullptr);
+
 void RetrieveUnassignedPoints(ccHObject * original_cloud, ccHObject * prim_group, ccPointCloud * todo_point);
 void RetrieveAssignedPoints(ccPointCloud * todo_cloud, ccPointCloud * plane_cloud, double distance_threshold);
-ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, int min_pts, double distance_epsilon, double seed_raius, double growing_radius, double merge_threshold = -1, double split_threshold = -1);
+
 ccHObject::Container CalcPlaneIntersections(ccHObject::Container entity_planes, double distance);
 ccHObject* CalcPlaneBoundary(ccHObject* planeObj, double distance, double minpts, double radius);
 ccHObject * DetectLineRansac(ccHObject * entity, double distance, double minpts, double radius);

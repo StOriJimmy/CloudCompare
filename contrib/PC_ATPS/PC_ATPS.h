@@ -2,7 +2,7 @@
 #define __PC_ATPS_HEADER__
 
 /***********************************************************************
-PC_Filter
+PC_ATPS
 created:	2019/06
 author:		xz_zhu
 purpose:	PC_ATPS.dll
@@ -87,7 +87,7 @@ class PC_ATPS_API ATPS_Plane
 public:
 	ATPS_Plane();
 
-	ATPS_Plane(int kappa_, double delta_, double tau_, double gamma_, double epsilon_, double theta_);
+	ATPS_Plane(int kappa_, double delta_, double tau_, double gamma_, double epsilon_, double theta_, int iter_);
 
 	ATPS_Plane(const double res);
 
@@ -100,24 +100,23 @@ public:
 	double get_gamma();
 	double get_epsilon();
 	double get_theta();
+	int get_iter();
+
+	double get_res(const std::vector<SVPoint3d> points);
 
 
-	void set_parameters(
-		const int kappa_, 
-		const double delta_, 
-		const double tau_, 
-		const double gamma_, 
-		const double epsilon_, 
-		const double theta_);
+	void set_parameters(const int kappa_, const double delta_, const double tau_, const double gamma_, const double epsilon_, const double theta_, const int iter_);
+	void set_parameters(const double res);
 	void set_kappa(const int kappa_);
 	void set_delta(const double delta_);
 	void set_tau(const double tau_);
 	void set_gamma(const double gamma_);
 	void set_epsilon(const double epsilon_);
 	void set_theta(const double theta_);
+	void set_iter(const int iter_);
 
 
-	bool set_points(const std::string pc_path, std::vector<SVPoint3d>& points, double& res);
+	bool set_points(const std::string pc_path, std::vector<SVPoint3d>& points);
 
 
 	bool ATPS_PlaneSegmentation(
@@ -125,6 +124,12 @@ public:
 		std::vector<std::vector<SVPoint3d>>& planar_points,
 		std::vector<SVPoint3d>& nonplanar_points, 
 		std::vector<std::vector<double>>& model_coefficients);
+
+
+	bool write_planes_ply(
+		std::string ply_path,
+		const std::vector<std::vector<SVPoint3d>> planar_points,
+		const std::vector<SVPoint3d> nonplanar_points);
 
 
 private:
@@ -142,6 +147,7 @@ private:
 	double gamma_t;
 	double epsilon_t;
 	double theta_t;
+	int iter_t;
 
 	/*
 	*---description of parameters---*
@@ -151,9 +157,8 @@ private:
 	gamma_t: the threshold of neighborhood for point-to-plane and plane-to-plane. (res*7.0)
 	epsilon_t: the threshold of NFA tolerance value for a-contrario rigorous planar supervoxel generation. (0.0)
 	theta_t: the threshold of normal vector angle for hybrid region growing. (10.0)
+	iter_t: the iteration type of independent points reclassification. (0/1)
 	*/
-
-	std::string input_path;
 };
 
 ATPS_NAMESPACE_END
