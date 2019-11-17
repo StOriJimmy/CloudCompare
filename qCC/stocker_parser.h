@@ -77,9 +77,6 @@ ccPointCloud * AddPointsAsPlane(std::vector<T> points, QString name, ccColor::Rg
 
 ccPointCloud* AddSegmentsAsPlane(stocker::Polyline3d lines, QString lines_prefix, ccColor::Rgb col, ccHObject* _exist_cloud = nullptr);
 
-template <typename T = stocker::Vec3d>
-StPrimGroup * AddPlanesPointsAsNewGroup(QString name, std::vector<std::vector<T>> planes_points, std::vector<vcg::Plane3d>* planes = nullptr);
-
 ccHObject* PlaneSegmentationRansac(ccHObject* entity, int min_pts, double distance_epsilon, double seed_raius, double normal_threshold, double ransac_probability, double merge_threshold = -1, double split_threshold = -1, ccPointCloud* todo_cloud = nullptr);
 ccHObject * PlaneSegmentationATPS(ccHObject * entity, ccPointCloud * todo_cloud, int* kappa_t = nullptr, double* delta_t = nullptr, double* tau_t = nullptr, double* gamma_t = nullptr, double* epsilon_t = nullptr, double* theta_t = nullptr);
 void RetrieveUnassignedPoints(ccHObject * original_cloud, ccHObject * prim_group, ccPointCloud * todo_point);
@@ -94,14 +91,26 @@ void CreateIntersectionPoint(ccHObject * p1, ccHObject * p2);
 ccHObject* PlaneFrameOptimization(ccHObject* planeObj, stocker::FrameOption option);
 ccHObject* PlaneFrameLineGrow(ccHObject* planeObj, double alpha, double intersection, double minpts);
 
-//! polyfit
-ccHObject* PolyfitGenerateHypothesis(ccHObject* primitive_group, PolyFitObj* polyfit_obj);
+bool FastPlanarTextureMapping(ccHObject * planeObj);
 
-void PolyfitComputeConfidence(ccHObject * hypothesis_group, PolyFitObj * polyfit_obj);
+bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices = nullptr);
 
-void UpdateConfidence(ccHObject * hypothesis_group, PolyFitObj * polyfit_obj);
+ccHObject * ConstrainedMesh(ccHObject * planeObj);
 
-ccHObject * PolyfitFaceSelection(ccHObject * hypothesis_group, PolyFitObj * polyfit_obj);
+ccHObject::Container GenerateFootPrints_PP(ccHObject * prim_group, double ground);
+
+ccHObject::Container GenerateFootPrints(ccHObject * prim_group, double ground);
+
+ccHObject * LoD1FromFootPrint(ccHObject * buildingObj);
+
+ccHObject * LoD2FromFootPrint(ccHObject * entity);
+
+bool PackFootprints(ccHObject * buildingObj, int method);
+
+//! settings.x - xybias, y - zbias, z - minPts
+void GetPlanesInsideFootPrint(ccHObject * footprint, ccHObject * prim_group, CCVector3 settings, bool bVertical, bool clearExisting);
+
+ccHObject::Container LoadMeshAsBlock(QString filename);
 
 StBuilding * GetParentBuilding(ccHObject * obj);
 
@@ -110,6 +119,16 @@ ccPointCloud * GetPlaneCloud(ccHObject * planeObj);
 bool SetGlobalShiftAndScale(ccHObject * obj);
 
 void filterCameraByName(ccHObject* camera_group, QStringList name_list);
+
+//////////////////////////////////////////////////////////////////////////
+//! polyfit
+ccHObject* PolyfitGenerateHypothesis(ccHObject* primitive_group, PolyFitObj* polyfit_obj);
+
+void PolyfitComputeConfidence(ccHObject * hypothesis_group, PolyFitObj * polyfit_obj);
+
+void UpdateConfidence(ccHObject * hypothesis_group, PolyFitObj * polyfit_obj);
+
+ccHObject * PolyfitFaceSelection(ccHObject * hypothesis_group, PolyFitObj * polyfit_obj);
 
 class PolyFitObj
 {
@@ -188,22 +207,3 @@ public:
 #endif // USE_PARRALEL_FOR
 
 #endif
-
-bool FastPlanarTextureMapping(ccHObject * planeObj);
-
-ccHObject * ConstrainedMesh(ccHObject * planeObj);
-
-ccHObject::Container GenerateFootPrints_PP(ccHObject * prim_group, double ground);
-
-ccHObject::Container GenerateFootPrints(ccHObject * prim_group, double ground);
-
-ccHObject * LoD1FromFootPrint(ccHObject * buildingObj);
-
-ccHObject * LoD2FromFootPrint(ccHObject * entity);
-
-bool PackFootprints(ccHObject * buildingObj, int method);
-
-//! settings.x - xybias, y - zbias, z - minPts
-void GetPlanesInsideFootPrint(ccHObject * footprint, ccHObject * prim_group, CCVector3 settings, bool bVertical, bool clearExisting);
-
-ccHObject::Container LoadMeshAsBlock(QString filename);

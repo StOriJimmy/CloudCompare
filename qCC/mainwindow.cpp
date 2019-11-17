@@ -12127,6 +12127,9 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 	//! prepare buildings now
 	if (bd_grp) {
 		bd_grp->block_prj = block_prj;
+		if (bd_grp->getPath().isEmpty()) {
+			bd_grp->setPath(QString::fromStdString(block_prj.m_options.prj_file.root_dir));
+		}
 
 		bool first_cloud = false;
 		for (size_t i = 0; i < bd_grp->getChildrenNumber(); i++) {
@@ -12350,7 +12353,9 @@ void MainWindow::doActionBDImagesLoad()
 	QString out_file, image_list;
 	if (baseObj && baseObj->block_prj.m_options.with_image) {
 		out_file = baseObj->block_prj.m_options.prj_file.sfm_out.c_str();
-		image_list = baseObj->block_prj.m_options.prj_file.image_list.c_str();		
+		std::cout << "sfm file: " << out_file.toStdString() << std::endl;
+		image_list = baseObj->block_prj.m_options.prj_file.image_list.c_str();
+		std::cout << "img file: " << image_list.toStdString() << std::endl;
 	}
 
 	if (!QFileInfo(out_file).exists() || !QFileInfo(image_list).exists()) {
@@ -14576,20 +14581,18 @@ void MainWindow::doActionBDTextureMapping()
 		}
 	}
 	
+	////////////////////////////////////////////////////////////////////////// 
+	ProgStart("polygon partition")
+	try
 	{
-		//! real tex-recon, generate obj mesh and then load the textured mesh
-		if (entity->getName().endsWith(BDDB_POLYFITOPTM_SUFFIX)) {
-
-		}
-		else if (entity->getName().endsWith(BDDB_FINALMODEL_SUFFIX)) {
-
-		}
-		else if (entity->isA(CC_TYPES::MESH)) {
-
-		}
-		entity->setLocked(true);
-		return;
-	}	
+		ccHObject::Container bds = GetBuildingEntitiesBySelected(entity);
+		TextureMappingBuildings(bds);
+	}
+	catch (const std::exception& e)
+	{
+		dispToConsole(QString::fromStdString(e.what()), ERR_CONSOLE_MESSAGE);
+	}
+	ProgEnd
 }
 
 void MainWindow::doActionBDConstrainedMesh()

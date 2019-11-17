@@ -701,8 +701,8 @@ StFootPrint* AddPolygonAsFootprint(stocker::Contour3d polygon, QString name, ccC
 	return footptObj;
 }
 
-template <typename T = stocker::Vec3d>
-StPrimGroup* AddPlanesPointsAsNewGroup(QString name, std::vector<std::vector<T>> planes_points, std::vector<vcg::Plane3d>* planes /*= nullptr*/)
+template <typename T = stocker::Contour3d>
+StPrimGroup* AddPlanesPointsAsNewGroup(QString name, std::vector<T> planes_points, std::vector<vcg::Plane3d>* planes = nullptr)
 {
 	StPrimGroup* group = new StPrimGroup(name);
 
@@ -1388,6 +1388,72 @@ bool FastPlanarTextureMapping(ccHObject* planeObj)
 	cc_plane->setAsTexture(image, imageFilename);
 
 	planeObj->prepareDisplayForRefresh_recursive();
+	return true;
+}
+
+bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices)
+{
+	if (buildings.empty()) return false;
+	BDBaseHObject* baseObj = GetRootBDBase(buildings.front());
+	if (!baseObj) return false;
+
+	stocker::TextureMapping texture_mapping;
+	texture_mapping.setOutputDir(baseObj->getPath().toStdString() + "models");
+	
+	std::vector<stocker::ImageUnit> image_units;
+	for (auto spImg : baseObj->block_prj.m_builder.simage) {
+		image_units.push_back(spImg->data);
+	}
+	for (stocker::ImageUnit & image_unit : image_units) {
+		Vec3d view_pos = image_unit.GetViewPos();
+		image_unit.m_camera.SetViewPoint(view_pos + baseObj->global_shift);
+	}
+	texture_mapping.setImages(image_units);
+	//! collect polygons, roof and facade
+	for (ccHObject* entity : buildings) {
+		StBuilding* bdObj = ccHObjectCaster::ToStBuilding(entity);
+		if (!bdObj) continue;
+
+		BuildUnit build_unit = baseObj->GetBuildingUnit(bdObj->getName().toStdString());
+		StBlockGroup* bdGroup = baseObj->GetBlockGroup(bdObj->getName());
+		if (!bdGroup) continue;
+		ccHObject::Container blocks = GetEnabledObjFromGroup(bdGroup, CC_TYPES::ST_BLOCK, true, true);
+		if (blocks.empty()) { continue; }
+
+		/// walls
+		std::vector<stocker::Polygon3d> wall_polygons;
+		for (ccHObject* blockEnt : blocks) {
+			StBlock* blockObj = ccHObjectCaster::ToStBlock(blockEnt); assert(blockObj);
+			std::vector<std::vector<CCVector3>> cur_wall_polys;
+			if (!blockObj->getWallPolygons(cur_wall_polys)) continue;
+			assert(cur_wall_polys.size() >= 5);
+						
+			for (auto poly : cur_wall_polys) {
+				stocker::Contour3d poly_points = ccToPoints3<CCVector3, stocker::Vec3d>(poly);
+				stocker::Polygon3d polygon = MakeLoopPolylinefromContour(poly_points);
+				wall_polygons.push_back(polygon);
+			}
+		}
+
+		/// vis images
+		IndexVector visImageIndice;
+		for (auto img_name : build_unit.image_list) {
+			auto img_iter = std::find_if(image_units.begin(), image_units.end(), [=](ImageUnit img) {
+				return img_name == img.GetName().Str();
+			});
+			if (img_iter != image_units.end()) {
+				visImageIndice.push_back(std::distance(image_units.begin(), img_iter));
+			}
+		}
+		texture_mapping.addMesh(wall_polygons, visImageIndice, build_unit.file_path.model_dir);
+	}
+
+	if (task_indices) {
+		texture_mapping.setTaskIndice(*task_indices);
+	}
+	if (!texture_mapping.runTextureMapping())
+		return false;
+
 	return true;
 }
 
