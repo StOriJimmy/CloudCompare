@@ -3,6 +3,7 @@
 //local
 #include "mainwindow.h"
 #include <QMessageBox>
+#include "ccItemSelectionDlg.h"
 
 #include <ppl.h>
 #include <concurrent_vector.h>
@@ -45,7 +46,14 @@ void bdrPlaneSegDlg::DeducePara()
 		ProgStart("Please wair...Deduce parameters automatically...")
 		try
 		{
-			ccPointCloud* cloud = ccHObjectCaster::ToPointCloud(m_point_clouds.front());
+			int selectedIndex = 0;
+			if (m_point_clouds.size() > 1) {
+				selectedIndex = ccItemSelectionDlg::SelectEntity(m_point_clouds, selectedIndex, this, "please select the point cloud to calculate average spacing");
+				if (selectedIndex < 0)
+					return;
+				assert(selectedIndex >= 0 && static_cast<size_t>(selectedIndex) < m_point_clouds.size());
+			}
+			ccPointCloud* cloud = ccHObjectCaster::ToPointCloud(m_point_clouds[selectedIndex]);
 			if (!cloud) { QMessageBox::critical(this, "Error", "error point cloud"); ProgEnd return; }
 			Concurrency::concurrent_vector<ATPS::SVPoint3d> points;
 			points.reserve(cloud->size());
@@ -54,7 +62,9 @@ void bdrPlaneSegDlg::DeducePara()
 				points.push_back({ pt->x, pt->y, pt->z });
 			});
 			QCoreApplication::processEvents();
-			atps_plane.get_res({ points.begin(), points.end() });
+			double res = atps_plane.get_res({ points.begin(), points.end() });
+			std::cout << "average spacing for cloud " << cloud->getName().toStdString() << " is: " << res << std::endl;
+			atps_plane.set_parameters(res);
 		}
 		catch (const std::exception& e) {
 			QMessageBox::critical(this, "Cannot deduce params", QString::fromStdString(e.what()));
