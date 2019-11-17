@@ -33,6 +33,7 @@ public:
 	void setPointClouds(ccHObject::Container point_clouds);
 
 protected slots:
+	void onAutoChecked(bool);
 	void DeducePara();
 	void exitSafe();
 	void Execute();

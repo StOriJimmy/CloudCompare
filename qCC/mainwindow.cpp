@@ -12237,6 +12237,9 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 	//! prepare buildings now
 	if (bd_grp) {
 		bd_grp->block_prj = block_prj;
+		if (bd_grp->getPath().isEmpty()) {
+			bd_grp->setPath(QString::fromStdString(block_prj.m_options.prj_file.root_dir));
+		}
 
 		bool first_cloud = false;
 		for (size_t i = 0; i < bd_grp->getChildrenNumber(); i++) {
@@ -12460,7 +12463,9 @@ void MainWindow::doActionBDImagesLoad()
 	QString out_file, image_list;
 	if (baseObj && baseObj->block_prj.m_options.with_image) {
 		out_file = baseObj->block_prj.m_options.prj_file.sfm_out.c_str();
-		image_list = baseObj->block_prj.m_options.prj_file.image_list.c_str();		
+		std::cout << "sfm file: " << out_file.toStdString() << std::endl;
+		image_list = baseObj->block_prj.m_options.prj_file.image_list.c_str();
+		std::cout << "img file: " << image_list.toStdString() << std::endl;
 	}
 
 	if (!QFileInfo(out_file).exists() || !QFileInfo(image_list).exists()) {
@@ -12668,14 +12673,15 @@ void MainWindow::doActionBDPlaneSegmentation()
 			double curvature_delta = m_pbdrPSDlg->APTSCurvatureSpinBox->value();
 			double nfa_epsilon = m_pbdrPSDlg->APTSNFASpinBox->value();
 			double normal_theta = m_pbdrPSDlg->APTSNormalSpinBox->value();
-
+			bool iter_times = m_pbdrPSDlg->ATPSIterOneRadioButton->isChecked();
 			if (m_pbdrPSDlg->autoParaCheckBox->isChecked()) {
-				seged = PlaneSegmentationATPS(cloudObj, todo_point);
+				seged = PlaneSegmentationATPS(cloudObj, todo_point, &iter_times);
 			}
 			else {
 				seged = PlaneSegmentationATPS(cloudObj, todo_point,
+					&iter_times,
 					&support_pts,
-					&curvature_delta,
+					&curvature_delta,					
 					&distance_eps,
 					&cluster_eps,
 					&nfa_epsilon,
@@ -14269,9 +14275,21 @@ void MainWindow::doActionBDFootPrintPack()
 	ccHObject* bd_entity = GetParentBuilding(entity);
 	if (!bd_entity) return;
 
+	QStringList methods;
+	methods.append("optimization");
+	methods.append("pprepair");
+	
+	bool ok;
+	QString used_method = QInputDialog::getItem(this, "Pack Footprint", "method", methods, 0, false, &ok);
+	if (!ok) return;
+
+	int method = 0;
+	if (used_method == "optimization") method = 0;	
+	else if (used_method == "pprepair")	method = 1;
+
 	ProgStart("polygon partition")
 	try	{
-		if (!PackFootprints(bd_entity)) {
+		if (!PackFootprints(bd_entity, method)) {
 			return;
 		}
 		addToDB(bd_entity, bd_entity->getDBSourceType());
@@ -14532,7 +14550,7 @@ void MainWindow::doActionBDLoD2Generation()
 					continue;
 				}
 				if (m_pbdrSettingLoD2Dlg->PolygonPartitionGroupBox->isChecked()) {
-					PackFootprints(bd_entity);
+					PackFootprints(bd_entity, 1);
 				}
 			}
 		}
@@ -14656,42 +14674,36 @@ void MainWindow::doActionBDTextureMapping()
 	if (!haveSelection()) return;
 	ccHObject* entity = getSelectedEntities().front();
 
-	ccHObject::Container plane_container = GetPlaneEntitiesBySelected(entity);
-	if (plane_container.empty()) {
-		dispToConsole("[BDRecon] Please select  (group of) planes / buildings", ERR_CONSOLE_MESSAGE);
-		return;
-	}
-
-	//! fast mapping for each plane entity
-	if (!plane_container.empty())	{
-		for (ccHObject* planeObj : plane_container) {
-			try	{
-				FastPlanarTextureMapping(planeObj);
+	{
+		ccPlane* planeObj = GetPlaneFromPlaneOrCloud(entity);
+		if (planeObj) {
+			try {
+				if (FastPlanarTextureMapping(planeObj))
+				{
+					refreshAll();
+					UpdateUI();
+				}
 			}
 			catch (std::runtime_error& e) {
 				dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
 				dispToConsole("[BDRecon] Fast Planar Texture Mapping failed!", ERR_CONSOLE_MESSAGE);
-				return;
-			}			
+			}
+			return;
 		}
-		refreshAll();
-		UpdateUI();
-		return;
 	}
-	else {
-		//! real tex-recon, generate obj mesh and then load the textured mesh
-		if (entity->getName().endsWith(BDDB_POLYFITOPTM_SUFFIX)) {
-
-		}
-		else if (entity->getName().endsWith(BDDB_FINALMODEL_SUFFIX)) {
-
-		}
-		else if (entity->isA(CC_TYPES::MESH)) {
-
-		}
-		entity->setLocked(true);
-		return;
-	}	
+	
+	////////////////////////////////////////////////////////////////////////// 
+	ProgStart("polygon partition")
+	try
+	{
+		ccHObject::Container bds = GetBuildingEntitiesBySelected(entity);
+		TextureMappingBuildings(bds);
+	}
+	catch (const std::exception& e)
+	{
+		dispToConsole(QString::fromStdString(e.what()), ERR_CONSOLE_MESSAGE);
+	}
+	ProgEnd
 }
 
 void MainWindow::doActionBDConstrainedMesh()

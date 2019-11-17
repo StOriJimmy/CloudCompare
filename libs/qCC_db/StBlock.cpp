@@ -120,27 +120,7 @@ bool StBlock::buildFromFacet()
 
 	unsigned count = mesh->getAssociatedCloud()->size();
 	unsigned numberOfTriangles = mesh->size();
-	//	int* triIndexes = mesh->getTriangleVertIndexesArray();
-		//determine if the triangles must be flipped or not
 	bool flip = false;
-	// 	{
-	// 		for (unsigned i = 0; i < numberOfTriangles; ++i, triIndexes += 3) {
-	// 			int i1 = triIndexes[0];
-	// 			int i2 = triIndexes[1];
-	// 			int i3 = triIndexes[2];
-	// 			//by definition the first edge of the original polygon
-	// 			//should be in the same 'direction' of the triangle that uses it
-	// 			if ((i1 == 0 || i2 == 0 || i3 == 0)
-	// 				&& (i1 == 1 || i2 == 1 || i3 == 1))	{
-	// 				if ((i1 == 1 && i2 == 0)
-	// 					|| (i2 == 1 && i3 == 0)
-	// 					|| (i3 == 1 && i1 == 0)) {
-	// 					flip = true;
-	// 				}
-	// 				break;
-	// 			}
-	// 		}
-	// 	}
 
 	if (numberOfTriangles == 0)
 		return false;
@@ -321,6 +301,45 @@ void StBlock::setFacetPoints(ccFacet * facet, std::vector<CCVector3> points, boo
 
 	paramFromFacet();
 	buildFromFacet();
+}
+
+bool StBlock::getWallPolygons(std::vector<std::vector<CCVector3>>& walls)
+{	
+	//! roof
+	std::vector<CCVector3> roof;
+	ccPointCloud* top_points = m_top_facet->getContourVertices();
+	int count = top_points->size();
+	if (count < 3) return false;
+
+	for (int i = 0; i < top_points->size(); ++i) {
+		roof.push_back(*top_points->getPoint(i));
+	}
+
+	//! bottom
+	std::vector<CCVector3> bottom;
+	ccPointCloud* bottom_points = m_bottom_facet->getContourVertices();
+	if (bottom_points->size() != count) return false;
+	for (int i = 0; i < bottom_points->size(); ++i) {
+		bottom.push_back(*bottom_points->getPoint(i));
+	}
+	
+	//! facades
+	std::vector<std::vector<CCVector3>> facades;
+	for (int i = 0; i < count; ++i) {
+		std::vector<CCVector3> facade;
+		facade.push_back(roof[i]);
+		facade.push_back(bottom[i]);
+		facade.push_back(bottom[(i + 1) % count]);
+		facade.push_back(roof[(i + 1) % count]);
+		facades.push_back(facade);
+	}
+
+	std::reverse(bottom.begin(), bottom.end());
+	walls.push_back(roof);
+	walls.push_back(bottom);
+	walls.insert(walls.end(), facades.begin(), facades.end());
+
+	return true;
 }
 
 bool StBlock::buildUp()

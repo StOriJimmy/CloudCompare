@@ -93,6 +93,9 @@ public:
 	void updateFacet(ccFacet* facet);
 	void setFacetPoints(ccFacet* facet, std::vector<CCVector3> points, bool computePlane);
 
+	// roof -> bottom -> facades
+	bool getWallPolygons(std::vector<std::vector<CCVector3>>& walls);
+
 protected:
 
 	//inherited from ccDrawable
