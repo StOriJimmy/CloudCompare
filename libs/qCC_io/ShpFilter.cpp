@@ -699,7 +699,7 @@ static std::vector<int32_t> readParts(QDataStream& shpStream, int32_t numParts)
 	return startIndexes;
 }
 
-static std::vector<CCVector3> readPoints(QDataStream& shpStream, int32_t numPoints, const CCVector3d& Pshift)
+static std::vector<CCVector3> readPoints(QDataStream& shpStream, int32_t numPoints, const CCVector3d& Pshift, const double &Pscale)
 {
 	std::vector<CCVector3> points;
 	try
@@ -717,8 +717,8 @@ static std::vector<CCVector3> readPoints(QDataStream& shpStream, int32_t numPoin
 		double x;
 		double y;
 		shpStream >> x >> y;
-		points[i].x = static_cast<PointCoordinateType>(x + Pshift.x);
-		points[i].y = static_cast<PointCoordinateType>(y + Pshift.y);
+		points[i].x = static_cast<PointCoordinateType>(x + Pshift.x)*Pscale;
+		points[i].y = static_cast<PointCoordinateType>(y + Pshift.y)*Pscale;
 		points[i].z = 0;
 	}
 	return points;
@@ -894,7 +894,7 @@ CC_FILE_ERROR buildPatches(
 
 static CC_FILE_ERROR LoadMultiPatch(QDataStream &shpStream,
                                     ccHObject &container,
-                                    CCVector3d Pshift)
+                                    const CCVector3d & Pshift, const double &Pscale)
 {
 	// skip record bbox
 	shpStream.skipRawData(4 * 8);
@@ -915,7 +915,7 @@ static CC_FILE_ERROR LoadMultiPatch(QDataStream &shpStream,
 		return CC_FERR_NOT_ENOUGH_MEMORY;
 	}
 
-	std::vector<CCVector3> points = readPoints(shpStream, numPoints, Pshift);
+	std::vector<CCVector3> points = readPoints(shpStream, numPoints, Pshift, Pscale);
 	if (points.empty())
 	{
 		return CC_FERR_NOT_ENOUGH_MEMORY;
@@ -929,7 +929,7 @@ static CC_FILE_ERROR LoadMultiPatch(QDataStream &shpStream,
 	{
 		double z;
 		shpStream >> z;
-		points[i].z = static_cast<PointCoordinateType>(z + Pshift.z);
+		points[i].z = static_cast<PointCoordinateType>(z + Pshift.z)*Pscale;
 	}
 
 	std::vector<ScalarType> scalarValues = readMeasures(shpStream, numPoints);
@@ -1087,7 +1087,7 @@ static CC_FILE_ERROR LoadPolyline(QDataStream &shpStream,
                                   ccHObject &container,
                                   int32_t index,
                                   ESRI_SHAPE_TYPE shapeType,
-                                  const CCVector3d &Pshift,
+                                  const CCVector3d &Pshift, const double &Pscale,
                                   bool preserveCoordinateShift,
                                   bool load2DPolyAs3DPoly = true)
 {
@@ -1107,7 +1107,7 @@ static CC_FILE_ERROR LoadPolyline(QDataStream &shpStream,
 	//FIXME: we should use this information and create as many polylines as necessary!
 
 	//Points (An array of length NumPoints)
-	std::vector<CCVector3> points = readPoints(shpStream, numPoints, Pshift);
+	std::vector<CCVector3> points = readPoints(shpStream, numPoints, Pshift, Pscale);
 	if (points.empty())
 	{
 		return CC_FERR_NOT_ENOUGH_MEMORY;
@@ -1125,7 +1125,7 @@ static CC_FILE_ERROR LoadPolyline(QDataStream &shpStream,
 		{
 			double z;
 			shpStream >> z;
-			points[i].z = static_cast<PointCoordinateType>(z + Pshift.z);
+			points[i].z = static_cast<PointCoordinateType>(z + Pshift.z)*Pscale;
 		}
 	}
 
@@ -1171,6 +1171,7 @@ static CC_FILE_ERROR LoadPolyline(QDataStream &shpStream,
 		if (preserveCoordinateShift)
 		{
 			vertices->setGlobalShift(Pshift);
+			vertices->setGlobalScale(Pscale);
 		}
 
 		//polyline
@@ -1179,6 +1180,7 @@ static CC_FILE_ERROR LoadPolyline(QDataStream &shpStream,
 		if (preserveCoordinateShift)
 		{
 			poly->setGlobalShift(Pshift); //shouldn't be necessary but who knows ;)
+			poly->setGlobalScale(Pscale);
 		}
 
 		if (!poly->reserve(vertCount))
@@ -1411,7 +1413,7 @@ static CC_FILE_ERROR LoadCloud(QDataStream &shpStream,
                                ccHObject &container,
                                int32_t index,
                                ESRI_SHAPE_TYPE shapeType,
-                               const CCVector3d &Pshift,
+                               const CCVector3d &Pshift, const double &Pscale,
                                bool preserveCoordinateShift)
 {
 	// Skip record bbox
@@ -1429,6 +1431,7 @@ static CC_FILE_ERROR LoadCloud(QDataStream &shpStream,
 	if (preserveCoordinateShift)
 	{
 		cloud->setGlobalShift(Pshift);
+		cloud->setGlobalScale(Pscale);
 	}
 
 	//Points (An array of length NumPoints)
@@ -1437,8 +1440,8 @@ static CC_FILE_ERROR LoadCloud(QDataStream &shpStream,
 		double x;
 		double y;
 		shpStream >> x >> y;
-		CCVector3 P(static_cast<PointCoordinateType>(x + Pshift.x),
-					static_cast<PointCoordinateType>(y + Pshift.y),
+		CCVector3 P(static_cast<PointCoordinateType>(x + Pshift.x)*Pscale,
+					static_cast<PointCoordinateType>(y + Pshift.y)*Pscale,
 					0);
 		cloud->addPoint(P);
 	}
@@ -1455,7 +1458,7 @@ static CC_FILE_ERROR LoadCloud(QDataStream &shpStream,
 			double z;
 			shpStream >> z;
 			const CCVector3* P = cloud->getPoint(i);
-			const_cast<CCVector3*>(P)->z = static_cast<PointCoordinateType>(z + Pshift.z);
+			const_cast<CCVector3*>(P)->z = static_cast<PointCoordinateType>(z + Pshift.z)*Pscale;
 		}
 		cloud->invalidateBoundingBox();
 	}
@@ -1549,7 +1552,7 @@ static CC_FILE_ERROR SaveAsCloud(ccGenericPointCloud* cloud, QDataStream& out, i
 static CC_FILE_ERROR LoadSinglePoint(QDataStream &shpStream,
                                      ccPointCloud *&singlePoints,
                                      ESRI_SHAPE_TYPE shapeType,
-                                     const CCVector3d &Pshift,
+                                     const CCVector3d &Pshift, const double &Pscale,
                                      bool preserveCoordinateShift)
 {
 	if (!singlePoints)
@@ -1558,21 +1561,22 @@ static CC_FILE_ERROR LoadSinglePoint(QDataStream &shpStream,
 		if (preserveCoordinateShift)
 		{
 			singlePoints->setGlobalShift(Pshift);
+			singlePoints->setGlobalScale(Pscale);
 		}
 	}
 
 	double x;
 	double y;
 	shpStream >> x >> y;
-	CCVector3 P(static_cast<PointCoordinateType>(x + Pshift.x),
-	            static_cast<PointCoordinateType>(y + Pshift.y),
+	CCVector3 P(static_cast<PointCoordinateType>(x + Pshift.x)*Pscale,
+	            static_cast<PointCoordinateType>(y + Pshift.y)*Pscale,
 	            0);
 
 	if (isESRIShape3D(shapeType))
 	{
 		double z;
 		shpStream >> z;
-		P.z = static_cast<PointCoordinateType>(z + Pshift.z);
+		P.z = static_cast<PointCoordinateType>(z + Pshift.z)*Pscale;
 	}
 
 	ScalarType s = NAN_VALUE;
@@ -2005,7 +2009,7 @@ CC_FILE_ERROR ShpFilter::loadFile(const QString &filename, ccHObject &container,
 			case ESRI_SHAPE_TYPE::POLYGON_M:
 			{
 				unsigned childCountBefore = container.getChildrenNumber();
-				error = LoadPolyline(shpStream, container, recordNumber, shapeType, Pshift, preserveCoordinateShift);
+				error = LoadPolyline(shpStream, container, recordNumber, shapeType, Pshift, *parameters.coordinatesScale, preserveCoordinateShift);
 				if (error == CC_FERR_NO_ERROR && shapeType == ESRI_SHAPE_TYPE::POLYLINE)
 				{
 					unsigned childCountAfter = container.getChildrenNumber();
@@ -2025,20 +2029,20 @@ CC_FILE_ERROR ShpFilter::loadFile(const QString &filename, ccHObject &container,
 			case ESRI_SHAPE_TYPE::MULTI_POINT_M:
 				is3DShape = true;
 			case ESRI_SHAPE_TYPE::MULTI_POINT:
-				error = LoadCloud(shpStream, container, recordNumber, shapeType, Pshift, preserveCoordinateShift);
+				error = LoadCloud(shpStream, container, recordNumber, shapeType, Pshift, *parameters.coordinatesScale, preserveCoordinateShift);
 				break;
 			case ESRI_SHAPE_TYPE::POINT_Z:
 			case ESRI_SHAPE_TYPE::POINT_M:
 				is3DShape = true;
 			case ESRI_SHAPE_TYPE::POINT:
-				error = LoadSinglePoint(shpStream, singlePoints, shapeType, Pshift, preserveCoordinateShift);
+				error = LoadSinglePoint(shpStream, singlePoints, shapeType, Pshift, *parameters.coordinatesScale, preserveCoordinateShift);
 				if (error == CC_FERR_NO_ERROR && recordNumber > maxPointID)
 				{
 					maxPointID = recordNumber;
 				}
 				break;
 			case ESRI_SHAPE_TYPE::MULTI_PATCH:
-				error = LoadMultiPatch(shpStream, container, Pshift);
+				error = LoadMultiPatch(shpStream, container, Pshift, *parameters.coordinatesScale);
 			case ESRI_SHAPE_TYPE::NULL_SHAPE:
 				//ignored
 				break;

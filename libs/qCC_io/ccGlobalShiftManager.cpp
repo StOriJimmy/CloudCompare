@@ -122,8 +122,8 @@ bool ccGlobalShiftManager::Handle(	const CCVector3d& P,
 	//default scale
 	double scale = (coordinatesScale ? std::max(*coordinatesScale, ZERO_TOLERANCE) : 1.0);
 
-	bool needShift = NeedShift(P);
-	bool needRescale = NeedRescale(diagonal);
+	bool needShift = NeedShift(P*scale);
+	bool needRescale = NeedRescale(diagonal*scale);
 
 	//if we can't display a dialog and no usable shift is specified, there's nothing we can do...
 	if (mode == NO_DIALOG && !useInputCoordinatesShiftIfPossible)
@@ -153,7 +153,7 @@ bool ccGlobalShiftManager::Handle(	const CCVector3d& P,
 		if (useInputCoordinatesShiftIfPossible && mode != ALWAYS_DISPLAY_DIALOG)
 		{
 			if (	mode == NO_DIALOG																//either we are in non interactive mode (which means that shift is 'forced' by caller)
-				||	(!NeedShift(P*scale + coordinatesShift) && !NeedRescale(diagonal*scale))		//or we are in interactive mode and existing shift is pertinent
+				||	(!NeedShift((P + coordinatesShift)*scale) && !NeedRescale(diagonal*scale))		//or we are in interactive mode and existing shift is pertinent
 				)
 			{
 				//have we already stored shift info?
@@ -162,7 +162,7 @@ bool ccGlobalShiftManager::Handle(	const CCVector3d& P,
 					//in "auto shift" mode, we may want to use it (to synchronize multiple clouds!)
 					for (const ccGlobalShiftManager::ShiftInfo& shiftInfo : s_lastInfoBuffer)
 					{
-						if (!NeedShift(P*shiftInfo.scale + shiftInfo.shift) && !NeedRescale(diagonal*shiftInfo.scale))
+						if (!NeedShift((P + shiftInfo.shift)*shiftInfo.scale) && !NeedRescale(diagonal*shiftInfo.scale))
 						{
 							coordinatesShift = shiftInfo.shift;
 							if (coordinatesScale)

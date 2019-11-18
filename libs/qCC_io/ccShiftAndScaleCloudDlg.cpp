@@ -406,8 +406,8 @@ void ccShiftAndScaleCloudDlg::onLoadIndexChanged(int index)
 		return;
 
 	setShift(m_defaultInfos[index].shift);
-	if (m_ui->scaleSpinBox->isVisible())
-		setScale(m_defaultInfos[index].scale);
+	//if (m_ui->scaleSpinBox->isVisible())
+	setScale(m_defaultInfos[index].scale);
 }
 
 bool ccShiftAndScaleCloudDlg::getInfo(size_t index, ccGlobalShiftManager::ShiftInfo& info) const

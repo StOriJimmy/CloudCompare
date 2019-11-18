@@ -65,6 +65,7 @@ public:
 			, alwaysDisplayLoadDialog(true)
 			, coordinatesShiftEnabled(nullptr)
 			, coordinatesShift(nullptr)
+			, coordinatesScale(nullptr)
 			, preserveShiftOnSave(true)
 			, autoComputeNormals(false)
 			, parentWidget(nullptr)
@@ -81,6 +82,8 @@ public:
 		bool* coordinatesShiftEnabled;
 		//! If applicable, applied shift on load (optional)
 		CCVector3d* coordinatesShift;
+		//! If applicable, applied shift on load (optional)
+		double* coordinatesScale;
 		//! If applicable, whether shift should be preserved or not (optional)
 		bool preserveShiftOnSave;
 		//! Whether normals should be computed at loading time (if possible - e.g. for gridded clouds) or not
