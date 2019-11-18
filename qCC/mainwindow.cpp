@@ -168,6 +168,7 @@
 #include "bdrPlaneEditorDlg.h"
 
 #include "stocker_parser.h"
+#include "builderlod2/lod2parser.h"
 #include "polyfit/basic/logger.h"
 #endif // USE_STOCKER
 
@@ -2024,6 +2025,7 @@ std::vector<ccHObject*> MainWindow::addToDB(const QStringList& filenames,
 	ccHObject::Container loads;
 	//to use the same 'global shift' for multiple files
 	CCVector3d loadCoordinatesShift(0, 0, 0);
+	double loadCoordinatesScale(1);
 	bool loadCoordinatesTransEnabled = false;
 
 	FileIOFilter::LoadParameters parameters;
@@ -2031,6 +2033,7 @@ std::vector<ccHObject*> MainWindow::addToDB(const QStringList& filenames,
 		parameters.alwaysDisplayLoadDialog = true;
 		parameters.shiftHandlingMode = ccGlobalShiftManager::DIALOG_IF_NECESSARY;
 		parameters.coordinatesShift = &loadCoordinatesShift;
+		parameters.coordinatesScale = &loadCoordinatesScale;
 		parameters.coordinatesShiftEnabled = &loadCoordinatesTransEnabled;
 		parameters.parentWidget = this;
 	}
@@ -12570,6 +12573,9 @@ void MainWindow::doActionBDPlaneSegmentation()
 
 	if (entity->isA(CC_TYPES::POINT_CLOUD))
 		_container.push_back(entity);
+	else if (!baseObj && entity->isA(CC_TYPES::HIERARCHY_OBJECT)) {
+		_container = GetEnabledObjFromGroup(entity, CC_TYPES::POINT_CLOUD, true, true);
+	}
 	else {
 		ccHObject::Container building_groups;		
 		if (!baseObj) {
@@ -13118,11 +13124,46 @@ void MainWindow::doActionBDPrimPlaneFrame()
 	methods.append("optimization");
 	methods.append("linegrow");
 	methods.append("houghline");
+	methods.append("convexhull");
 	bool ok;
 	QString used_method = QInputDialog::getItem(this, "Boundary extraction", "method", methods, 0, false, &ok);
 	if (!ok) return;
 
 	ccHObject *entity = getSelectedEntities().front();
+
+	BDBaseHObject* baseObj = GetRootBDBase(entity);
+	if (!baseObj) {
+
+		double sample = 3;
+		if (used_method == "linegrow") {
+			bool ok = true;
+			sample = QInputDialog::getDouble(this, "Input Param", "point line distance", 3, 0.0, 999999.0, 1, &ok);
+			if (!ok) return;
+		} 
+
+		ccHObject::Container polygons = GetEnabledObjFromGroup(entity, CC_TYPES::POLY_LINE, true, true);
+
+		for (ccHObject* polygon : polygons)	{
+			stocker::Polyline3d poly = GetPolygonFromPolyline(polygon);
+			std::vector<stocker::Contour3d> contours;
+			if (used_method == "convexhull") {
+				stocker::PlaneUnit plane_unit = stocker::FormPlaneUnit(stocker::ToContour(poly, 3), "temp", true);
+				contours.push_back(plane_unit.convex_hull_prj);
+			}
+			else if (used_method == "linegrow")	{
+				stocker::PolygonGeneralizationLineGrow_Contour(stocker::ToContour(poly, 3), contours, 0, 0, sample);
+			}
+
+			if (contours.empty()) continue;
+			ccHObject* new_poly = AddPolygonAsPolyline(contours.front(), polygon->getName(), ccColor::Generator::Random(), true);
+			if (!new_poly) continue;
+			polygon->getParent()->addChild(new_poly);
+			polygon->setName("del-" + polygon->getName());
+			polygon->setEnabled(false);
+		}
+		return;
+	}
+
 	ccHObject::Container plane_container = GetPlaneEntitiesBySelected(entity);
 
 	if (plane_container.empty()) {
@@ -13327,7 +13368,7 @@ void MainWindow::doActionBDPrimCreateGround()
 		stocker::Vec3d box_min = stocker::parse_xyz(box.minCorner());
 		stocker::Vec3d box_max = stocker::parse_xyz(box.maxCorner());
 		stocker::BBox2d box_2d = stocker::BBox2d(stocker::ToVec2d(box_min), stocker::ToVec2d(box_max));
-		stocker::Contour2d pts_2d = stocker::PointSampleInBox2d(box_2d, sample);
+		stocker::Contour2d pts_2d = stocker::PointSampleInBox2<double>(box_2d, sample);
 
 		ccPointCloud* plane_cloud = new ccPointCloud("Ground");
 		ccColor::Rgb col = ccColor::Generator::Random();
@@ -14270,10 +14311,33 @@ void MainWindow::doActionBDFootPrintManual()
 void MainWindow::doActionBDFootPrintPack()
 {
 	if (!haveSelection()) return;
-	ccHObject *entity = getSelectedEntities().front();
+	ccHObject* entity = getSelectedEntities().front();
 	BDBaseHObject* baseObj = GetRootBDBase(entity);
-	ccHObject* bd_entity = GetParentBuilding(entity);
-	if (!bd_entity) return;
+	if (!baseObj) {
+		bool ok = true;
+		int sample = QInputDialog::getInt(this, "Parameters", "Please input sampling distance", 100, 0, 999999, 1, &ok);
+		if (!ok) return;
+
+		ProgStart("polygon selection...")
+
+		ccHObject::Container polygons = GetEnabledObjFromGroup(entity, CC_TYPES::POLY_LINE, true, true);
+		ccHObject::Container packed_polys = PackPolygons(polygons, sample);
+		if (packed_polys.empty()) { return; }
+
+		ccHObject* new_group = new ccHObject("packed_obj");
+		for (ccHObject* poly : packed_polys) {
+			new_group->addChild(poly);
+		}
+		addToDB(new_group, entity->getDBSourceType());
+
+		ProgEnd
+		return;
+	}
+
+	ccHObject::Container bds = GetBuildingEntitiesBySelected(entity);
+	if (bds.empty()) {
+		return;
+	}
 
 	QStringList methods;
 	methods.append("optimization");
@@ -14287,12 +14351,15 @@ void MainWindow::doActionBDFootPrintPack()
 	if (used_method == "optimization") method = 0;	
 	else if (used_method == "pprepair")	method = 1;
 
-	ProgStart("polygon partition")
+	ProgStartNorm("polygon partition", bds.size());
 	try	{
-		if (!PackFootprints(bd_entity, method)) {
-			return;
-		}
-		addToDB(bd_entity, bd_entity->getDBSourceType());
+		for (ccHObject* bd_entity : bds) {
+			if (!PackFootprints(bd_entity, method)) {
+				continue;
+			}
+			addToDB(bd_entity, bd_entity->getDBSourceType());
+			ProgStep()
+		}		
 	}
 	catch (const std::exception& e)	{
 		dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
@@ -15145,37 +15212,13 @@ void MainWindow::addToDatabase(QStringList files, ccHObject * import_pool, bool 
 	}
 }
 
-ccHObject::Container MainWindow::addPointsToDatabase(QStringList files, ccHObject * import_pool, bool remove_exist, bool auto_sort, bool fastLoad)
+ccHObject::Container MainWindow::addPointsToDatabase(QStringList files, ccHObject * import_pool, bool remove_exist, bool auto_sort)
 {
-	ccHObject::Container loaded_files = addToDB(files, CC_TYPES::DB_MAINDB);
+	ccHObject::Container loaded_files = addToDB(files, import_pool->getDBSourceType());
 	ccHObject::Container trans_files;
 	for (ccHObject* lf : loaded_files) {
 		if (!lf) { continue; }
-		if (fastLoad) {
-			if (lf->isA(CC_TYPES::HIERARCHY_OBJECT)) {
-				lf->setName(QFileInfo(lf->getName()).completeBaseName());
-				// TODO: check existing
-				if (remove_exist) {
-					for (size_t i = 0; i < import_pool->getChildrenNumber(); i++) {
-						ccHObject* child = import_pool->getChild(i);
-						if (child->getName() == lf->getName()) {
-							if (child->getPath() == lf->getPath()) {
-								delete child;
-								child = nullptr;
-							}
-							//removeFromDB(child);
-						}
-					}
-				}
-				if (lf->getParent()) {
-					lf->getParent()->transferChild(lf, *import_pool);
-				}
-				else {
-					import_pool->addChild(lf);
-				}
-			}
-			continue;
-		}
+		
 		if (lf->isA(CC_TYPES::HIERARCHY_OBJECT)) {
 			ccHObject::Container loaded_objs;
 			lf->filterChildren(loaded_objs, false, CC_TYPES::POINT_CLOUD, true);
@@ -15197,6 +15240,29 @@ ccHObject::Container MainWindow::addPointsToDatabase(QStringList files, ccHObjec
 		}
 		else if (lf->isA(CC_TYPES::POINT_CLOUD)) {
 			assert(false);//! not happened
+		}
+	}
+
+	if (auto_sort) {
+		db(CC_TYPES::DB_MAINDB)->sortItemChildren(import_pool, ccDBRoot::SORT_A2Z);
+	}
+	return trans_files;
+}
+
+ccHObject::Container MainWindow::addFilesToDatabase(QStringList files, ccHObject * import_pool, bool remove_exist, bool auto_sort)
+{
+	ccHObject::Container loaded_files = addToDB(files, import_pool->getDBSourceType());
+	ccHObject::Container trans_files;
+	for (ccHObject* lf : loaded_files) {
+		if (!lf || !lf->isA(CC_TYPES::HIERARCHY_OBJECT)) { continue; }
+		
+		lf->setName(QFileInfo(lf->getName()).completeBaseName());
+		// TODO: check existing
+		if (lf->getParent()) {
+			lf->getParent()->transferChild(lf, *import_pool);
+		}
+		else {
+			import_pool->addChild(lf);
 		}
 	}
 
@@ -15276,59 +15342,83 @@ void MainWindow::doActionImportData()
 	settings.setValue(ccPS::SelectedInputFilter(), currentOpenDlgFilter);
 	settings.endGroup();
 
-	addPointsToDatabase(selectedFiles, import_pool, true, true, true);
+	addFilesToDatabase(selectedFiles, import_pool, false, false);
 }
 
+inline QStringList _splitString(char* str, const char* seps)
+{
+	QStringList sub_strs;
+	char* token = strtok(str, seps);
+	while (token) {
+		std::string sub(token);
+		sub = sub.substr(0, sub.find_last_of("\t\r\n"));
+		sub_strs << QString::fromStdString(sub);
+		token = strtok(NULL, seps);
+	}
+	return sub_strs;
+}
+
+QStringList g_nameFilters;
 void MainWindow::doActionImportFolder()
 {
-	//! any database?
-	ccHObject* root = db(CC_TYPES::DB_MAINDB)->getRootEntity();
-	ccHObject* current_database = nullptr; ccHObject::Container dbs;
-	for (size_t i = 0; i < root->getChildrenNumber(); i++) {
-		if (isDatabaseProject(root->getChild(i))) {
-			dbs.push_back(root->getChild(i));
-		}
-	}
-	if (dbs.empty()) {
-		return;
-	}
-	if (dbs.size() > 1) {
-		current_database = askUserToSelect(CC_TYPES::ST_PROJECT);
-	}
-	else {
-		current_database = dbs.front();
-	}
-	if (!current_database) { return; }
-
 	if (!haveSelection()) {
 		return;
 	}
+
+	DataBaseHObject* baseObj = getCurrentMainDatabase();
+	if (!baseObj && !m_selectedEntities.front()->isA(CC_TYPES::HIERARCHY_OBJECT)) {
+		dispToConsole("please open a database or create an empty group", ERR_CONSOLE_MESSAGE);
+		return;
+	}
+
 	ccHObject* import_pool = m_selectedEntities.front();
+	if (baseObj) {
+		//TODO: can only select certain types
+	}
+
 	QString dirname = QFileDialog::getExistingDirectory(this,
 		tr("Open Directory"),
 		"",
 		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
-	if (!QFileInfo(dirname).exists()) {
+	if (dirname.isEmpty() || !QFileInfo(dirname).exists()) {
 		return;
 	}
 
-	QStringList files;
-	QStringList nameFilters;
-	// TODO: Dialog settings
-	//if (import_pool->getName() == "pointClouds")
-	nameFilters << "*.las" << "*.laz" << "*.ply" << "*.obj";
-// 	else if (import_pool->getName() == "images") {
-// 		nameFilters << "*.tif" << "*.tiff";
-// 	}
-	//else return;
+	//TODO: data type
+	
+	if (g_nameFilters.isEmpty()) {
+		g_nameFilters << "*.las" << "*.laz" << "*.ply" << "*.obj" << "*.pcd";
+	}
 
-	QDirIterator dir_iter(dirname, nameFilters, QDir::Files | QDir::NoSymLinks | QDir::Readable, QDirIterator::Subdirectories);
+	QString str_name_filter;
+	for (auto str : g_nameFilters) {
+		str_name_filter += str;
+		str_name_filter += ";";
+	}
+	bool isOK;
+	QString text = QInputDialog::getText(NULL, "File filters",
+		"Please input your support file extends",
+		QLineEdit::Normal,
+		str_name_filter,
+		&isOK);
+	if (!isOK) {
+		return;
+	}
+	char char_name_filters[1024];
+	sprintf(char_name_filters, "%s", text.toStdString().c_str());
+	g_nameFilters = _splitString(char_name_filters, ";");
+	if (g_nameFilters.isEmpty()) {
+		return;
+	}
+	
+	QDirIterator dir_iter(dirname, g_nameFilters, QDir::Files | QDir::NoSymLinks | QDir::Readable, QDirIterator::Subdirectories);
+	QStringList files;
 	while (dir_iter.hasNext()) {
 		files.append(dir_iter.next());
 	}
 	
-	addPointsToDatabase(files, import_pool, true, true, true);
+	addFilesToDatabase(files, import_pool, false, false);
 }
 
 void MainWindow::doActionCreateBuildingProject()
@@ -15509,7 +15599,7 @@ void MainWindow::doActionLoadSubstance()
 	if (!sel) { return; }
 	QStringList files;
 	files.append(sel->getPath());
-	addPointsToDatabase(files, sel, true, false, false);
+	addPointsToDatabase(files, sel, true, false);
 }
 
 inline QString getCmdLine(QString prj_path, QString task_name, int prj_id)

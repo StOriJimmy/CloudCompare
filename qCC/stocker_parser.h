@@ -77,6 +77,10 @@ ccPointCloud * AddPointsAsPlane(std::vector<T> points, QString name, ccColor::Rg
 
 ccPointCloud* AddSegmentsAsPlane(stocker::Polyline3d lines, QString lines_prefix, ccColor::Rgb col, ccHObject* _exist_cloud = nullptr);
 
+ccPolyline * AddPolygonAsPolyline(stocker::Contour3d points, QString name, ccColor::Rgb col, bool close);
+
+ccPolyline * AddPolygonAsPolyline(stocker::Polyline3d polygon, QString name, ccColor::Rgb col, bool close);
+
 ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, int min_pts, double distance_epsilon, double seed_raius, double growing_radius, double merge_threshold = -1, double split_threshold = -1);
 ccHObject* PlaneSegmentationRansac(ccHObject* entity, int min_pts, double distance_epsilon, double seed_raius, double normal_threshold, double ransac_probability, double merge_threshold = -1, double split_threshold = -1, ccPointCloud* todo_cloud = nullptr);
 ccHObject * PlaneSegmentationATPS(ccHObject * entity, ccPointCloud * todo_cloud, bool* iter_times = nullptr,
@@ -108,6 +112,8 @@ ccHObject::Container GenerateFootPrints(ccHObject * prim_group, double ground);
 ccHObject * LoD1FromFootPrint(ccHObject * buildingObj);
 
 ccHObject * LoD2FromFootPrint(ccHObject * entity);
+
+ccHObject::Container PackPolygons(ccHObject::Container polygonEntites, int sample);
 
 bool PackFootprints(ccHObject * buildingObj, int method);
 

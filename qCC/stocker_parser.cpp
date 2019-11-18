@@ -18,6 +18,8 @@
 #include "builderlod2/lod2parser.h"
 #include "builderpoly/builderpoly.h"
 #include "buildertexture/buildertexture.h"
+#include "vcg/space/index/grid_static_ptr2d.h"
+#include "vcg/space/index/closest2d.h"
 
 using namespace stocker;
 #endif // USE_STOCKER
@@ -2169,6 +2171,77 @@ void SubstituteFootPrintContour(StFootPrint* footptObj, stocker::Contour3d point
 	}
 }
 
+ccHObject::Container PackPolygons(ccHObject::Container polygonEntites, int sample)
+{
+	ccHObject::Container output_polygons;
+	std::vector<stocker::Contour3d> footprints_points_pp;
+
+	std::vector<stocker::Polyline3d> pp_polygons;
+	std::vector<stocker::Contour3d> pp_poly_points;
+
+	ccBBox box;
+	for (ccHObject* polyObj : polygonEntites) {
+		box += polyObj->getOwnBB();
+	}
+	
+	float sample_dist = box.getDiagNorm() / (float)sample;
+ 	vcg::Box2f box_2f = vcg::Box2f({ box.minCorner().x,box.minCorner().y }, { box.maxCorner().x,box.maxCorner().y });
+ 	std::vector<stocker::Vec2_<float>> pts_2f = stocker::PointSampleInBox2<float>(box_2f, sample_dist);
+
+	//grid failed, don't know why
+// 	std::vector<stocker::Vec2T_<float>> pts_2Tf(pts_2f.begin(), pts_2f.end());
+// 	vcg::GridStaticPtr2D<stocker::Vec2T_<float>, float> Grid2D;
+// 	Grid2D.Set(pts_2Tf.begin(), pts_2Tf.end());
+
+ 	pp_poly_points.resize(polygonEntites.size());
+	pp_polygons.resize(polygonEntites.size());
+ 	Concurrency::parallel_for(size_t(0), polygonEntites.size(), [&](size_t i) {
+	//for (size_t i = 0; i < polygonEntites.size(); ++i) {
+		pp_polygons[i] = GetPolygonFromPolyline(polygonEntites[i]);
+
+		ccBBox box = polygonEntites[i]->getOwnBB();
+		for (auto pt : pts_2f) {
+			if (box.contains(CCVector3(pt.X(),pt.Y(), box.getCenter().z))) {
+				pp_poly_points[i].push_back({ pt.X(),pt.Y(),box.getCenter().z });
+			}
+		}
+
+// 		vcg::PMarker2<stocker::Vec2T_<float>> TM;
+// 		std::vector<stocker::Vec2T_<float>*> p_pts;
+// 		Grid2D.GetInBox(TM, box_2f, p_pts);
+// 		for (auto pt : p_pts) {
+// 			pp_poly_points[i].push_back({ (*pt).X(),(*pt).Y(),0 });
+// 		}
+	//}
+ 	});
+	
+	for (size_t i = 0; i < pp_poly_points.size(); i++) {
+		ccPointCloud* new_pc = AddPointsAsPointCloud(pp_poly_points[i], "points", ccColor::Generator::Random());
+		if (new_pc) {
+			polygonEntites[i]->addChild(new_pc);
+			MainWindow::TheInstance()->addToDB(new_pc, polygonEntites[i]->getDBSourceType());
+		}
+	}
+
+	stocker::PolygonPartition poly_partition;
+	poly_partition.setOutputDir("./Output");
+	poly_partition.m_max_iter = 1;
+	poly_partition.m_run_cap_hole = false;
+	poly_partition.setPolygon(pp_polygons, pp_poly_points);
+	if (!poly_partition.runBP()) {
+		return output_polygons;
+	}
+	std::vector<stocker::Outline3d> results = poly_partition.getResultPolygon();
+	for (auto & poly : results) {
+		if (poly.empty()) continue;
+		//! for now, no holes for footprint
+		footprints_points_pp.push_back(ToContour(poly.front(), 0));
+		ccPolyline* new_poly = AddPolygonAsPolyline(poly.front(), "temp", ccColor::Generator::Random(), true);
+		output_polygons.push_back(new_poly);
+	}
+	return output_polygons;
+}
+
 bool PackFootprints(ccHObject* buildingObj, int method)
 {
 	try {
@@ -2221,12 +2294,14 @@ bool PackFootprints(ccHObject* buildingObj, int method)
 			}
 
 			stocker::PolygonPartition poly_partition;
+			std::string output_dir;
 			if (!buildingObj->getPath().isEmpty()) {
-				poly_partition.m_output_dir = QFileInfo(buildingObj->getPath()).absoluteFilePath().toStdString() + "/footprints";
+				output_dir = QFileInfo(buildingObj->getPath()).absoluteFilePath().toStdString() + "/footprints";
 			}
 			else {
-				poly_partition.m_output_dir = QFileInfo(QString::fromStdString(build_unit.file_path.ori_points)).absolutePath().toStdString() + "/footprints";
+				output_dir = QFileInfo(QString::fromStdString(build_unit.file_path.ori_points)).absolutePath().toStdString() + "/footprints";
 			}
+			poly_partition.setOutputDir(output_dir);
 			
 			//TODO: should give outlines rather than polygons
 			poly_partition.setPolygon(polygons, polygons_points);

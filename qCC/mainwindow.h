@@ -186,7 +186,9 @@ public:
 	}
 
 	void addToDatabase(QStringList files, ccHObject* import_pool, bool remove_exist = true, bool auto_sort = true);
-	ccHObject::Container addPointsToDatabase(QStringList files, ccHObject* import_pool, bool remove_exist = true, bool auto_sort = true, bool fastLoad = false);
+	ccHObject::Container addPointsToDatabase(QStringList files, ccHObject* import_pool, bool remove_exist = true, bool auto_sort = true);
+
+	ccHObject::Container addFilesToDatabase(QStringList files, ccHObject * import_pool, bool remove_exist, bool auto_sort);
 	
 	void registerOverlayDialog(ccOverlayDialog* dlg, Qt::Corner pos) override;
 	void unregisterOverlayDialog(ccOverlayDialog* dlg) override;
