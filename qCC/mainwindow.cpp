@@ -1941,6 +1941,7 @@ void MainWindow::addToDB(ccHObject* obj,
 	{
 		ccLog::Warning("[MainWindow::addToDB] Internal error: no associated db?!");
 		assert(false);
+		return;
 	}
 
 	//we can now set destination display (if none already)
@@ -2047,7 +2048,10 @@ std::vector<ccHObject*> MainWindow::addToDB(const QStringList& filenames,
 	for (const QString &filename : filenames)
 	{
 		CC_FILE_ERROR result = CC_FERR_NO_ERROR;
+
+		std::cout << "loading.." << filename.toStdString();
 		ccHObject* newGroup = FileIOFilter::LoadFromFile(filename, parameters, result, fileFilter);
+		std::cout << " succeeded!" <<std::endl;
 
 		//! add even if the new group is empty
 		loads.push_back(newGroup);
@@ -12178,13 +12182,6 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 {
 	BDBaseHObject* bd_grp = nullptr;
 
-	stocker::BlockProj block_prj; std::string error_info;
-	if (!stocker::LoadProject(Filename.toStdString(), block_prj, error_info)) {
-		std::cout << error_info << std::endl;
-		//dispToConsole(error_info.c_str(), ccMainAppInterface::ERR_CONSOLE_MESSAGE);
-		return nullptr;
-	}
-
 	QFileInfo prj_file(Filename);
 	QString prj_name = prj_file.completeBaseName();
 
@@ -12193,7 +12190,16 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 	if (QFileInfo(bin_file).exists()) {
 		std::cout << "start loading " << bin_file.toStdString() << std::endl;
 		QStringList files; files.append(bin_file);
-		ccHObject::Container loaded = addToDB_Build(files);
+		ccHObject::Container loaded;
+		try
+		{
+			loaded = addToDB_Build(files);
+		}
+		catch (const std::exception& e)	{
+			std::cout << "internal error!" << std::endl;
+			return nullptr;
+		}		
+		std::cout << "---- loaded!" << std::endl;
 		ccHObject* newGroup = loaded.empty() ? nullptr : loaded.front();
 
 		if (newGroup) {
@@ -12201,9 +12207,16 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 			bd_grp->setName(prj_name);
 			newGroup->transferChildren(*bd_grp);
 			removeFromDB(newGroup);
-			std::cout << bin_file.toStdString() << " loaded" << std::endl;
+			std::cout << "---- transfered!" << std::endl;
 		}
 	}
+
+	stocker::BlockProj block_prj; std::string error_info;
+	if (!stocker::LoadProject(Filename.toStdString(), block_prj, error_info)) {
+		std::cout << error_info << std::endl;
+		return nullptr;
+	}
+
 	if (!bd_grp) {
 
 		QStringList names; QStringList files;
@@ -12254,6 +12267,7 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 				continue;
 			}
 
+			std::cout << "preparing: " << sp_build->GetName().Str() << std::endl;
 			if (!LoadBuildingInfo(sp_build->data, sp_build->data.file_path.info)) {
 				ccPointCloud* cloud = bd_grp->GetOriginPointCloud(bdObj->getName(), false);
 				stocker::Contour3d points_global; stocker::Contour3f points_local;
@@ -15079,7 +15093,7 @@ void MainWindow::doActionOpenDatabase()
 		QFileInfo(currentPath).absolutePath(),
 		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
-	if (!QFileInfo(database_name).exists())	{
+	if (database_name.isEmpty() || !QFileInfo(database_name).exists())	{
 		return;
 	}
 
@@ -15459,7 +15473,7 @@ void MainWindow::doActionCreateBuildingProject()
 				QFileInfo(currentPath).absolutePath(),
 				QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 		}
-		if (!QFileInfo(project_dir).exists()) { return; }
+		if (project_dir.isEmpty() || !QFileInfo(project_dir).exists()) { return; }
 	}
 
 	//! project name: 
