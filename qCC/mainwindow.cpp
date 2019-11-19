@@ -1874,7 +1874,7 @@ std::vector<ccHObject*> MainWindow::loadFiles(const QStringList & filenames, int
 		parameters.coordinatesShift = &loadCoordinatesShift;
 		parameters.coordinatesScale = &loadCoordinatesScale;
 		parameters.coordinatesShiftEnabled = &loadCoordinatesTransEnabled;
-		parameters.parentWidget = filenames.size() > 1 ? this : nullptr;
+		parameters.parentWidget = filenames.size() > 1 ? nullptr : this;
 		parameters.loadMode = loadMode;
 	}
 
@@ -1906,7 +1906,7 @@ std::vector<ccHObject*> MainWindow::loadFiles(const QStringList & filenames, int
 
 					/// disable the normals on all loaded clouds!
 					if (!options.normalsDisplayedByDefault)
-						static_cast<ccGenericPointCloud*>(cloud)->showNormals(false);
+						cloudObj->showNormals(false);
 				}
 			}
 			
