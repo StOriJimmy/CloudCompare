@@ -720,13 +720,52 @@ StPrimGroup* AddPlanesPointsAsNewGroup(QString name, std::vector<T> planes_point
 	return group;
 }
 
+template <typename T = stocker::Contour3d>
+StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vector<T> planes_points, std::vector<vcg::Plane3d>* planes = nullptr,
+	ccPointCloud* todo_cloud = nullptr, T* unassigned_points = nullptr)
+{
+	if (!entity_cloud) {
+		return nullptr;
+	}
+	StPrimGroup* group = AddPlanesPointsAsNewGroup<T>(GetBaseName(entity_cloud->getName()) + BDDB_PRIMITIVE_SUFFIX, planes_points, planes);
+	if (entity_cloud->getDisplay())
+		group->setDisplay_recursive(entity_cloud->getDisplay());
+	ccHObject::Container group_clouds;
+	group->filterChildren(group_clouds, false, CC_TYPES::POINT_CLOUD, true);
+	for (auto & ent : group_clouds) {
+		ccPointCloud* ent_cld = ccHObjectCaster::ToPointCloud(ent);
+		ent_cld->setGlobalShift(entity_cloud->getGlobalShift());
+		ent_cld->setGlobalScale(entity_cloud->getGlobalScale());
+	}
+	ccHObject* parent = entity_cloud->getParent();
+	if (parent)	{
+		ccHObject* parent_parent = parent->getParent();
+		if (parent_parent && GetBaseName(parent_parent->getName()) == GetBaseName(entity_cloud->getName())) {
+			parent_parent->addChild(group);
+		}
+		else parent->addChild(group);
+	}
+	else {
+		entity_cloud->addChild(group);
+	}
+	
+	if (todo_cloud && unassigned_points) {
+		for (auto & pt : *unassigned_points) {
+			todo_cloud->addPoint(CCVector3(vcgXYZ(pt)));
+		}
+		todo_cloud->reserveTheRGBTable();
+		todo_cloud->setRGBColor(ccColor::black);
+	}
+	return group;
+}
+
 ccHObject* PlaneSegmentationRgGrow(ccHObject* entity,
 	int min_pts, double distance_epsilon, double seed_raius,
 	double growing_radius,
 	double merge_threshold, double split_threshold)
 {
 	ccPointCloud* entity_cloud = ccHObjectCaster::ToPointCloud(entity);
-	if (!entity_cloud->hasNormals()) {
+	if (!entity_cloud || !entity_cloud->hasNormals() || entity_cloud->size() == 0) {
 		return nullptr;
 	}
 
@@ -760,17 +799,8 @@ ccHObject* PlaneSegmentationRgGrow(ccHObject* entity,
 			return nullptr;
 		}
 	}
+	StPrimGroup* group = parsePlaneSegmentationResult<stocker::Contour3d>(entity_cloud, planes_points, (planes.size() == planes_points.size()) ? &planes : nullptr, nullptr, nullptr);
 
-	StPrimGroup* group = AddPlanesPointsAsNewGroup(GetBaseName(entity->getName()) + BDDB_PRIMITIVE_SUFFIX, planes_points);
-	group->setDisplay_recursive(entity->getDisplay());
-	ccHObject::Container group_clouds;
-	group->filterChildren(group_clouds, false, CC_TYPES::POINT_CLOUD, true);
-	for (auto & ent : group_clouds) {
-		ccPointCloud* ent_cld = ccHObjectCaster::ToPointCloud(ent);
-		ent_cld->setGlobalShift(entity_cloud->getGlobalShift());
-		ent_cld->setGlobalScale(entity_cloud->getGlobalScale());
-	}
-	entity->getParent()->addChild(group);
 	return group;
 }
 
@@ -780,7 +810,7 @@ ccHObject* PlaneSegmentationRansac(ccHObject* entity,
 	double merge_threshold, double split_threshold, ccPointCloud* todo_cloud)
 {
 	ccPointCloud* entity_cloud = ccHObjectCaster::ToPointCloud(entity);
-	if (!entity_cloud->hasNormals()) {
+	if (!entity_cloud || !entity_cloud->hasNormals() || entity_cloud->size() == 0) {
 		return nullptr;
 	}
 
@@ -813,24 +843,13 @@ ccHObject* PlaneSegmentationRansac(ccHObject* entity,
 			return nullptr;
 		}
 	}
-
-	StPrimGroup* group = AddPlanesPointsAsNewGroup(GetBaseName(entity->getName()) + BDDB_PRIMITIVE_SUFFIX, planes_points, &planes);
-	group->setDisplay_recursive(entity->getDisplay());
-	ccHObject::Container group_clouds;
-	group->filterChildren(group_clouds, false, CC_TYPES::POINT_CLOUD, true);
-	for (auto & ent : group_clouds) {
-		ccPointCloud* ent_cld = ccHObjectCaster::ToPointCloud(ent);
-		ent_cld->setGlobalShift(entity_cloud->getGlobalShift());
-		ent_cld->setGlobalScale(entity_cloud->getGlobalScale());
-	}
-	entity->getParent()->addChild(group);
-	if (todo_cloud)	{		
+	stocker::Contour3d unassigned_points_pts;
+	if (todo_cloud) {
 		for (auto & pt : unassigned_points) {
-			todo_cloud->addPoint(CCVector3(vcgXYZ(pt.first)));
+			unassigned_points_pts.push_back(pt.first);
 		}
-		todo_cloud->reserveTheRGBTable();
-		todo_cloud->setRGBColor(ccColor::black);			
 	}
+	StPrimGroup* group = parsePlaneSegmentationResult<stocker::Contour3d>(entity_cloud, planes_points, (planes.size() == planes_points.size()) ? &planes : nullptr, todo_cloud, &unassigned_points_pts);
 
 	return group;	
 }
@@ -849,7 +868,9 @@ ccHObject* PlaneSegmentationATPS(ccHObject* entity,
 	double* gamma_t, double* epsilon_t, double* theta_t)
 {
 	ccPointCloud* entity_cloud = ccHObjectCaster::ToPointCloud(entity);
-		 
+	if (!entity_cloud || entity_cloud->size() == 0) {
+		return nullptr;
+	}
 	ATPS::ATPS_Plane atps_plane;
 	if (kappa_t && delta_t && tau_t && gamma_t && epsilon_t && theta_t) {
 		atps_plane.set_parameters(*kappa_t, *delta_t, *tau_t, *gamma_t, *epsilon_t, *theta_t, 0);
@@ -858,11 +879,12 @@ ccHObject* PlaneSegmentationATPS(ccHObject* entity,
 		atps_plane.set_iter(static_cast<int>(*iter_times));
 	}
 
-	std::vector<ATPS::SVPoint3d> points = GetPointsFromCloud3d<ATPS::SVPoint3d>(entity_cloud);
+	typedef std::vector<ATPS::SVPoint3d> ATPSpVec;
+	ATPSpVec points = GetPointsFromCloud3d<ATPS::SVPoint3d>(entity_cloud);
 	double res = atps_plane.get_res(points);
 	
-	std::vector<ATPS::SVPoint3d> unassigned_points;
-	std::vector<std::vector<ATPS::SVPoint3d>> planes_points;
+	ATPSpVec unassigned_points;
+	std::vector<ATPSpVec> planes_points;
 	std::vector<std::vector<double>> params;
 	if (!atps_plane.ATPS_PlaneSegmentation(points, planes_points, unassigned_points, params) || planes_points.size() != params.size()) {
 		return nullptr;
@@ -873,28 +895,13 @@ ccHObject* PlaneSegmentationATPS(ccHObject* entity,
 	for (auto & pl : params) {
 		if (pl.size() != 4) {
 			std::cout << "plane param size not equals to 4" << std::endl;
-			return nullptr;
+			planes.clear();
+			break;
 		}
 		planes.push_back(vcg::Plane3d(-pl[3], { pl[0],pl[1],pl[2] }));
 	}
 
-	StPrimGroup* group = AddPlanesPointsAsNewGroup(GetBaseName(entity->getName()) + BDDB_PRIMITIVE_SUFFIX, planes_points, &planes);
-	group->setDisplay_recursive(entity->getDisplay());
-	ccHObject::Container group_clouds;
-	group->filterChildren(group_clouds, false, CC_TYPES::POINT_CLOUD, true);
-	for (auto & ent : group_clouds) {
-		ccPointCloud* ent_cld = ccHObjectCaster::ToPointCloud(ent);
-		ent_cld->setGlobalShift(entity_cloud->getGlobalShift());
-		ent_cld->setGlobalScale(entity_cloud->getGlobalScale());
-	}
-	entity->getParent()->addChild(group);
-	if (todo_cloud) {
-		for (auto & pt : unassigned_points) {
-			todo_cloud->addPoint(CCVector3(vcgXYZ(pt)));
-		}
-		todo_cloud->reserveTheRGBTable();
-		todo_cloud->setRGBColor(ccColor::black);
-	}
+	StPrimGroup* group = parsePlaneSegmentationResult<ATPSpVec>(entity_cloud, planes_points, (planes.size() == planes_points.size()) ? &planes : nullptr, todo_cloud, &unassigned_points);
 
 	return group;
 }
@@ -1214,12 +1221,9 @@ ccHObject* PlaneFrameOptimization(ccHObject* planeObj, stocker::FrameOption opti
 
 	BDBaseHObject* baseObj = GetRootBDBase(planeObj);
 	std::string output_prefix;
-	if (baseObj) {		
-		auto bd_find = baseObj->block_prj.m_builder.sbuild.find(BuilderBase::BuildNode::Create(base_name));
-		if (bd_find == baseObj->block_prj.m_builder.sbuild.end()) {
-			return nullptr;
-		}
-		output_prefix = (*bd_find)->data.file_path.root_dir + "\\primitives\\frame_opt\\";
+	if (baseObj) {	
+		stocker::BuildUnit bd_unit = baseObj->GetBuildingUnit(base_name);
+		output_prefix = bd_unit.file_path.root_dir + "\\primitives\\frame_opt\\";
 		CreateDir(output_prefix.c_str());
 		output_prefix = output_prefix + base_name;
 	}
@@ -1282,7 +1286,7 @@ ccHObject* PlaneFrameOptimization(ccHObject* planeObj, stocker::FrameOption opti
 	//! add data to frame
 	frame_opt.PreparePlanePoints(vcgPlane, plane_points);
 	if (baseObj) {
-		frame_opt.PrepareImageList(baseObj->block_prj.m_builder);
+		frame_opt.PrepareImageList(baseObj->GetImageData());
 	}	
 	frame_opt.PrepareBoundaryPoints(boundary_points);
 	frame_opt.PrepareImageLines(image_lines);
@@ -1328,11 +1332,8 @@ ccHObject * PlaneFrameLineGrow(ccHObject * planeObj, double alpha, double inters
 	BDBaseHObject* baseObj = GetRootBDBase(planeObj);
 	std::string output_prefix;
 	if (baseObj) {
-		auto bd_find = baseObj->block_prj.m_builder.sbuild.find(BuilderBase::BuildNode::Create(base_name));
-		if (bd_find == baseObj->block_prj.m_builder.sbuild.end()) {
-			return nullptr;
-		}
-		output_prefix = (*bd_find)->data.file_path.root_dir + "\\primitives\\frame_opt\\";
+		stocker::BuildUnit bd_unit = baseObj->GetBuildingUnit(base_name);
+		output_prefix = bd_unit.file_path.root_dir + "\\primitives\\frame_opt\\";
 		CreateDir(output_prefix.c_str());
 		output_prefix = output_prefix + base_name;
 	}
@@ -1403,10 +1404,8 @@ bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVecto
 	stocker::TextureMapping texture_mapping;
 	texture_mapping.setOutputDir(baseObj->getPath().toStdString() + "models");
 	
-	std::vector<stocker::ImageUnit> image_units;
-	for (auto spImg : baseObj->block_prj.m_builder.simage) {
-		image_units.push_back(spImg->data);
-	}
+	std::vector<stocker::ImageUnit> image_units = baseObj->GetImageData();
+	
 	for (stocker::ImageUnit & image_unit : image_units) {
 		Vec3d view_pos = image_unit.GetViewPos();
 		image_unit.m_camera.SetViewPoint(view_pos + baseObj->global_shift);

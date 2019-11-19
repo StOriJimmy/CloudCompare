@@ -141,12 +141,15 @@ public:
 
 	CC_TYPES::DB_SOURCE getCurrentDB() override;
 
+	/// load mode -1 for normal, 0 for really fast (no shift), 1 for general fast (auto shift)
+	std::vector<ccHObject*> loadFiles(const QStringList& filenames, int loadMode = -1, QString fileFilter = QString());
+
 	//! Tries to load several files (and then pushes them into main DB)
 	/** \param filenames list of all filenames
 		\param fileFilter selected file filter (i.e. type)
 		\param destWin destination window (0 = active one)
 	**/	
-	virtual std::vector<ccHObject*> addToDB( const QStringList& filenames, 
+	std::vector<ccHObject*> addToDB( const QStringList& filenames, 
 						  CC_TYPES::DB_SOURCE dest,
 						  QString fileFilter = QString(),
 						  ccGLWindow* destWin = nullptr);
@@ -165,13 +168,13 @@ public:
 		bool checkDimensions = false,
 		bool autoRedraw = true) override;
 
-	virtual std::vector<ccHObject*> addToDB_Main(const QStringList& filenames, QString fileFilter = QString(), ccGLWindow* destWin = nullptr) {	
+	std::vector<ccHObject*> addToDB_Main(const QStringList& filenames, QString fileFilter = QString(), ccGLWindow* destWin = nullptr) {	
 		return addToDB(filenames, CC_TYPES::DB_MAINDB, fileFilter, destWin); 
 	}
-	virtual std::vector<ccHObject*> addToDB_Build(const QStringList& filenames, QString fileFilter = QString(), ccGLWindow* destWin = nullptr) {
+	std::vector<ccHObject*> addToDB_Build(const QStringList& filenames, QString fileFilter = QString(), ccGLWindow* destWin = nullptr) {
 		return addToDB(filenames, CC_TYPES::DB_BUILDING, fileFilter, destWin);
 	}
-	virtual std::vector<ccHObject*> addToDB_Image(const QStringList& filenames, QString fileFilter = QString(), ccGLWindow* destWin = nullptr) {
+	std::vector<ccHObject*> addToDB_Image(const QStringList& filenames, QString fileFilter = QString(), ccGLWindow* destWin = nullptr) {
 		return addToDB(filenames, CC_TYPES::DB_IMAGE, fileFilter, destWin);
 	}
 
@@ -915,7 +918,8 @@ private:
 			progDlg.setInfo(infos);}\
 		CCLib::NormalizedProgress nprogress(&progDlg, number);\
 		progDlg.start();
-#define ProgStep(x) if (!nprogress.oneStep()) {progDlg.stop(); return x;}
+#define ProgStepReturn(x) if (!nprogress.oneStep()) {progDlg.stop(); return x;}
+#define ProgStepBreak if (!nprogress.oneStep()) {progDlg.stop(); break;}
 #define ProgEnd progDlg.update(100.0f); progDlg.stop();
 
 #endif

@@ -2132,7 +2132,7 @@ void ccPropertiesTreeDelegate::updateItem(QStandardItem * item)
 				for (ccCameraSensor* cam : sens) {
 					if (!cam->getImage(true, false).isNull())
 						cam->drawImage(true);
-					ProgStep()
+					ProgStepBreak
 				}
 				ProgEnd
 			}			

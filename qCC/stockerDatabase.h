@@ -129,10 +129,13 @@ public:
 	using Container = std::vector<BDBaseHObject *>;
 
 public:
-	stocker::BlockProj block_prj;
 	stocker::Vec3d global_shift;
 	double global_scale;
-	
+
+	std::vector<stocker::ImageUnit> image_data;
+	std::vector<stocker::BuildUnit> build_data;
+	stocker::BuilderOption	m_options;
+
 public:	
 
 	StBuilding* GetBuildingGroup(QString building_name, bool check_enable);
@@ -153,7 +156,8 @@ public:
 	std::string GetPathModelObj(std::string building_name);
 
 	const stocker::BuildUnit GetBuildingUnit(std::string building_name);
-	stocker::BuilderBase::SpBuild GetBuildingSp(std::string building_name);
+	stocker::BuildUnit* GetBuildingSp(std::string building_name);
+	std::vector<stocker::ImageUnit> GetImageData();
 };
 
 class BDImageBaseHObject : public BDBaseHObject_
@@ -190,6 +194,8 @@ inline bool isImageProject(StHObject* object) {
 inline BDImageBaseHObject* ToImageProject(StHObject* object) {
 	return isImageProject(object) ? static_cast<BDImageBaseHObject*>(object) : nullptr;
 }
+
+QString getCompleteBaseName(QString name);
 
 DataBaseHObject* GetRootDataBase(StHObject* obj);
 BDBaseHObject* GetRootBDBase(StHObject* obj);

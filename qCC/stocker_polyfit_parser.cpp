@@ -491,7 +491,6 @@ bool PolyFitObj::OutputResultToObjFile(BDBaseHObject* baseObj, std::string & fil
 	if (status < STT_optimized) {
 		return false;
 	}
-	auto& bd = baseObj->block_prj.m_builder.sbuild.find(stocker::BuilderBase::BuildNode::Create(building_name));
 	file_path = baseObj->GetPathModelObj(building_name);
 	
 	std::ofstream out(file_path.c_str());

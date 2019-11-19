@@ -389,7 +389,7 @@ void bdrImageEditorPanel::setItems(std::vector<ccCameraSensor*> items, int defau
 					item->setText(camObj->getName());
 					m_UI->imageListWidget->addItem(item);
 				}
-				ProgStep()
+				ProgStepBreak
 			}
 		ProgEnd
 	}
