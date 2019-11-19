@@ -12460,6 +12460,11 @@ void MainWindow::doActionBDProjectLoad()
 		STOCKER_ERROR_ASSERT(e.what());
 		return;
 	}
+	catch (...)
+	{
+		STOCKER_ERROR_ASSERT("something wrong");
+		return;
+	}
 }
 
 bool SaveProject(BDBaseHObject* proj)
