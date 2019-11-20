@@ -742,14 +742,14 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vecto
 	group->filterChildren(group_clouds, false, CC_TYPES::POINT_CLOUD, true);
 	CCVector3d global_shift = entity_cloud->getGlobalShift();
 	double global_scale = entity_cloud->getGlobalScale();
-	Concurrency::parallel_for_each(group_clouds.begin(), group_clouds.end(), [=](auto & ent) {
+	Concurrency::parallel_for_each(group_clouds.begin(), group_clouds.end(), [&](auto & ent) {
 		ccPointCloud* ent_cld = ccHObjectCaster::ToPointCloud(ent);
 		ent_cld->setGlobalShift(global_shift);
 		ent_cld->setGlobalScale(global_scale);
 	});
 
-	group->filterChildren(group_planes, false, CC_TYPES::PLANE, true);
-	Concurrency::parallel_for_each(group_planes.begin(), group_planes.end(), [](auto & ent) {
+	group->filterChildren(group_planes, true, CC_TYPES::PLANE, true);
+	Concurrency::parallel_for_each(group_planes.begin(), group_planes.end(), [&](auto & ent) {
 		ent->setVisible(false);
 	});
 
@@ -796,7 +796,7 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vecto
 			SavePlaneParaMesh(path.toStdString(), *planes, planes_points, *unassigned_points);
 		}
 	}
-
+	if (group) entity_cloud->setEnabled(false);
 	return group;
 }
 

@@ -12818,7 +12818,6 @@ void MainWindow::doActionBDPlaneSegmentation()
 
 		if (seged) {
 			addToDB(seged, entity->getDBSourceType(), false, false);
-			cloudObj->setEnabled(false);
 		}
 		ProgStepBreak
 	}
