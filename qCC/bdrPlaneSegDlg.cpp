@@ -102,6 +102,7 @@ void bdrPlaneSegDlg::loadResults()
 	MainWindow* win = MainWindow::TheInstance();
 	if (!win) return;
 
+	ProgStartNorm("loading plane segmentation results...", m_point_clouds.size())
 	for (ccHObject* pc : m_point_clouds) {
 		ccPointCloud* pcObj = ccHObjectCaster::ToPointCloud(pc); if (!pcObj) continue;
 
@@ -109,25 +110,38 @@ void bdrPlaneSegDlg::loadResults()
 		BDBaseHObject * baseObj = GetRootBDBase(pcObj);
 		if (baseObj) {
 			todo_point = baseObj->GetTodoPoint(GetBaseName(pcObj->getName()));
-			todo_point->clear();
+			if (todo_point) todo_point->clear();
 		}
 		else {
-			todo_point = new ccPointCloud("unassigned");
-			todo_point->setGlobalScale(pcObj->getGlobalScale());
-			todo_point->setGlobalShift(pcObj->getGlobalShift());
-			todo_point->setDisplay(pcObj->getDisplay());
-			todo_point->showColors(true);
-			if (pcObj->getParent())
-				pcObj->getParent()->addChild(todo_point);
-			
-			win->addToDB(todo_point, pc->getDBSourceType(), false, false);
+			try	{
+				todo_point = new ccPointCloud("unassigned");
+			}
+			catch (...) {
+				if (todo_point) delete todo_point;
+				todo_point = nullptr;
+			}
+			if (todo_point) {
+				todo_point->setGlobalScale(pcObj->getGlobalScale());
+				todo_point->setGlobalShift(pcObj->getGlobalShift());
+				todo_point->setDisplay(pcObj->getDisplay());
+				todo_point->showColors(true);
+				if (pcObj->getParent())
+					pcObj->getParent()->addChild(todo_point);
+
+				win->addToDB(todo_point, pc->getDBSourceType(), false, false);
+			}
 		}
 
 		StPrimGroup* group = LoadPlaneParaAsPrimtiveGroup(pcObj, getPrimGroupNameByCloudName(pcObj->getName()), todo_point);
 		if (group) {
 			win->addToDB(group, pc->getDBSourceType(), false, false);
 		}
+		if (todo_point && todo_point->size() == 0) {
+			win->removeFromDB(todo_point);
+		}
+		ProgStepBreak
 	}
+	ProgEnd
 }
 
 void bdrPlaneSegDlg::setPointClouds(ccHObject::Container point_clouds)

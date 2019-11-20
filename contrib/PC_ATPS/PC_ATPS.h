@@ -94,15 +94,15 @@ public:
 	~ATPS_Plane();
 
 
-	int get_kappa();
-	double get_delta();
-	double get_tau();
-	double get_gamma();
-	double get_epsilon();
-	double get_theta();
-	int get_iter();
+	const int get_kappa();
+	const double get_delta();
+	const double get_tau();
+	const double get_gamma();
+	const double get_epsilon();
+	const double get_theta();
+	const int get_iter();
 
-	double get_res(const std::vector<SVPoint3d> points);
+	const double get_res(const std::vector<SVPoint3d> points);
 
 
 	void set_parameters(const int kappa_, const double delta_, const double tau_, const double gamma_, const double epsilon_, const double theta_, const int iter_);

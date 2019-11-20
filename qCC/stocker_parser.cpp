@@ -613,11 +613,14 @@ ccPointCloud* AddPointsAsPointCloud(std::vector<T> points, QString name, ccColor
 	ccPointCloud* cloud = new ccPointCloud(name);
 
 	//! get plane points
+	if (!cloud->reserveThePointsTable(points.size()))
+		return nullptr;
 	for (auto & pt : points) {
 		cloud->addPoint(CCVector3(vcgXYZ(pt)));
 	}
 	cloud->setRGBColor(col);
 	cloud->showColors(true);
+	
 	return cloud;
 }
 
@@ -727,10 +730,17 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, QString na
 		return nullptr;
 	}
 	StPrimGroup* group = AddPlanesPointsAsNewGroup<stocker::Contour3d>(name, planes_points, planes);
+	if (!group)	{
+		return false;
+	}
+	
 	if (entity_cloud->getDisplay())
 		group->setDisplay_recursive(entity_cloud->getDisplay());
-	ccHObject::Container group_clouds;
+	
+	ccHObject::Container group_clouds, group_planes;
 	group->filterChildren(group_clouds, false, CC_TYPES::POINT_CLOUD, true);
+	group->filterChildren(group_planes, false, CC_TYPES::PLANE, true);
+
 	for (auto & ent : group_clouds) {
 		ccPointCloud* ent_cld = ccHObjectCaster::ToPointCloud(ent);
 		ent_cld->setGlobalShift(entity_cloud->getGlobalShift());
@@ -749,11 +759,16 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, QString na
 	}
 	
 	if (todo_cloud && unassigned_points) {
-		for (stocker::Point_Normal pt : *unassigned_points) {
-			todo_cloud->addPoint(CCVector3(vcgXYZ(pt.first)));
+		std::vector<stocker::Point_Normal> uss = *unassigned_points;
+		if (todo_cloud->reserveThePointsTable(uss.size())) {
+			todo_cloud->reserveTheNormsTable();
+			todo_cloud->reserveTheRGBTable();
+			for (stocker::Point_Normal pt : *unassigned_points) {
+				todo_cloud->addPoint(CCVector3(vcgXYZ(pt.first)));
+			}
+			todo_cloud->setRGBColor(ccColor::black);
+			todo_cloud->showColors(true);
 		}
-		todo_cloud->reserveTheRGBTable();
-		todo_cloud->setRGBColor(ccColor::black);
 	}
 	if (saveFile) {
 		QFileInfo path_info = QFileInfo(entity_cloud->getPath());
@@ -887,6 +902,7 @@ ccHObject* PlaneSegmentationRansac(ccHObject* entity, bool overwrite, ccPointClo
 	gamma_t: the threshold of neighborhood for point-to-plane and plane-to-plane. (0.2)
 	epsilon_t: the threshold of NFA tolerance value for a-contrario rigorous planar supervoxel generation. (-3.0)
 	theta_t: the threshold of normal vector angle for hybrid region growing. (0.2618)
+	iter_times: 1-for converge, 0-for only 1
 */
 ccHObject* PlaneSegmentationATPS(ccHObject* entity, bool overwrite,	ccPointCloud* todo_cloud, 
 	bool* iter_times,
@@ -916,6 +932,7 @@ ccHObject* PlaneSegmentationATPS(ccHObject* entity, bool overwrite,	ccPointCloud
 	typedef std::vector<ATPS::SVPoint3d> ATPSpVec;
 	ATPSpVec points = GetPointsFromCloud3d<ATPS::SVPoint3d>(entity_cloud);
 	double res = atps_plane.get_res(points);
+	atps_plane.set_parameters(res);
 	
 	ATPSpVec unassigned_points;
 	std::vector<ATPSpVec> planes_points;
@@ -1119,7 +1136,7 @@ ccHObject* DetectLineRansac(ccHObject* entity, double distance, double minpts, d
 	return nullptr;	
 }
 
-ccHObject* AddOutlinesAsChild(vector<vector<stocker::Contour3d>> contours_points, QString name, ccHObject* parent)
+ccHObject* AddOutlinesAsChild(std::vector<std::vector<stocker::Contour3d>> contours_points, QString name, ccHObject* parent)
 {
 	if (contours_points.empty()) return nullptr;
 	ccPointCloud* line_vert = new ccPointCloud(name);

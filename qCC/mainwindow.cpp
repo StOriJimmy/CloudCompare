@@ -12268,8 +12268,7 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 		catch (const std::exception& e)	{
 			std::cout << "internal error!" << std::endl;
 			return nullptr;
-		}		
-		std::cout << "---- loaded!" << std::endl;
+		}
 		ccHObject* newGroup = loaded.empty() ? nullptr : loaded.front();
 
 		if (newGroup) {
@@ -12279,7 +12278,6 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 
 			delete newGroup;
 			newGroup = nullptr;
-			std::cout << "---- transfered!" << std::endl;
 		}
 	}
 
@@ -12798,7 +12796,7 @@ void MainWindow::doActionBDPlaneSegmentation()
 			double curvature_delta = m_pbdrPSDlg->APTSCurvatureSpinBox->value();
 			double nfa_epsilon = m_pbdrPSDlg->APTSNFASpinBox->value();
 			double normal_theta = m_pbdrPSDlg->APTSNormalSpinBox->value();
-			bool iter_times = m_pbdrPSDlg->ATPSIterOneRadioButton->isChecked();
+			bool iter_times = m_pbdrPSDlg->ATPSIterInfiniteRadioButton->isChecked();
 			if (m_pbdrPSDlg->autoParaCheckBox->isChecked()) {
 				seged = PlaneSegmentationATPS(cloudObj, overwrite, todo_point, &iter_times);
 			}
@@ -12813,6 +12811,7 @@ void MainWindow::doActionBDPlaneSegmentation()
 					&normal_theta);
 			}
 		}
+		
 		if (todo_point->size() == 0) {
 			removeFromDB(todo_point);
 		}

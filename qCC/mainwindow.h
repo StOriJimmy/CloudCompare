@@ -907,7 +907,7 @@ private:
 		progDlg.setAutoClose(false);\
 		if (progDlg.textCanBeEdited()) {\
 			progDlg.setMethodTitle(title);\
-			char infos[256]; sprintf(infos, "Processing %d items...", number);\
+			char infos[256]; sprintf(infos, "Processing %d items...please wait", number);\
 			progDlg.setInfo(infos);}\
 		CCLib::NormalizedProgress nprogress(&progDlg, number);\
 		progDlg.start();
@@ -916,7 +916,7 @@ private:
 		progDlg.setAutoClose(false);\
 		if (progDlg.textCanBeEdited()) {\
 			progDlg.setMethodTitle(title);\
-			char infos[256]; sprintf(infos, "Processing %d items...", number);\
+			char infos[256]; sprintf(infos, "Processing %d items...please wait", number);\
 			progDlg.setInfo(infos);}\
 		CCLib::NormalizedProgress nprogress(&progDlg, number);\
 		progDlg.start();
