@@ -723,13 +723,13 @@ StPrimGroup* AddPlanesPointsAsNewGroup(QString name, std::vector<T> planes_point
 	return group;
 }
 
-StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, QString name, std::vector<stocker::Contour3d> planes_points, stocker::vcgPlaneVec3d* planes = nullptr,
+StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vector<stocker::Contour3d> planes_points, stocker::vcgPlaneVec3d* planes = nullptr,
 	ccPointCloud* todo_cloud = nullptr, std::vector<stocker::Point_Normal>* unassigned_points = nullptr, bool saveFile = true)
 {
 	if (!entity_cloud) {
 		return nullptr;
 	}
-	StPrimGroup* group = AddPlanesPointsAsNewGroup<stocker::Contour3d>(name, planes_points, planes);
+	StPrimGroup* group = AddPlanesPointsAsNewGroup<stocker::Contour3d>("unnamed", planes_points, planes);
 	if (!group)	{
 		return false;
 	}
@@ -738,24 +738,42 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, QString na
 		group->setDisplay_recursive(entity_cloud->getDisplay());
 	
 	ccHObject::Container group_clouds, group_planes;
-	group->filterChildren(group_clouds, false, CC_TYPES::POINT_CLOUD, true);
-	group->filterChildren(group_planes, false, CC_TYPES::PLANE, true);
 
-	for (auto & ent : group_clouds) {
+	group->filterChildren(group_clouds, false, CC_TYPES::POINT_CLOUD, true);
+	CCVector3d global_shift = entity_cloud->getGlobalShift();
+	double global_scale = entity_cloud->getGlobalScale();
+	Concurrency::parallel_for_each(group_clouds.begin(), group_clouds.end(), [=](auto & ent) {
 		ccPointCloud* ent_cld = ccHObjectCaster::ToPointCloud(ent);
-		ent_cld->setGlobalShift(entity_cloud->getGlobalShift());
-		ent_cld->setGlobalScale(entity_cloud->getGlobalScale());
-	}
-	ccHObject* parent = entity_cloud->getParent();
-	if (parent)	{
-		ccHObject* parent_parent = parent->getParent();
-		if (parent_parent && GetBaseName(parent_parent->getName()) == GetBaseName(entity_cloud->getName())) {
-			parent_parent->addChild(group);
+		ent_cld->setGlobalShift(global_shift);
+		ent_cld->setGlobalScale(global_scale);
+	});
+
+	group->filterChildren(group_planes, false, CC_TYPES::PLANE, true);
+	Concurrency::parallel_for_each(group_planes.begin(), group_planes.end(), [](auto & ent) {
+		ent->setVisible(false);
+	});
+
+	BDBaseHObject* baseObj = GetRootBDBase(entity_cloud); 
+	bool project_loaded = false;
+	if (baseObj) {
+		StPrimGroup* primGroup = baseObj->GetPrimitiveGroup(GetBaseName(entity_cloud->getName()));
+		if (primGroup) {
+			primGroup->removeAllChildren();
+			group->transferChildren(*primGroup);
+			delete group;
+			group = primGroup;
+			project_loaded = true;
 		}
-		else parent->addChild(group);
 	}
-	else {
-		entity_cloud->addChild(group);
+	if (!project_loaded) {
+		ccHObject* parent = entity_cloud->getParent();
+		if (parent) {
+			parent->addChild(group);
+		}
+		else {
+			entity_cloud->addChild(group);
+		}
+		group->setName(getPrimGroupNameByCloudName(entity_cloud->getName()));
 	}
 	
 	if (todo_cloud && unassigned_points) {
@@ -765,6 +783,7 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, QString na
 			todo_cloud->reserveTheRGBTable();
 			for (stocker::Point_Normal pt : *unassigned_points) {
 				todo_cloud->addPoint(CCVector3(vcgXYZ(pt.first)));
+				todo_cloud->addNorm(CCVector3(vcgXYZ(pt.second)));
 			}
 			todo_cloud->setRGBColor(ccColor::black);
 			todo_cloud->showColors(true);
@@ -781,7 +800,7 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, QString na
 	return group;
 }
 
-StPrimGroup* LoadPlaneParaAsPrimtiveGroup(ccPointCloud* entity_cloud, QString name, ccPointCloud* todo_cloud)
+StPrimGroup* LoadPlaneParaAsPrimtiveGroup(ccPointCloud* entity_cloud, ccPointCloud* todo_cloud)
 {
 	QString path = getPrimPathByCloudPath(entity_cloud->getPath());
 	
@@ -794,7 +813,7 @@ StPrimGroup* LoadPlaneParaAsPrimtiveGroup(ccPointCloud* entity_cloud, QString na
 	if (planes.empty() || planes.size() != planes_points.size()) {
 		return nullptr;
 	}
-	return parsePlaneSegmentationResult(entity_cloud, name, planes_points, &planes, todo_cloud, &unassigned_points, false);
+	return parsePlaneSegmentationResult(entity_cloud, planes_points, &planes, todo_cloud, &unassigned_points, false);
 }
 
 ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, bool overwrite,
@@ -806,10 +825,9 @@ ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, bool overwrite,
 	if (!entity_cloud || !entity_cloud->hasNormals() || entity_cloud->size() == 0) {
 		return nullptr;
 	}
-	QString prim_group_name = getPrimGroupNameByCloudName(entity_cloud->getName());
 
 	if (!overwrite) {
-		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, prim_group_name, nullptr);
+		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, nullptr);
 		if (group_load) return group_load;
 	}
 
@@ -843,7 +861,7 @@ ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, bool overwrite,
 			return nullptr;
 		}
 	}
-	return parsePlaneSegmentationResult(entity_cloud, prim_group_name, planes_points, (planes.size() == planes_points.size()) ? &planes : nullptr, nullptr, nullptr);
+	return parsePlaneSegmentationResult(entity_cloud, planes_points, (planes.size() == planes_points.size()) ? &planes : nullptr, nullptr, nullptr);
 }
 
 ccHObject* PlaneSegmentationRansac(ccHObject* entity, bool overwrite, ccPointCloud* todo_cloud,
@@ -856,10 +874,8 @@ ccHObject* PlaneSegmentationRansac(ccHObject* entity, bool overwrite, ccPointClo
 		return nullptr;
 	}
 
-	QString prim_group_name = getPrimGroupNameByCloudName(entity_cloud->getName());
-	
 	if (!overwrite) {
-		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, prim_group_name, nullptr);
+		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, nullptr);
 		if (group_load) return group_load;
 	}
 
@@ -892,7 +908,7 @@ ccHObject* PlaneSegmentationRansac(ccHObject* entity, bool overwrite, ccPointClo
 			return nullptr;
 		}
 	}
-	return parsePlaneSegmentationResult(entity_cloud, prim_group_name, planes_points, (planes.size() == planes_points.size()) ? &planes : nullptr, todo_cloud, &unassigned_points);
+	return parsePlaneSegmentationResult(entity_cloud, planes_points, (planes.size() == planes_points.size()) ? &planes : nullptr, todo_cloud, &unassigned_points);
 }
 
 /*
@@ -914,10 +930,8 @@ ccHObject* PlaneSegmentationATPS(ccHObject* entity, bool overwrite,	ccPointCloud
 		return nullptr;
 	}
 
-	QString prim_group_name = getPrimGroupNameByCloudName(entity_cloud->getName());
-
 	if (!overwrite) {
-		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, prim_group_name, nullptr);
+		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, nullptr);
 		if (group_load) return group_load;
 	}
 
@@ -965,7 +979,7 @@ ccHObject* PlaneSegmentationATPS(ccHObject* entity, bool overwrite,	ccPointCloud
 		unassigned_stocker.push_back(std::make_pair(Vec3d(vcgXYZ(pt)), Vec3d(0, 0, 0)));
 	}
 
-	return parsePlaneSegmentationResult(entity_cloud, prim_group_name, planes_points_stocker, (planes.size() == planes_points_stocker.size()) ? &planes : nullptr, todo_cloud, &unassigned_stocker);
+	return parsePlaneSegmentationResult(entity_cloud, planes_points_stocker, (planes.size() == planes_points_stocker.size()) ? &planes : nullptr, todo_cloud, &unassigned_stocker);
 }
 
 void RetrieveUnassignedPoints(ccHObject* original_cloud, ccHObject* prim_group, ccPointCloud* todo_point)

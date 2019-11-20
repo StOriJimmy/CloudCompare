@@ -132,7 +132,7 @@ void bdrPlaneSegDlg::loadResults()
 			}
 		}
 
-		StPrimGroup* group = LoadPlaneParaAsPrimtiveGroup(pcObj, getPrimGroupNameByCloudName(pcObj->getName()), todo_point);
+		StPrimGroup* group = LoadPlaneParaAsPrimtiveGroup(pcObj, todo_point);
 		if (group) {
 			win->addToDB(group, pc->getDBSourceType(), false, false);
 		}

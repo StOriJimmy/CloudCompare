@@ -81,7 +81,7 @@ ccPolyline * AddPolygonAsPolyline(stocker::Contour3d points, QString name, ccCol
 
 ccPolyline * AddPolygonAsPolyline(stocker::Polyline3d polygon, QString name, ccColor::Rgb col, bool close);
 
-StPrimGroup * LoadPlaneParaAsPrimtiveGroup(ccPointCloud * entity_cloud, QString name, ccPointCloud * todo_cloud);
+StPrimGroup * LoadPlaneParaAsPrimtiveGroup(ccPointCloud * entity_cloud, ccPointCloud * todo_cloud);
 
 ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, bool overwrite,
 	int min_pts, double distance_epsilon, double seed_raius, double growing_radius,
