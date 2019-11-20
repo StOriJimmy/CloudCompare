@@ -12242,6 +12242,12 @@ BDBaseHObject::Container GetBDBaseProjx() {
 	return prjx;
 }
 
+ccHObject* MainWindow::LoadBDReconProject_Shell(QString Filename)
+{
+	BDBaseHObject* bd_grp = nullptr;
+	return bd_grp;
+}
+
 ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 {
 	BDBaseHObject* bd_grp = nullptr;
@@ -12736,12 +12742,15 @@ void MainWindow::doActionBDPlaneSegmentation()
 	double distance_eps = m_pbdrPSDlg->DistanceEpsilonDoubleSpinBox->value();
 	double cluster_eps = m_pbdrPSDlg->ClusterEpsilonDoubleSpinBox->value();
 
+	bool overwrite = m_pbdrPSDlg->overwriteCheckBox->isChecked();
+
 	ProgStartNorm("Plane Segmentation", _container.size())
 	for (int i = 0; i < _container.size(); i++) {
 		ccHObject* cloudObj = _container[i];
 		ccPointCloud* todo_point = nullptr;
 		if (baseObj) {
 			todo_point = baseObj->GetTodoPoint(GetBaseName(cloudObj->getName()));
+			todo_point->clear();
 		}
 		else {
 			ccPointCloud* pc = ccHObjectCaster::ToPointCloud(cloudObj);
@@ -12757,22 +12766,28 @@ void MainWindow::doActionBDPlaneSegmentation()
 			}
 		}
 
+		if (cloudObj->getPath().isEmpty() && cloudObj->getParent()) {
+			QString path = cloudObj->getParent()->getPath();
+			if (QFileInfo(path).exists()) {
+				cloudObj->setPath(path);
+			}
+		}
+
 		ccHObject* seged = nullptr;
 		if (m_pbdrPSDlg->PlaneSegRansacRadioButton->isChecked()) {
 			double normal_dev = cos(m_pbdrPSDlg->maxNormDevAngleSpinBox->value() * CC_DEG_TO_RAD);
 			double prob = m_pbdrPSDlg->probaDoubleSpinBox->value();
-			seged = PlaneSegmentationRansac(cloudObj,
+			seged = PlaneSegmentationRansac(cloudObj, overwrite, todo_point,
 				support_pts,
 				distance_eps,
 				cluster_eps,
 				normal_dev,
 				prob,
-				merge_threshold, split_threshold,
-				todo_point);
+				merge_threshold, split_threshold);
 		}
 		else if (m_pbdrPSDlg->PlaneSegRegionGrowRadioButton->isChecked()) {
 			double growing_radius = m_pbdrPSDlg->GrowingRadiusDoubleSpinBox->value();
-			seged = PlaneSegmentationRgGrow(cloudObj,
+			seged = PlaneSegmentationRgGrow(cloudObj, overwrite,
 				support_pts,
 				distance_eps,
 				cluster_eps,
@@ -12785,10 +12800,10 @@ void MainWindow::doActionBDPlaneSegmentation()
 			double normal_theta = m_pbdrPSDlg->APTSNormalSpinBox->value();
 			bool iter_times = m_pbdrPSDlg->ATPSIterOneRadioButton->isChecked();
 			if (m_pbdrPSDlg->autoParaCheckBox->isChecked()) {
-				seged = PlaneSegmentationATPS(cloudObj, todo_point, &iter_times);
+				seged = PlaneSegmentationATPS(cloudObj, overwrite, todo_point, &iter_times);
 			}
 			else {
-				seged = PlaneSegmentationATPS(cloudObj, todo_point,
+				seged = PlaneSegmentationATPS(cloudObj, overwrite, todo_point,
 					&iter_times,
 					&support_pts,
 					&curvature_delta,					

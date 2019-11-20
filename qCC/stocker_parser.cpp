@@ -704,7 +704,7 @@ StFootPrint* AddPolygonAsFootprint(stocker::Contour3d polygon, QString name, ccC
 }
 
 template <typename T = stocker::Contour3d>
-StPrimGroup* AddPlanesPointsAsNewGroup(QString name, std::vector<T> planes_points, std::vector<vcg::Plane3d>* planes = nullptr)
+StPrimGroup* AddPlanesPointsAsNewGroup(QString name, std::vector<T> planes_points, stocker::vcgPlaneVec3d* planes = nullptr)
 {
 	StPrimGroup* group = new StPrimGroup(name);
 
@@ -720,14 +720,13 @@ StPrimGroup* AddPlanesPointsAsNewGroup(QString name, std::vector<T> planes_point
 	return group;
 }
 
-template <typename T = stocker::Contour3d>
-StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vector<T> planes_points, std::vector<vcg::Plane3d>* planes = nullptr,
-	ccPointCloud* todo_cloud = nullptr, T* unassigned_points = nullptr)
+StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, QString name, std::vector<stocker::Contour3d> planes_points, stocker::vcgPlaneVec3d* planes = nullptr,
+	ccPointCloud* todo_cloud = nullptr, std::vector<stocker::Point_Normal>* unassigned_points = nullptr, bool saveFile = true)
 {
 	if (!entity_cloud) {
 		return nullptr;
 	}
-	StPrimGroup* group = AddPlanesPointsAsNewGroup<T>(GetBaseName(entity_cloud->getName()) + BDDB_PRIMITIVE_SUFFIX, planes_points, planes);
+	StPrimGroup* group = AddPlanesPointsAsNewGroup<stocker::Contour3d>(name, planes_points, planes);
 	if (entity_cloud->getDisplay())
 		group->setDisplay_recursive(entity_cloud->getDisplay());
 	ccHObject::Container group_clouds;
@@ -750,16 +749,40 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vecto
 	}
 	
 	if (todo_cloud && unassigned_points) {
-		for (auto & pt : *unassigned_points) {
-			todo_cloud->addPoint(CCVector3(vcgXYZ(pt)));
+		for (stocker::Point_Normal pt : *unassigned_points) {
+			todo_cloud->addPoint(CCVector3(vcgXYZ(pt.first)));
 		}
 		todo_cloud->reserveTheRGBTable();
 		todo_cloud->setRGBColor(ccColor::black);
 	}
+	if (saveFile) {
+		QFileInfo path_info = QFileInfo(entity_cloud->getPath());
+		if (path_info.exists()) {
+			QString path = path_info.absolutePath() + "/" + path_info.completeBaseName() + ".prim.ply";
+			SavePlaneParaMesh(path.toStdString(), *planes, planes_points, *unassigned_points);
+		}
+	}
+
 	return group;
 }
 
-ccHObject* PlaneSegmentationRgGrow(ccHObject* entity,
+StPrimGroup* LoadPlaneParaAsPrimtiveGroup(ccPointCloud* entity_cloud, QString name, ccPointCloud* todo_cloud)
+{
+	QString path = getPrimPathByCloudPath(entity_cloud->getPath());
+	
+	stocker::vcgPlaneVec3d planes;
+	std::vector<stocker::Contour3d> planes_points;
+	std::vector<stocker::Point_Normal> unassigned_points;
+	if (!stocker::LoadPlaneParaMesh(path.toStdString(), planes, planes_points, unassigned_points))
+		return nullptr;
+
+	if (planes.empty() || planes.size() != planes_points.size()) {
+		return nullptr;
+	}
+	return parsePlaneSegmentationResult(entity_cloud, name, planes_points, &planes, todo_cloud, &unassigned_points, false);
+}
+
+ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, bool overwrite,
 	int min_pts, double distance_epsilon, double seed_raius,
 	double growing_radius,
 	double merge_threshold, double split_threshold)
@@ -767,6 +790,12 @@ ccHObject* PlaneSegmentationRgGrow(ccHObject* entity,
 	ccPointCloud* entity_cloud = ccHObjectCaster::ToPointCloud(entity);
 	if (!entity_cloud || !entity_cloud->hasNormals() || entity_cloud->size() == 0) {
 		return nullptr;
+	}
+	QString prim_group_name = getPrimGroupNameByCloudName(entity_cloud->getName());
+
+	if (!overwrite) {
+		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, prim_group_name, nullptr);
+		if (group_load) return group_load;
 	}
 
 	std::vector<vcg::Plane3d> planes;
@@ -799,19 +828,24 @@ ccHObject* PlaneSegmentationRgGrow(ccHObject* entity,
 			return nullptr;
 		}
 	}
-	StPrimGroup* group = parsePlaneSegmentationResult<stocker::Contour3d>(entity_cloud, planes_points, (planes.size() == planes_points.size()) ? &planes : nullptr, nullptr, nullptr);
-
-	return group;
+	return parsePlaneSegmentationResult(entity_cloud, prim_group_name, planes_points, (planes.size() == planes_points.size()) ? &planes : nullptr, nullptr, nullptr);
 }
 
-ccHObject* PlaneSegmentationRansac(ccHObject* entity,
+ccHObject* PlaneSegmentationRansac(ccHObject* entity, bool overwrite, ccPointCloud* todo_cloud,
 	int min_pts, double distance_epsilon, double seed_raius,
 	double normal_threshold, double ransac_probability,
-	double merge_threshold, double split_threshold, ccPointCloud* todo_cloud)
+	double merge_threshold, double split_threshold)
 {
 	ccPointCloud* entity_cloud = ccHObjectCaster::ToPointCloud(entity);
 	if (!entity_cloud || !entity_cloud->hasNormals() || entity_cloud->size() == 0) {
 		return nullptr;
+	}
+
+	QString prim_group_name = getPrimGroupNameByCloudName(entity_cloud->getName());
+	
+	if (!overwrite) {
+		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, prim_group_name, nullptr);
+		if (group_load) return group_load;
 	}
 
 	stocker::GLMesh mesh;
@@ -843,15 +877,7 @@ ccHObject* PlaneSegmentationRansac(ccHObject* entity,
 			return nullptr;
 		}
 	}
-	stocker::Contour3d unassigned_points_pts;
-	if (todo_cloud) {
-		for (auto & pt : unassigned_points) {
-			unassigned_points_pts.push_back(pt.first);
-		}
-	}
-	StPrimGroup* group = parsePlaneSegmentationResult<stocker::Contour3d>(entity_cloud, planes_points, (planes.size() == planes_points.size()) ? &planes : nullptr, todo_cloud, &unassigned_points_pts);
-
-	return group;	
+	return parsePlaneSegmentationResult(entity_cloud, prim_group_name, planes_points, (planes.size() == planes_points.size()) ? &planes : nullptr, todo_cloud, &unassigned_points);
 }
 
 /*
@@ -862,8 +888,8 @@ ccHObject* PlaneSegmentationRansac(ccHObject* entity,
 	epsilon_t: the threshold of NFA tolerance value for a-contrario rigorous planar supervoxel generation. (-3.0)
 	theta_t: the threshold of normal vector angle for hybrid region growing. (0.2618)
 */
-ccHObject* PlaneSegmentationATPS(ccHObject* entity,
-	ccPointCloud* todo_cloud, bool* iter_times,
+ccHObject* PlaneSegmentationATPS(ccHObject* entity, bool overwrite,	ccPointCloud* todo_cloud, 
+	bool* iter_times,
 	int* kappa_t, double* delta_t, double* tau_t, 
 	double* gamma_t, double* epsilon_t, double* theta_t)
 {
@@ -871,6 +897,14 @@ ccHObject* PlaneSegmentationATPS(ccHObject* entity,
 	if (!entity_cloud || entity_cloud->size() == 0) {
 		return nullptr;
 	}
+
+	QString prim_group_name = getPrimGroupNameByCloudName(entity_cloud->getName());
+
+	if (!overwrite) {
+		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, prim_group_name, nullptr);
+		if (group_load) return group_load;
+	}
+
 	ATPS::ATPS_Plane atps_plane;
 	if (kappa_t && delta_t && tau_t && gamma_t && epsilon_t && theta_t) {
 		atps_plane.set_parameters(*kappa_t, *delta_t, *tau_t, *gamma_t, *epsilon_t, *theta_t, 0);
@@ -901,9 +935,20 @@ ccHObject* PlaneSegmentationATPS(ccHObject* entity,
 		planes.push_back(vcg::Plane3d(-pl[3], { pl[0],pl[1],pl[2] }));
 	}
 
-	StPrimGroup* group = parsePlaneSegmentationResult<ATPSpVec>(entity_cloud, planes_points, (planes.size() == planes_points.size()) ? &planes : nullptr, todo_cloud, &unassigned_points);
+	std::vector<Contour3d> planes_points_stocker;
+	std::vector<stocker::Point_Normal> unassigned_stocker;
+	for (auto pl_pts : planes_points) {
+		stocker::Contour3d pl_pts_st;
+		for (auto pt : pl_pts) {
+			pl_pts_st.emplace_back(vcgXYZ(pt));
+		}
+		planes_points_stocker.push_back(pl_pts_st);
+	}
+	for (auto pt : unassigned_points) {
+		unassigned_stocker.push_back(std::make_pair(Vec3d(vcgXYZ(pt)), Vec3d(0, 0, 0)));
+	}
 
-	return group;
+	return parsePlaneSegmentationResult(entity_cloud, prim_group_name, planes_points_stocker, (planes.size() == planes_points_stocker.size()) ? &planes : nullptr, todo_cloud, &unassigned_stocker);
 }
 
 void RetrieveUnassignedPoints(ccHObject* original_cloud, ccHObject* prim_group, ccPointCloud* todo_point)

@@ -533,6 +533,8 @@ private slots:
 	inline void doActionMoveBBMinCornerToOrigin() { doActionFastRegistration(MoveBBMinCornerToOrigin); }
 	inline void doActionMoveBBMaxCornerToOrigin() { doActionFastRegistration(MoveBBMaxCornerToOrigin); }
 
+	ccHObject * LoadBDReconProject_Shell(QString Filename);
+
 	ccHObject * LoadBDReconProject(QString Filename);
 
 	//////////////////////////////////////////////////////////////////////////

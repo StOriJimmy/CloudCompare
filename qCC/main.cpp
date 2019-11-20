@@ -15,9 +15,9 @@
 //#                                                                        #
 //##########################################################################
 
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
+// #define _CRTDBG_MAP_ALLOC
+// #include <stdlib.h>
+// #include <crtdbg.h>
 
 #include <ccIncludeGL.h>
 
@@ -63,7 +63,7 @@
 
 int main(int argc, char **argv)
 {
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #ifdef _WIN32 //This will allow printf to function on windows when opened from command line	
 	DWORD stdout_type = GetFileType(GetStdHandle(STD_OUTPUT_HANDLE));
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
@@ -289,7 +289,7 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	_CrtDumpMemoryLeaks();
+	//_CrtDumpMemoryLeaks();
 
 	return result;
 }

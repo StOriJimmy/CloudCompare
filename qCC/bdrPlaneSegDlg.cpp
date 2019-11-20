@@ -1,5 +1,7 @@
 #include "bdrPlaneSegDlg.h"
 
+#include <QFileInfo>
+
 //local
 #include "mainwindow.h"
 #include <QMessageBox>
@@ -22,9 +24,11 @@ bdrPlaneSegDlg::bdrPlaneSegDlg(QWidget* parent)
 	setWindowFlags(windowFlags()&~Qt::WindowCloseButtonHint);
 	connect(autoParaCheckBox, &QAbstractButton::toggled, this, &bdrPlaneSegDlg::onAutoChecked);
 	connect(autoParaToolButton, &QAbstractButton::clicked, this, &bdrPlaneSegDlg::DeducePara);
+	connect(loadResultsToolButton, &QAbstractButton::clicked, this, &bdrPlaneSegDlg::loadResults);
 	connect(buttonBox, SIGNAL(accepted()), this, SLOT(Execute()));
 	connect(buttonBox, SIGNAL(rejected()), this, SLOT(exitSafe()));
 }
+
 void bdrPlaneSegDlg::onAutoChecked(bool state)
 {
 	APTSCurvatureSpinBox->setDisabled(state);
@@ -89,6 +93,39 @@ void bdrPlaneSegDlg::DeducePara()
 			double scale = std::max(std::max(diff[0], diff[1]), diff[2]);
 			DistanceEpsilonDoubleSpinBox->setValue(.005f * scale);
 			ClusterEpsilonDoubleSpinBox->setValue(.01f * scale);
+		}
+	}
+}
+
+void bdrPlaneSegDlg::loadResults()
+{
+	MainWindow* win = MainWindow::TheInstance();
+	if (!win) return;
+
+	for (ccHObject* pc : m_point_clouds) {
+		ccPointCloud* pcObj = ccHObjectCaster::ToPointCloud(pc); if (!pcObj) continue;
+
+		ccPointCloud* todo_point = nullptr;
+		BDBaseHObject * baseObj = GetRootBDBase(pcObj);
+		if (baseObj) {
+			todo_point = baseObj->GetTodoPoint(GetBaseName(pcObj->getName()));
+			todo_point->clear();
+		}
+		else {
+			todo_point = new ccPointCloud("unassigned");
+			todo_point->setGlobalScale(pcObj->getGlobalScale());
+			todo_point->setGlobalShift(pcObj->getGlobalShift());
+			todo_point->setDisplay(pcObj->getDisplay());
+			todo_point->showColors(true);
+			if (pcObj->getParent())
+				pcObj->getParent()->addChild(todo_point);
+			
+			win->addToDB(todo_point, pc->getDBSourceType(), false, false);
+		}
+
+		StPrimGroup* group = LoadPlaneParaAsPrimtiveGroup(pcObj, getPrimGroupNameByCloudName(pcObj->getName()), todo_point);
+		if (group) {
+			win->addToDB(group, pc->getDBSourceType(), false, false);
 		}
 	}
 }

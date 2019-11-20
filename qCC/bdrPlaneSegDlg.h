@@ -35,6 +35,7 @@ public:
 protected slots:
 	void onAutoChecked(bool);
 	void DeducePara();
+	void loadResults();
 	void exitSafe();
 	void Execute();
 

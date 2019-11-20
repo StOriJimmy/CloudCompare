@@ -197,6 +197,12 @@ inline BDImageBaseHObject* ToImageProject(StHObject* object) {
 
 QString getCompleteBaseName(QString name);
 
+QString getPrimPathByCloudPath(QString cloud_path);
+
+QString getPrimGroupNameByCloudName(QString cloud_name);
+
+QString getBlockPathByCloudPath(QString cloud_path);
+
 DataBaseHObject* GetRootDataBase(StHObject* obj);
 BDBaseHObject* GetRootBDBase(StHObject* obj);
 BDImageBaseHObject* GetRootImageBase(StHObject* obj);

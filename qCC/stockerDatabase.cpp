@@ -22,6 +22,31 @@ QString getCompleteBaseName(QString name)
 	return QFileInfo(name).completeBaseName();
 }
 
+QString getPrimPathByCloudPath(QString cloud_path)
+{
+	QFileInfo path_info = QFileInfo(cloud_path);
+	QString path;
+	if (path_info.exists()) {
+		path = path_info.absolutePath() + "/" + path_info.completeBaseName() + ".prim.ply";
+	}
+	return path;
+}
+
+QString getPrimGroupNameByCloudName(QString cloud_name)
+{
+	return GetBaseName(cloud_name) + BDDB_PRIMITIVE_SUFFIX;
+}
+
+QString getBlockPathByCloudPath(QString cloud_path)
+{
+	QFileInfo path_info = QFileInfo(cloud_path);
+	QString path;
+	if (path_info.exists()) {
+		path = path_info.absolutePath() + "/" + path_info.completeBaseName() + ".block.ply";
+	}
+	return path;
+}
+
 DataBaseHObject * GetRootDataBase(StHObject * obj)
 {
 	StHObject* bd_obj_ = obj;

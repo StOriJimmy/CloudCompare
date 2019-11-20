@@ -81,11 +81,21 @@ ccPolyline * AddPolygonAsPolyline(stocker::Contour3d points, QString name, ccCol
 
 ccPolyline * AddPolygonAsPolyline(stocker::Polyline3d polygon, QString name, ccColor::Rgb col, bool close);
 
-ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, int min_pts, double distance_epsilon, double seed_raius, double growing_radius, double merge_threshold = -1, double split_threshold = -1);
-ccHObject* PlaneSegmentationRansac(ccHObject* entity, int min_pts, double distance_epsilon, double seed_raius, double normal_threshold, double ransac_probability, double merge_threshold = -1, double split_threshold = -1, ccPointCloud* todo_cloud = nullptr);
-ccHObject * PlaneSegmentationATPS(ccHObject * entity, ccPointCloud * todo_cloud, bool* iter_times = nullptr,
+StPrimGroup * LoadPlaneParaAsPrimtiveGroup(ccPointCloud * entity_cloud, QString name, ccPointCloud * todo_cloud);
+
+ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, bool overwrite,
+	int min_pts, double distance_epsilon, double seed_raius, double growing_radius,
+	double merge_threshold = -1, double split_threshold = -1);
+
+ccHObject* PlaneSegmentationRansac(ccHObject* entity, bool overwrite, ccPointCloud* todo_cloud,
+	int min_pts, double distance_epsilon, double seed_raius, double normal_threshold, double ransac_probability,
+	double merge_threshold = -1, double split_threshold = -1);
+
+ccHObject * PlaneSegmentationATPS(ccHObject * entity, bool overwrite, ccPointCloud * todo_cloud, 
+	bool* iter_times = nullptr,
 	int* kappa_t = nullptr, double* delta_t = nullptr, double* tau_t = nullptr, 
 	double* gamma_t = nullptr, double* epsilon_t = nullptr, double* theta_t = nullptr);
+
 
 void RetrieveUnassignedPoints(ccHObject * original_cloud, ccHObject * prim_group, ccPointCloud * todo_point);
 void RetrieveAssignedPoints(ccPointCloud * todo_cloud, ccPointCloud * plane_cloud, double distance_threshold);
