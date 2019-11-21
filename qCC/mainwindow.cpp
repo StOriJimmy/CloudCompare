@@ -12047,11 +12047,10 @@ void MainWindow::doActionBDDisplayPlaneOn()
 	ccHObject::Container Objs;
 	Root_Entity->filterChildren(Objs, true, CC_TYPES::PLANE, true);
 
-	ProgStart("Show Plane");
-	for (auto & Obj : Objs) {
+	ProgStart(QStringLiteral("Show %1 Planes...").arg(QString::number(Objs.size())));
+	Concurrency::parallel_for_each(Objs.begin(), Objs.end(), [](auto & Obj) {
 		Obj->setVisible(true);
-		Obj->redrawDisplay();
-	}
+	});
 	ProgEnd
 
 	refreshAll();
@@ -12067,13 +12066,12 @@ void MainWindow::doActionBDDisplayPlaneOff()
 		Root_Entity = db(getCurrentDB())->getRootEntity();
 
 	ccHObject::Container Objs;
-	Root_Entity->filterChildren(Objs, true, CC_TYPES::PLANE, true);
-	ProgStartNorm("Hide Plane", Objs.size());
-	for (auto & Obj : Objs) {
+	Root_Entity->filterChildren(Objs, true, CC_TYPES::PLANE, true); 
+	
+	ProgStart(QStringLiteral("Hide %1 Planes...").arg(QString::number(Objs.size())));
+	Concurrency::parallel_for_each(Objs.begin(), Objs.end(), [](auto & Obj) {
 		Obj->setVisible(false);
-		Obj->redrawDisplay();
-		ProgStepBreak
-	}
+	});
 	ProgEnd
 
 	refreshAll();
@@ -12090,11 +12088,11 @@ void MainWindow::doActionBDDisplayPointOn()
 
 	ccHObject::Container Objs;
 	Root_Entity->filterChildren(Objs, true, CC_TYPES::POINT_CLOUD, true);
-	ProgStart("Show Points");
-	for (auto & Obj : Objs) {
+
+	ProgStart(QStringLiteral("Show %1 Point Clouds...").arg(QString::number(Objs.size())));
+	Concurrency::parallel_for_each(Objs.begin(), Objs.end(), [](auto & Obj) {
 		Obj->setVisible(true);
-		Obj->redrawDisplay();
-	}
+	});
 	ProgEnd
 	refreshAll();
 	UpdateUI();
@@ -12110,11 +12108,11 @@ void MainWindow::doActionBDDisplayPointOff()
 
 	ccHObject::Container Objs;
 	Root_Entity->filterChildren(Objs, true, CC_TYPES::POINT_CLOUD, false);
-	ProgStart("Hide Points");
-	for (auto & Obj : Objs) {
+
+	ProgStart(QStringLiteral("Hide %1 Point Clouds...").arg(QString::number(Objs.size())));
+	Concurrency::parallel_for_each(Objs.begin(), Objs.end(), [](auto & Obj) {
 		Obj->setVisible(false);
-		Obj->redrawDisplay();
-	}
+	});
 	ProgEnd
 	refreshAll();
 	UpdateUI();
