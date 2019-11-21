@@ -787,6 +787,7 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vecto
 			}
 			todo_cloud->setRGBColor(ccColor::black);
 			todo_cloud->showColors(true);
+			todo_cloud->setEnabled(false);
 		}
 	}
 	if (saveFile) {
