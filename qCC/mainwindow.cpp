@@ -14957,11 +14957,15 @@ void MainWindow::doActionShowBestImage()
 		objBox = ccBBox(objBox.getCenter() - objBox.getDiagVec()*scale_box / 2, objBox.getCenter() + objBox.getDiagVec()*scale_box / 2);
 		std::cout << "calc bbox from clouds" << std::endl;
 	}
+
+#ifdef _DEBUG
 	std::cout << "obj_bbox_min: " << objBox.minCorner().x << " " << objBox.minCorner().y << " " << objBox.minCorner().z << std::endl;
 	std::cout << "obj_bbox_max: " << objBox.maxCorner().x << " " << objBox.maxCorner().y << " " << objBox.maxCorner().z << std::endl;
 	std::cout << "up dir: " << glwin->getCurrentUpDir().x << " " << glwin->getCurrentUpDir().y << " " << glwin->getCurrentUpDir().z << std::endl;
+#endif // _DEBUG
 	
 	if (!objBox.isValid()) {
+		std::cout << "cannot deduce object bbox" << std::endl;
 		return;
 	}
 	m_pbdrImagePanel->setObjViewBox(objBox);
