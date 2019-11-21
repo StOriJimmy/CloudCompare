@@ -280,7 +280,9 @@ ccPlane * ccPlane::Fit(const std::vector<CCVector3> profiles, const PointCoordin
 		cloud->addPoint(pt);
 	}
 	ccPlane* plane = ccPlane::Fit(cloud, nullptr, nullptr, planeEquation);
-	plane->setProfile(profiles);
+	if (plane) {
+		plane->setProfile(profiles);
+	}
 
 	return plane;
 }
