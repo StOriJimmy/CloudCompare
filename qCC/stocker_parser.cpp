@@ -875,7 +875,7 @@ ccHObject* PlaneSegmentationRansac(ccHObject* entity, bool overwrite, ccPointClo
 	}
 
 	if (!overwrite) {
-		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, nullptr);
+		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, todo_cloud);
 		if (group_load) return group_load;
 	}
 
@@ -931,7 +931,7 @@ ccHObject* PlaneSegmentationATPS(ccHObject* entity, bool overwrite,	ccPointCloud
 	}
 
 	if (!overwrite) {
-		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, nullptr);
+		StPrimGroup* group_load = LoadPlaneParaAsPrimtiveGroup(entity_cloud, todo_cloud);
 		if (group_load) return group_load;
 	}
 
