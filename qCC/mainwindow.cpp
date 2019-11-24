@@ -16279,10 +16279,40 @@ void MainWindow::doActionScheduleGCNode()
 
 void MainWindow::doActionClearEmptyItems()
 {
-// 	if (!haveSelection()) {
-// 		return;
-// 	}
-// 	ccHObject* sel = m_selectedEntities.front();
+	
+	if (!haveSelection()) {
+ 		return;
+ 	}
+ 	ccHObject* sel = m_selectedEntities.front();
+	ccHObject::Container blocks;
+	sel->filterChildren(blocks, true, CC_TYPES::ST_BLOCK, true);
+	for (ccHObject* blk : blocks) {
+		StBlock* blkObj = ccHObjectCaster::ToStBlock(blk); if (!blkObj) continue;
+
+		ccPlane* plane = blkObj->getMainPlane();
+		if (!plane) {
+			continue;
+		}
+		ccFacet* bot = blkObj->getBottomFacet();
+		std::vector<CCVector3> prof = bot->getContour()->getPoints(false);
+		plane->setProfile(prof);
+	}
+
+	ccHObject::Container fps;
+	sel->filterChildren(fps, true, CC_TYPES::ST_FOOTPRINT, true);
+	for (ccHObject* fp : fps) {
+		StFootPrint* fpObj = ccHObjectCaster::ToStFootPrint(fp); if (!fp) continue;
+
+		std::vector<CCVector3> contour = fpObj->getPoints(false);
+		stocker::Contour2d pts;
+		for (CCVector3 p : contour)	{
+			pts.push_back({ p.x, p.y });
+		}
+		if (!stocker::IsCounterClockWise(pts)) {
+			fpObj->reverseVertexOrder();
+		}
+	}
+
 // 
 // 	ccHObject::Container children;
 // 	sel->filterChildren(children, true);
