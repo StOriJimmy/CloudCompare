@@ -257,26 +257,31 @@ void bdrImageEditorPanel::stopEditor(bool state)
 	}
 
 	MainWindow* main_win = MainWindow::TheInstance(); assert(main_win);
-	if (state && !m_projected_2D_3D.empty()) {
+	if (/*state &&*/ !m_projected_2D_3D.empty()) {
 		//! reproject the entities back to 3d
 		for (ProjectedPair prj_2d_3d : m_projected_2D_3D) {
 			if (prj_2d_3d.first && prj_2d_3d.second) {
-				if (m_pbdrImshow->projectBack(prj_2d_3d.first, prj_2d_3d.second)) {
-					main_win->removeFromDB(prj_2d_3d.first);
+				if (state && m_pbdrImshow->projectBack(prj_2d_3d.first, prj_2d_3d.second)) {
+					//main_win->removeFromDB(prj_2d_3d.first);
 				}
+			}
+			if (prj_2d_3d.first) {
+				main_win->removeFromDB(prj_2d_3d.first);
 			}
 		}
 		ccHObject* dest_block = getTraceBlock(QString());
 		//ccCameraSensor* cam = m_pbdrImshow->getImage()->getAssociatedSensor();
 		for (size_t i = 0; i < dest_block->getChildrenNumber(); i++) {
 			ccHObject* child = dest_block->getChild(i);
-			if (child->isA(CC_TYPES::POLY_LINE)) {
-				if (m_pbdrImshow->projectBack(child, m_projected_2D_3D.front().second)) {
-					main_win->removeFromDB(child);
+			if (child && child->isA(CC_TYPES::POLY_LINE)) {
+				if (state && m_pbdrImshow->projectBack(child, m_projected_2D_3D.front().second)) {
+					//main_win->removeFromDB(child);
 				}
+				main_win->removeFromDB(child);
 			}
 		}
 	}
+	m_projected_2D_3D.clear();
 }
 
 void bdrImageEditorPanel::updateCursorPos(const CCVector3d & P, bool b3d)
@@ -291,17 +296,35 @@ bool bdrImageEditorPanel::isLinkToMainView()
 	return m_UI->linkViewToolButton->isChecked();
 }
 
-void bdrImageEditorPanel::setProjection(std::vector<ccHObject*> project_entities)
+void bdrImageEditorPanel::addProjection(std::vector<ccHObject*> project_entities)
 {
-	m_projected_2D_3D.clear();
+	//m_projected_2D_3D.clear();
 	for (ccHObject* ent : project_entities) {
 		ccHObject* projected = m_pbdrImshow->projectToImage(ent);
-		if (/*projected*/1) {
+		if (1/*projected*/) {
 			m_projected_2D_3D.push_back(std::make_pair(projected, ent));
 		}
 	}
 	if (!m_projected_2D_3D.empty()) {
-		m_pbdrImshow->getGLWindow()->redraw();
+		//m_pbdrImshow->getGLWindow()->redraw();
+	}
+}
+
+void bdrImageEditorPanel::ZoomFitProjected()
+{
+	ccBBox box;
+	for (ProjectedPair prj_2d_3d : m_projected_2D_3D) {
+		ccHObject* prj_2d = prj_2d_3d.first;
+		if (prj_2d)
+			box+= prj_2d->getOwnBB();
+	}
+	if (box.isValid()) {
+		CCVector3 max_ex = box.getCenter() + box.getDiagVec() / 5;
+		CCVector3 min_ex = box.getCenter() - box.getDiagVec() / 5;
+		box.add(min_ex);
+		box.add(max_ex);
+		
+		m_pbdrImshow->update2DDisplayZoom(box, getImageViewUpDir());
 	}
 }
 
@@ -435,6 +458,18 @@ void bdrImageEditorPanel::display(bool display_all)
 double bdrImageEditorPanel::getBoxScale()
 {
 	return m_UI->BoxScaleDoubleSpinBox->value();
+}
+
+CCVector3d bdrImageEditorPanel::getImageViewUpDir()
+{
+	if (!m_pbdrImshow->getImage()) {
+		return CCVector3d(0, 1, 0);
+	}
+	CCVector3d up_3d = getObjViewUpDir();
+	CCVector3 center; m_pbdrImshow->FromGlobalToImage(getObjViewBox().getCenter(), center);
+	CCVector3 to_end;  m_pbdrImshow->FromGlobalToImage(CCVector3::fromArray(up_3d.u) + getObjViewBox().getCenter(), to_end);
+	CCVector3 up_2d = to_end - center; up_2d.normalize();
+	return CCVector3d::fromArray(up_2d.u);
 }
 
 bool bdrImageEditorPanel::isObjChecked()

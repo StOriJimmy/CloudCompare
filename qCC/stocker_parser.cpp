@@ -543,8 +543,7 @@ ccPlane* FitPlaneAndAddChild(ccPointCloud* cloud, const vcg::Plane3d* plane_para
 			pPlane->setColor(cloud->getPointColor(0));
 		}
 		pPlane->enableStippling(true);
-	}
-	if (pPlane) {
+	
 		pPlane->setName("Plane");
 		pPlane->applyGLTransformation_recursive();
 		pPlane->showColors(true);
@@ -680,6 +679,7 @@ ccPolyline* AddPolygonAsPolyline(stocker::Contour3d points, QString name, ccColo
 // 	}
 	polylineObj->setClosed(close);
 	polylineObj->addChild(cloudObj);
+	cloudObj->setEnabled(false);
 
 	return polylineObj;
 }
@@ -1825,56 +1825,71 @@ ccHObject::Container GenerateFootPrints(ccHObject* prim_group, double ground)
 	std::vector<stocker::Contour3d> planes_points = GetPointsFromCloudInsidePolygonsXY(primObjs, stocker::Polyline3d(), DBL_MAX, true);
 	if (planes_points.empty()) { return foot_print_objs; }
 
-	std::vector<std::vector<Contour3d>> components_foots;
-	std::vector<IntGroup> components_planes;
-	DeriveRoofLayerFootPrints(planes_points, components_foots, components_planes, 1, false, 1, 50, 50);
-	if (components_foots.size() != components_planes.size()) {
+	std::vector<Contour3d> footprints;
+	std::vector<std::vector<Contour3d>> fps_planes;
+	if (!DeriveRoofLayerFootPrints(planes_points, footprints, fps_planes, 1, false, 1, 50, 50))
+	if (footprints.size() != fps_planes.size()) {
 		return foot_print_objs;
 	}
 
-	int cur_compo_count = 0; // TODO: get component count from block
+	for (ccHObject* prim : primObjs) {
+		MainWindow* win = MainWindow::TheInstance();
+		if (win) win->removeFromDB(prim);
+// 		QString del_name = "del-" + prim->getName();
+// 		prim->setName(del_name);
+// 		prim->setEnabled(false);
+	}
+	ccHObject::Container new_primObjs;
 
 	QString building_name = GetBaseName(prim_group->getName());
 	auto buildUnit = baseObj->GetBuildingUnit(building_name.toStdString());
 
 	StBlockGroup* block_group = baseObj->GetBlockGroup(building_name);
 	int biggest = GetMaxNumberExcludeChildPrefix(block_group, BDDB_FOOTPRINT_PREFIX);
-	for (size_t i = 0; i < components_foots.size(); i++) {
-		assert(components_foots[i].size() == components_planes[i].size());
-		int compoId = cur_compo_count + i;
-		for (size_t j = 0; j < components_foots[i].size(); j++) {
-			Contour3d foot_print = components_foots[i][j];
-			IntVector foot_planes = components_planes[i][j];
+	for (size_t i = 0; i < footprints.size(); i++) {
+		Contour3d foot_print = footprints[i];
+		std::vector<Contour3d> foot_planes = fps_planes[i];
 
-			//! get names and top and bottom height from planes
-			QStringList cur_plane_names;			
-			Contour3d cur_all_points;
-			for (int plane_index : foot_planes) {
-				assert(plane_index < primObjs.size()); 
-				if(plane_index >= primObjs.size()) continue;
-				cur_plane_names.append(primObjs[plane_index]->getName());
-				cur_all_points.insert(cur_all_points.end(), planes_points[plane_index].begin(), planes_points[plane_index].end());
-			}
-			Concurrency::parallel_sort(cur_all_points.begin(), cur_all_points.end(), [&](Vec3d l, Vec3d r) {return l.Z() < r.Z(); });
-			double top_height = cur_all_points.back().Z();
-			double bottom_height = cur_all_points.front().Z();
+		//! get names and top and bottom height from planes
+		QStringList cur_plane_names;
+		Contour3d cur_all_points;
+		for (Contour3d plane_points : foot_planes) {
+			int num = GetMaxNumberExcludeChildPrefix(prim_group, "Plane");
+			QString plane_name = "Plane" + QString::number(++num);
+			ccPointCloud* cloud = AddPointsAsPlane(plane_points, plane_name, ccColor::Generator::Random());
+			prim_group->addChild(cloud);
+			new_primObjs.push_back(cloud);
 
-			//! construct the footprint
-			QString name = BDDB_FOOTPRINT_PREFIX + QString::number(++biggest);
-			StFootPrint* footptObj = AddPolygonAsFootprint(foot_print, name, ccColor::magenta, true);
-			if (!footptObj) continue;
-
-			footptObj->setComponentId(compoId);
-			footptObj->setHighest(top_height);
-			footptObj->setBottom(ground);
-			footptObj->setLowest(bottom_height);
-
-			footptObj->setPlaneNames(cur_plane_names);
-
-			foot_print_objs.push_back(footptObj);
-			block_group->addChild(footptObj);
+			cur_plane_names.append(plane_name);
+			cur_all_points.insert(cur_all_points.end(), plane_points.begin(), plane_points.end());
 		}
+		Concurrency::parallel_sort(cur_all_points.begin(), cur_all_points.end(), [&](Vec3d l, Vec3d r) {return l.Z() < r.Z(); });
+		double top_height = cur_all_points.back().Z();
+		double bottom_height = cur_all_points.front().Z();
+
+		//! construct the footprint
+		QString name = BDDB_FOOTPRINT_PREFIX + QString::number(++biggest);
+		StFootPrint* footptObj = AddPolygonAsFootprint(foot_print, name, ccColor::magenta, true);
+		if (!footptObj) continue;
+
+		footptObj->setComponentId(0);
+		footptObj->setHighest(top_height);
+		footptObj->setBottom(ground);
+		footptObj->setLowest(bottom_height);
+
+		footptObj->setPlaneNames(cur_plane_names);
+
+		foot_print_objs.push_back(footptObj);
+		block_group->addChild(footptObj);
 	}
+
+	prim_group->setDisplay_recursive(prim_group->getDisplay());
+	for (ccHObject* plane : new_primObjs) {
+		plane->setDisplay_recursive(prim_group->getDisplay());
+		ccHObject* p = GetPlaneFromCloud(plane);
+		if (p) { p->setVisible(false); }
+	}
+	
 	return foot_print_objs;
 }
 
@@ -1898,6 +1913,7 @@ ccHObject* LoD1FromFootPrint(ccHObject* buildingObj)
 	StBlockGroup* blockgroup_obj = baseObj->GetBlockGroup(building_name);
 	ccHObject::Container footprintObjs = blockgroup_obj->getValidFootPrints();
 
+	int biggest = GetMaxNumberExcludeChildPrefix(blockgroup_obj, BDDB_BLOCK_PREFIX);
 	for (size_t i = 0; i < footprintObjs.size(); i++) {
 		StFootPrint* foot_print = ccHObjectCaster::ToStFootPrint(footprintObjs[i]);
 		if (!foot_print || !foot_print->isEnabled()) continue;
@@ -1923,8 +1939,7 @@ ccHObject* LoD1FromFootPrint(ccHObject* buildingObj)
 			//bottom_points.push_back(CCVector3(pt.x, pt.y, ground));
 		}
 		StBlock* block_entity = StBlock::Create(top_points, ground);
-		int biggest = GetMaxNumberExcludeChildPrefix(blockgroup_obj, BDDB_BLOCK_PREFIX);
-		block_entity->setName(BDDB_BLOCK_PREFIX + QString::number(biggest + 1));
+		block_entity->setName(BDDB_BLOCK_PREFIX + QString::number(++biggest));
 		foot_print->addChild(block_entity);
 	}
 	return blockgroup_obj;
@@ -2106,9 +2121,10 @@ ccHObject* LoD2FromFootPrint_WholeProcess(ccHObject* buildingObj, ccHObject::Con
 				//bottom_points.push_back(CCVector3(pt.X(), pt.Y(), ground_height));
 			}
 			StBlock* block_entity = StBlock::Create(top_points, ground_height);
-			
-			block_entity->setName(BDDB_BLOCK_PREFIX + QString::number(block_number++));
-			first_footprint->addChild(block_entity);
+			if (block_entity) {
+				block_entity->setName(BDDB_BLOCK_PREFIX + QString::number(block_number++));
+				first_footprint->addChild(block_entity);
+			}
 		}
 	}
 	return blockgroup_obj;
@@ -2153,6 +2169,10 @@ ccHObject* LoD2FromFootPrint(ccHObject* buildingObj, ccHObject::Container footpr
 		if (!plane_names.empty()) {
 			for (size_t pi = 0; pi < prim_group_obj->getChildrenNumber(); pi++) {
 				ccHObject* child_cloud = prim_group_obj->getChild(pi); if (!child_cloud) continue;
+//#ifdef _DEBUG
+				if (!child_cloud->isEnabled()) continue;
+//#endif // _DEBUG
+
 				if (plane_names.indexOf(child_cloud->getName()) >= 0) {
 					primObjs.push_back(child_cloud);
 				}
@@ -2168,7 +2188,16 @@ ccHObject* LoD2FromFootPrint(ccHObject* buildingObj, ccHObject::Container footpr
 		std::vector<Contour3d> points = GetPointsFromCloudInsidePolygonsXY(primObjs, polygon, ftObj->getHighest());
 		builder_3d4em.SetSegmentedPoints(points);
 
-		if (!builder_3d4em.BuildingReconstruction()) continue;
+		try {
+			if (!builder_3d4em.BuildingReconstruction()) continue;
+		}
+		catch (const std::exception& e) {
+			STOCKER_ERROR_ASSERT(e.what());
+			continue;
+		}
+		catch (...) {
+			continue;
+		}
 
 		if (!QFile::exists(QString(output_path))) continue;
 

@@ -5755,8 +5755,8 @@ void ccGLWindow::drawPivot()
 
 		//draw a small sphere
 		{
-			ccSphere sphere(static_cast<PointCoordinateType>(10.0 / symbolRadius));
-			sphere.setColor(ccColor::yellow);
+			ccSphere sphere(static_cast<PointCoordinateType>(3.0/*10.0*/ / symbolRadius));
+			sphere.setColor(ccColor::Rgb(245, 222, 179)/*ccColor::yellow*/);
 			sphere.showColors(true);
 			sphere.setVisible(true);
 			sphere.setEnabled(true);
@@ -5780,21 +5780,24 @@ void ccGLWindow::drawPivot()
 		const float c_alpha = 0.6f;
 
 		//pivot symbol: 3 circles
-		glFunc->glColor4f(1.0f, 0.0f, 0.0f, c_alpha);
+		glFunc->glColor4f(0.73f, 0.56f, 0.56f, c_alpha); // rosybrown 188, 143, 143
+		//glFunc->glColor4f(1.0f, 0.0f, 0.0f, c_alpha);
 		glDrawUnitCircle(context(), 0);
 		glFunc->glBegin(GL_LINES);
 		glFunc->glVertex3f(-1.0f, 0.0f, 0.0f);
 		glFunc->glVertex3f(1.0f, 0.0f, 0.0f);
 		glFunc->glEnd();
 
-		glFunc->glColor4f(0.0f, 1.0f, 0.0f, c_alpha);
+		glFunc->glColor4f(0.56f, 0.73f, 0.56f, c_alpha); ///darkseagreen 143, 188, 143
+		//glFunc->glColor4f(0.0f, 1.0f, 0.0f, c_alpha); 
 		glDrawUnitCircle(context(), 1);
 		glFunc->glBegin(GL_LINES);
 		glFunc->glVertex3f(0.0f, -1.0f, 0.0f);
 		glFunc->glVertex3f(0.0f, 1.0f, 0.0f);
 		glFunc->glEnd();
 
-		glFunc->glColor4f(0.0f, 0.7f, 1.0f, c_alpha);
+		glFunc->glColor4f(0.69f, 0.77f, 0.87f, c_alpha); ///lightsteelblue 176,196,222
+		//glFunc->glColor4f(0.0f, 0.7f, 1.0f, c_alpha); 
 		glDrawUnitCircle(context(), 2);
 		glFunc->glBegin(GL_LINES);
 		glFunc->glVertex3f(0.0f, 0.0f, -1.0f);
@@ -5807,7 +5810,7 @@ void ccGLWindow::drawPivot()
 	}
 
 	//constant scale
-	const double scale = symbolRadius * computeActualPixelSize();
+	const double scale = symbolRadius * computeActualPixelSize() / 4;
 	glFunc->glScaled(scale, scale, scale);
 
 	glFunc->glCallList(m_pivotGLList);

@@ -333,9 +333,12 @@ MainWindow::MainWindow()
 	// 	delete titleWidget; titleWidget = nullptr;
 		
 	tabifyDockWidget(m_UI->DockableProperties, m_UI->DockablePanel);
-	tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableImage);
+	//tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableImage);
 	tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableConsole);
 	m_UI->DockableProperties->raise();
+
+	m_UI->DockableImage->setHidden(true);
+	m_UI->DockableImage->setWindowFlags(m_UI->DockableImage->windowFlags() | Qt::WindowMaximizeButtonHint);
 
 	//db-main-tree
 	{
@@ -14750,10 +14753,16 @@ void MainWindow::doActionBDLoD2Generation()
 			std::cout << e.what() << std::endl;
 			throw(std::runtime_error(e.what()));
 			STOCKER_ERROR_ASSERT(e.what());
-			//continue;
+			ProgStepBreak
+			continue;
+
 			//dispToConsole("[BDRecon] cannot build lod2 model", ERR_CONSOLE_MESSAGE);
 			//dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
 			//return;
+		}
+		catch (...) {
+			ProgStepBreak
+			continue;
 		}
 		//doActionBDProjectSave();
 		ProgStepBreak
@@ -15061,17 +15070,19 @@ void MainWindow::doActionShowSelectedImage()
 		}
 		if (!box_2d.isValid()) return;
 
-		CCVector3d up_3d = m_pbdrImagePanel->getObjViewUpDir();
+// 		CCVector3d up_3d = m_pbdrImagePanel->getObjViewUpDir();
+// 
+// 		CCVector3 center; m_pbdrImshow->FromGlobalToImage(m_pbdrImagePanel->getObjViewBox().getCenter(), center);
+// 		CCVector3 to_end;  m_pbdrImshow->FromGlobalToImage(CCVector3::fromArray(up_3d.u) + m_pbdrImagePanel->getObjViewBox().getCenter(), to_end);
+// 		CCVector3 up_2d = to_end - center; up_2d.normalize();
+		CCVector3d up_2d = m_pbdrImagePanel->getImageViewUpDir();
+		m_pbdrImshow->update2DDisplayZoom(box_2d, up_2d);
 
-		CCVector3 center; m_pbdrImshow->FromGlobalToImage(m_pbdrImagePanel->getObjViewBox().getCenter(), center);
-		CCVector3 to_end;  m_pbdrImshow->FromGlobalToImage(CCVector3::fromArray(up_3d.u) + m_pbdrImagePanel->getObjViewBox().getCenter(), to_end);
-		CCVector3 up_2d = to_end - center; up_2d.normalize();
-		
-		m_pbdrImshow->update2DDisplayZoom(box_2d, CCVector3d::fromArray(up_2d.u));
-
+#ifdef _DEBUG
 		std::cout << "img_bbox_min: " << box_2d.minCorner().x << " " << box_2d.minCorner().y << " " << box_2d.minCorner().z << std::endl;
 		std::cout << "img_bbox_max: " << box_2d.maxCorner().x << " " << box_2d.maxCorner().y << " " << box_2d.maxCorner().z << std::endl;
 		std::cout << "up dir: " << up_2d.x << " " << up_2d.y << " " << up_2d.z << std::endl;
+#endif // _DEBUG
 	}
 	else {
 		m_pbdrImshow->ZoomFit();
@@ -15085,8 +15096,9 @@ void MainWindow::doActionProjectToImage()
 		doActionShowBestImage();
 	}
 	if (m_pbdrImshow->getImage()) {
-		m_pbdrImagePanel->setProjection(m_selectedEntities);
+		m_pbdrImagePanel->addProjection(m_selectedEntities);
 	}
+	m_pbdrImagePanel->ZoomFitProjected();
 }
 
 void MainWindow::doActionSelectWorkingPlane()
