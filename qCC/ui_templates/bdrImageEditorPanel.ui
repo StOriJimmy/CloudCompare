@@ -150,6 +150,9 @@
      </item>
      <item>
       <widget class="QToolButton" name="linkViewToolButton">
+       <property name="toolTip">
+        <string>image view linked to the main view</string>
+       </property>
        <property name="text">
         <string>...</string>
        </property>

@@ -25,6 +25,7 @@ bdrImageEditorPanel::bdrImageEditorPanel(bdr2Point5DimEditor* img, ccDBRoot* roo
 	: m_pbdrImshow(img)
 	, m_UI(new Ui::bdrImageEditorPanelDlg)
 	, m_root(root)
+	, m_storedLinkMainState(nullptr)
 	, QDialog(parent, Qt::Tool)
 {
 	m_UI->setupUi(this);
@@ -282,6 +283,11 @@ void bdrImageEditorPanel::stopEditor(bool state)
 		}
 	}
 	m_projected_2D_3D.clear();
+	if (m_storedLinkMainState) {
+		linkToMainViewState(*m_storedLinkMainState);
+		delete m_storedLinkMainState;
+		m_storedLinkMainState = nullptr;
+	}
 }
 
 void bdrImageEditorPanel::updateCursorPos(const CCVector3d & P, bool b3d)
@@ -294,6 +300,11 @@ void bdrImageEditorPanel::updateCursorPos(const CCVector3d & P, bool b3d)
 bool bdrImageEditorPanel::isLinkToMainView()
 {
 	return m_UI->linkViewToolButton->isChecked();
+}
+
+void bdrImageEditorPanel::linkToMainViewState(bool state)
+{
+	m_UI->linkViewToolButton->setChecked(state);
 }
 
 void bdrImageEditorPanel::addProjection(std::vector<ccHObject*> project_entities)
@@ -326,6 +337,15 @@ void bdrImageEditorPanel::ZoomFitProjected()
 		
 		m_pbdrImshow->update2DDisplayZoom(box, getImageViewUpDir());
 	}
+}
+
+void bdrImageEditorPanel::startImageEditMode()
+{
+	if (!m_storedLinkMainState) {
+		m_storedLinkMainState = new bool;
+	}
+	*m_storedLinkMainState = isLinkToMainView();
+	linkToMainViewState(false);
 }
 
 void bdrImageEditorPanel::clearAll()

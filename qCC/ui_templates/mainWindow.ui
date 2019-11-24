@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1365</width>
-    <height>1038</height>
+    <height>1047</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -653,7 +653,7 @@
    <property name="minimumSize">
     <size>
      <width>276</width>
-     <height>397</height>
+     <height>421</height>
     </size>
    </property>
    <property name="floating">
@@ -700,6 +700,9 @@
           <layout class="QHBoxLayout" name="horizontalLayout">
            <property name="spacing">
             <number>1</number>
+           </property>
+           <property name="sizeConstraint">
+            <enum>QLayout::SetNoConstraint</enum>
            </property>
            <item>
             <widget class="QToolButton" name="NewDatabaseToolButton">
@@ -1288,9 +1291,12 @@
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
              <property name="sizeHint" stdset="0">
               <size>
-               <width>40</width>
+               <width>0</width>
                <height>20</height>
               </size>
              </property>
@@ -1309,7 +1315,7 @@
           <widget class="ccCustomQTreeView" name="dbMainTreeView">
            <property name="minimumSize">
             <size>
-             <width>150</width>
+             <width>50</width>
              <height>250</height>
             </size>
            </property>
@@ -1376,7 +1382,7 @@ QTreeView::branch:open:has-children:has-siblings  {
           <widget class="ccCustomQTreeView" name="dbBuildTreeView">
            <property name="minimumSize">
             <size>
-             <width>150</width>
+             <width>50</width>
              <height>250</height>
             </size>
            </property>
@@ -1443,7 +1449,7 @@ QTreeView::branch:open:has-children:has-siblings  {
           <widget class="ccCustomQTreeView" name="dbImageTreeView">
            <property name="minimumSize">
             <size>
-             <width>150</width>
+             <width>50</width>
              <height>250</height>
             </size>
            </property>
@@ -1514,7 +1520,7 @@ QTreeView::branch:open:has-children:has-siblings  {
     <enum>Qt::ToolButtonIconOnly</enum>
    </property>
    <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
+    <enum>LeftToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
     <bool>false</bool>
@@ -1533,7 +1539,7 @@ QTreeView::branch:open:has-children:has-siblings  {
     <string>Viewing tools</string>
    </property>
    <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
+    <enum>LeftToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
     <bool>false</bool>
@@ -1562,7 +1568,7 @@ QTreeView::branch:open:has-children:has-siblings  {
     <string>Edit tools</string>
    </property>
    <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
+    <enum>LeftToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
     <bool>false</bool>
@@ -1580,7 +1586,7 @@ QTreeView::branch:open:has-children:has-siblings  {
     <string>Scalar field tools</string>
    </property>
    <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
+    <enum>LeftToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
     <bool>false</bool>
@@ -1675,7 +1681,7 @@ QTreeView::branch:open:has-children:has-siblings  {
   <widget class="QDockWidget" name="DockableProperties">
    <property name="minimumSize">
     <size>
-     <width>100</width>
+     <width>50</width>
      <height>259</height>
     </size>
    </property>
@@ -1878,7 +1884,7 @@ QTreeView::branch:open:has-children:has-siblings  {
   <widget class="QDockWidget" name="DockablePanel">
    <property name="minimumSize">
     <size>
-     <width>87</width>
+     <width>50</width>
      <height>109</height>
     </size>
    </property>
@@ -1909,8 +1915,8 @@ QTreeView::branch:open:has-children:has-siblings  {
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>304</width>
-          <height>69</height>
+          <width>258</width>
+          <height>74</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -1937,7 +1943,7 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="minimumSize">
     <size>
-     <width>91</width>
+     <width>50</width>
      <height>120</height>
     </size>
    </property>

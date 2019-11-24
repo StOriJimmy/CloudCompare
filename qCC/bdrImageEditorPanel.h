@@ -58,11 +58,13 @@ public:
 	bool isObjChecked();
 	void updateCursorPos(const CCVector3d& P, bool b3d);
 	bool isLinkToMainView();
+	void linkToMainViewState(bool state);
 
 	void addProjection(std::vector<ccHObject*> project_entities);
 	std::vector<ProjectedPair> getProjectedObjects() { return m_projected_2D_3D; }
 
 	void ZoomFitProjected();
+	void startImageEditMode();
 
 protected:
 	std::vector<ProjectedPair> m_projected_2D_3D;
@@ -75,6 +77,8 @@ private:
 	ccBBox m_objViewBox;
 	CCVector3d m_objViewUpDir;
 	int m_image_display_height;
+
+	bool* m_storedLinkMainState;
 };
 
 #endif

@@ -2648,16 +2648,17 @@ void ccGLWindow::drawForeground(CC_DRAW_CONTEXT& CONTEXT, RenderingParams& rende
 
 		if (!m_captureMode.enabled || m_captureMode.renderOverlayItems)
 		{
-			//scale: only in ortho mode
+			//only in ortho mode
 			if (!m_viewportParams.perspectiveView)
 			{
+				//scale
 				drawScale(textCol);
+
+				//trihedron
+				drawTrihedron();
 			}
-
-			//trihedron
-			drawTrihedron();
 		}
-
+#ifdef JIMMY
 		if (!m_captureMode.enabled)
 		{
 			int yStart = 0;
@@ -2785,6 +2786,7 @@ void ccGLWindow::drawForeground(CC_DRAW_CONTEXT& CONTEXT, RenderingParams& rende
 				yStart += lodIconSize + margin;
 			}
 		}
+#endif // !XINYI	
 	}
 
 	drawCursor();
@@ -3219,7 +3221,7 @@ void ccGLWindow::drawScale(const ccColor::Rgbub& color)
 	//we first compute the width equivalent to 25% of horizontal screen width
 	//(this is why it's only valid in orthographic mode !)
 	float equivalentWidthRaw = scaleMaxW * m_viewportParams.pixelSize / m_viewportParams.zoom;
-	float equivalentWidth = RoundScale(equivalentWidthRaw);
+	float equivalentWidth = /*RoundScale*/(equivalentWidthRaw);
 
 	QFont font = getTextDisplayFont(); //we take rendering zoom into account!
 	QFontMetrics fm(font);
@@ -3258,7 +3260,7 @@ void ccGLWindow::drawScale(const ccColor::Rgbub& color)
 
 	glFunc->glPopAttrib(); //GL_LINE_BIT
 
-	QString text = QString::number(equivalentWidth);
+	QString text = QString::number(equivalentWidth, 'f', 2);
 	glColor3ubv_safe<ccQOpenGLFunctions>(glFunc, color.rgb);
 	renderText(m_glViewport.width() - static_cast<int>(scaleW_pix / 2 + dW) - fm.width(text) / 2, m_glViewport.height() - static_cast<int>(dH / 2) + fm.height() / 3, text, font);
 }

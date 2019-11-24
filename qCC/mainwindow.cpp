@@ -15056,8 +15056,7 @@ void MainWindow::doActionShowSelectedImage()
 	if (sels.empty()) {
 		return;
 	}
-	ccHObject* sel = sels.front();
-	ccCameraSensor* cam = ccHObjectCaster::ToCameraSensor(sel);
+	ccCameraSensor* cam = ccHObjectCaster::ToCameraSensor(sels.front());
 	if (!cam) { return; }
 
 	m_pbdrImshow->setImageAndCamera(cam);
@@ -15068,13 +15067,8 @@ void MainWindow::doActionShowSelectedImage()
 			m_pbdrImshow->FromGlobalToImage(m_pbdrImagePanel->getObjViewBox().P(i), b_2d);
 			box_2d.add(b_2d);
 		}
-		if (!box_2d.isValid()) return;
+		if (!box_2d.isValid()) { m_pbdrImshow->ZoomFit(); return; }
 
-// 		CCVector3d up_3d = m_pbdrImagePanel->getObjViewUpDir();
-// 
-// 		CCVector3 center; m_pbdrImshow->FromGlobalToImage(m_pbdrImagePanel->getObjViewBox().getCenter(), center);
-// 		CCVector3 to_end;  m_pbdrImshow->FromGlobalToImage(CCVector3::fromArray(up_3d.u) + m_pbdrImagePanel->getObjViewBox().getCenter(), to_end);
-// 		CCVector3 up_2d = to_end - center; up_2d.normalize();
 		CCVector3d up_2d = m_pbdrImagePanel->getImageViewUpDir();
 		m_pbdrImshow->update2DDisplayZoom(box_2d, up_2d);
 
@@ -15099,6 +15093,7 @@ void MainWindow::doActionProjectToImage()
 		m_pbdrImagePanel->addProjection(m_selectedEntities);
 	}
 	m_pbdrImagePanel->ZoomFitProjected();
+	m_pbdrImagePanel->startImageEditMode();
 }
 
 void MainWindow::doActionSelectWorkingPlane()

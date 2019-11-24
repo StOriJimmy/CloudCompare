@@ -870,13 +870,13 @@ void bdrSketcher::setTraceViewMode(bool trace_image)
 		m_UI->exportSectionsToolButton->setVisible(true);
 		m_UI->saveFootprintInsidetoolButton->setVisible(false);
 		m_UI->saveFootprintOutsidetoolButton->setVisible(false);
-		setFixedWidth(360);
+		//setFixedWidth(360);
 	}
 	else {
 		m_UI->exportSectionsToolButton->setVisible(false);
 		m_UI->saveFootprintInsidetoolButton->setVisible(true);
 		m_UI->saveFootprintOutsidetoolButton->setVisible(true);
-		setFixedWidth(210);
+		//setFixedWidth(210);
 	}
 }
 
