@@ -3294,13 +3294,13 @@ void ccGLWindow::drawTrihedron()
 
 		//trihedron OpenGL drawing
 		glFunc->glBegin(GL_LINES);
-		glFunc->glColor3f(1.0f, 0.0f, 0.0f);
+		glFunc->glColor3f(0.73f, 0.56f, 0.56f);
 		glFunc->glVertex3f(0.0f, 0.0f, 0.0f);
 		glFunc->glVertex3f(CC_DISPLAYED_TRIHEDRON_AXES_LENGTH, 0.0f, 0.0f);
-		glFunc->glColor3f(0.0f, 1.0f, 0.0f);
+		glFunc->glColor3f(0.56f, 0.73f, 0.56f);
 		glFunc->glVertex3f(0.0f, 0.0f, 0.0f);
 		glFunc->glVertex3f(0.0f, CC_DISPLAYED_TRIHEDRON_AXES_LENGTH, 0.0f);
-		glFunc->glColor3f(0.0f, 0.7f, 1.0f);
+		glFunc->glColor3f(0.69f, 0.77f, 0.87f);
 		glFunc->glVertex3f(0.0f, 0.0f, 0.0f);
 		glFunc->glVertex3f(0.0f, 0.0f, CC_DISPLAYED_TRIHEDRON_AXES_LENGTH);
 		glFunc->glEnd();
