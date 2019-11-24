@@ -672,17 +672,19 @@ bool StBlock::fromFile_MeOnly(QFile& in, short dataVersion, int flags)
 	if (classID != CC_TYPES::PLANE) {
 		return CorruptError();
 	}
-	ccPlane* plane = new ccPlane;
-	if (!plane->fromFile(in, dataVersion, flags)) {
-		return ReadError();
-	}
-	m_mainPlane = new ccPlane(plane->getXWidth(), plane->getYWidth(), &plane->getTransformation(), plane->getName());
 
-	plane->setAssociatedCloud(0);
-	plane->setTriNormsTable(0, false);
-	plane->setTexCoordinatesTable(0, false);
-	delete plane;
-	plane = nullptr;
+ 	ccPlane* plane = new ccPlane;
+ 	if (!plane->fromFile(in, dataVersion, flags)) {
+ 		return ReadError();
+ 	}
+ 	m_mainPlane = new ccPlane(plane->getXWidth(), plane->getYWidth(), &plane->getTransformation(), plane->getName());
+	m_mainPlane->setProfile(plane->getProfile());
+ 
+ 	plane->setAssociatedCloud(0);
+ 	plane->setTriNormsTable(0, false);
+ 	plane->setTexCoordinatesTable(0, false);
+ 	delete plane;
+ 	plane = nullptr;
 
 	return true;
 }
