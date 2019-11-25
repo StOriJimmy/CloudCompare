@@ -14426,6 +14426,10 @@ void MainWindow::doActionBDFootPrintManual()
 		updateOverlayDialogsPlacement();
 }
 
+int g_ppp_maxiter = 3;
+double g_ppp_ptsnumratio = 0.5;
+double g_ppp_data_ratio = 1.0;
+bool g_ppp_caphole = true;
 void MainWindow::doActionBDFootPrintPack()
 {
 	if (!haveSelection()) return;
@@ -14465,17 +14469,38 @@ void MainWindow::doActionBDFootPrintPack()
 	QString used_method = QInputDialog::getItem(this, "Pack Footprint", "method", methods, 0, false, &ok);
 	if (!ok) return;
 
-	int method = 0;
-	if (used_method == "optimization") method = 0;	
-	else if (used_method == "pprepair")	method = 1;
+	if (used_method == "optimization") {
+		ccAskThreeDoubleValuesDlg setDlg("max iter", "ptsnum ratio(0-1)", "data ratio(0-1)", 0, 100, g_ppp_maxiter, g_ppp_ptsnumratio, g_ppp_data_ratio, 4, "pack footprints", this);
+		setDlg.showCheckbox("cap hole", g_ppp_caphole, "run cap hole?");
+		
+		if (setDlg.buttonBox->button(QDialogButtonBox::Ok))
+			setDlg.buttonBox->button(QDialogButtonBox::Ok)->setFocus();
+		if (!setDlg.exec())
+			return;
+
+		g_ppp_maxiter = static_cast<int>(setDlg.doubleSpinBox1->value());
+		g_ppp_ptsnumratio = setDlg.doubleSpinBox2->value();
+		g_ppp_data_ratio = setDlg.doubleSpinBox3->value();
+		g_ppp_caphole = setDlg.getCheckboxState();
+	}
+	else if (used_method == "pprepair") {
+	}
 
 	ProgStartNorm("polygon partition", bds.size());
 	try	{
 		for (ccHObject* bd_entity : bds) {
-			if (!PackFootprints(bd_entity, method)) {
-				continue;
+			bool ret = false;
+			if (used_method == "optimization") {
+				ret = PackFootprints_PPP(bd_entity, g_ppp_maxiter, g_ppp_caphole, g_ppp_ptsnumratio, g_ppp_data_ratio);
 			}
-			addToDB(bd_entity, bd_entity->getDBSourceType());
+			else if (used_method == "pprepair")	{
+				ret = PackFootprints_PPRepair(bd_entity);
+			}
+
+			if (ret) {
+				addToDB(bd_entity, bd_entity->getDBSourceType());
+			}
+
 			ProgStepBreak
 		}		
 	}
@@ -14730,12 +14755,12 @@ void MainWindow::doActionBDLoD2Generation()
 						return;
 					}
 				}
-				catch (const std::exception&)
+				catch (...)
 				{
 					continue;
 				}
 				if (m_pbdrSettingLoD2Dlg->PolygonPartitionGroupBox->isChecked()) {
-					PackFootprints(bd_entity, 1);
+					//TODO: 
 				}
 			}
 		}

@@ -125,7 +125,9 @@ ccHObject * LoD2FromFootPrint(ccHObject * entity);
 
 ccHObject::Container PackPolygons(ccHObject::Container polygonEntites, int sample);
 
-bool PackFootprints(ccHObject * buildingObj, int method);
+bool PackFootprints_PPP(ccHObject * buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio);
+
+bool PackFootprints_PPRepair(ccHObject * buildingObj);
 
 //! settings.x - xybias, y - zbias, z - minPts
 void GetPlanesInsideFootPrint(ccHObject * footprint, ccHObject * prim_group, CCVector3 settings, bool bVertical, bool clearExisting);

@@ -2336,8 +2336,9 @@ ccHObject::Container PackPolygons(ccHObject::Container polygonEntites, int sampl
 	if (!poly_partition.runBP()) {
 		return output_polygons;
 	}
-	std::vector<stocker::Outline3d> results = poly_partition.getResultPolygon();
-	for (auto & poly : results) {
+	std::vector<std::pair<size_t, stocker::Outline3d>> results = poly_partition.getResultPolygon();
+	for (auto & NO_poly : results) {
+		stocker::Outline3d poly = NO_poly.second;
 		if (poly.empty()) continue;
 		//! for now, no holes for footprint
 		footprints_points_pp.push_back(ToContour(poly.front(), 0));
@@ -2347,7 +2348,118 @@ ccHObject::Container PackPolygons(ccHObject::Container polygonEntites, int sampl
 	return output_polygons;
 }
 
-bool PackFootprints(ccHObject* buildingObj, int method)
+bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio)
+{
+	try {
+		BDBaseHObject* baseObj = GetRootBDBase(buildingObj); if (!baseObj) return false;
+		QString building_name = buildingObj->getName();
+		BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
+		StPrimGroup* prim_group_obj = baseObj->GetPrimitiveGroup(building_name);
+		StBlockGroup* blockgroup_obj = baseObj->GetBlockGroup(buildingObj->getName());
+		if (!prim_group_obj || !blockgroup_obj) { return false; }
+
+		//! get footprints
+		ccHObject::Container footprints = blockgroup_obj->getValidFootPrints();
+		std::vector<std::vector<Contour3d>> layers_planes_points;
+		std::vector<stocker::Contour3d> footprints_points;
+		IndexVector footprints_original_index;
+		for (size_t i = 0; i < footprints.size(); ++i) {
+			StFootPrint* ftObj = ccHObjectCaster::ToStFootPrint(footprints[i]);
+			QStringList plane_names = ftObj->getPlaneNames();
+			std::vector<Contour3d> planes_points;
+			for (auto & pl_name : plane_names) {
+				ccPlane* pl_entity = prim_group_obj->getPlaneByName(pl_name); if (!pl_entity) continue;
+				if (isVertical(pl_entity, 15)) continue;
+				ccPointCloud* plane_cloud = GetPlaneCloud(pl_entity); if (!plane_cloud) continue;
+				planes_points.push_back(GetPointsFromCloud3d(plane_cloud));
+			}
+			layers_planes_points.push_back(planes_points);
+
+			Contour3d ft_pts;
+			for (auto & pt : ftObj->getPoints(true)) {
+				ft_pts.emplace_back(pt.x, pt.y, pt.z);
+			}
+			if (ft_pts.size() < 3) continue;
+
+			footprints_points.push_back(ft_pts);
+			footprints_original_index.push_back(i);
+		}
+		std::vector<stocker::Contour3d> footprints_points_pp;
+		IndexVector footprints_pp_index;
+		{
+			std::vector<Polyline3d> polygons;
+			std::vector<Contour3d> polygons_points;
+			for (auto & poly : footprints_points) {
+				polygons.push_back(stocker::MakeLoopPolylinefromContour(poly));
+			}
+			for (auto & poly : layers_planes_points) {
+				Contour3d pts;
+				for (auto & pt : poly) {
+					pts.insert(pts.end(), pt.begin(), pt.end());
+				}
+				polygons_points.push_back(pts);
+			}
+
+			stocker::PolygonPartition poly_partition;
+			std::string output_dir;
+			if (!buildingObj->getPath().isEmpty()) {
+				output_dir = QFileInfo(buildingObj->getPath()).absoluteFilePath().toStdString() + "/footprints";
+			}
+			else {
+				output_dir = QFileInfo(QString::fromStdString(build_unit.file_path.ori_points)).absolutePath().toStdString() + "/footprints";
+			}
+			poly_partition.setOutputDir(output_dir);
+
+			poly_partition.m_max_iter = max_iter;
+			poly_partition.m_run_cap_hole = cap_hole;
+			poly_partition.m_data_pts_ratio = ptsnum_ratio;
+			poly_partition.m_data_ratio = data_ratio;
+
+			//TODO: should give outlines rather than polygons
+			poly_partition.setPolygon(polygons, polygons_points);
+			if (!poly_partition.runBP()) {
+				return false;
+			}
+			std::vector<std::pair<size_t, Outline3d>> results = poly_partition.getResultPolygon();
+			for (auto & NO_poly : results) {
+				if (NO_poly.second.empty()) continue;
+				//! for now, no holes for footprint
+				footprints_pp_index.push_back(NO_poly.first);
+				footprints_points_pp.push_back(ToContour(NO_poly.second.front(), 0));
+			}
+		}
+
+		if (footprints_points_pp.empty() || footprints_points_pp.size() != footprints_pp_index.size()) return false;
+
+		for (size_t i = 0; i < footprints.size(); i++) {
+			footprints[i]->setEnabled(false);
+			footprints[i]->setName("del-" + footprints[i]->getName());
+		}
+		int biggest = GetMaxNumberExcludeChildPrefix(blockgroup_obj, BDDB_FOOTPRINT_PREFIX);
+		for (size_t i = 0; i < footprints_points_pp.size(); i++) {
+			QString name = BDDB_FOOTPRINT_PREFIX + QString::number(++biggest);
+			StFootPrint* footptObj = AddPolygonAsFootprint(footprints_points_pp[i], name, ccColor::magenta, true);
+
+			footptObj->setComponentId(0);
+			footptObj->setHighest(build_unit.ground_height);
+			footptObj->setBottom(build_unit.ground_height);
+			footptObj->setLowest(build_unit.ground_height);
+			size_t original_index = footprints_original_index[footprints_pp_index[i]];
+			StFootPrint* ftOriObj = ccHObjectCaster::ToStFootPrint(footprints[original_index]);
+			if (ftOriObj) footptObj->setPlaneNames(ftOriObj->getPlaneNames());
+			blockgroup_obj->addChild(footptObj);
+		}
+	}
+	catch (const std::exception&e) {
+		throw(std::runtime_error(e.what()));
+		STOCKER_ERROR_ASSERT(e.what());
+		return false;
+	}
+
+	return true;
+}
+
+bool PackFootprints_PPRepair(ccHObject* buildingObj)
 {
 	try {
 		BDBaseHObject* baseObj = GetRootBDBase(buildingObj); if (!baseObj) return false;
@@ -2381,45 +2493,7 @@ bool PackFootprints(ccHObject* buildingObj, int method)
 		}
 		std::vector<stocker::Contour3d> footprints_points_pp;
 		
-		if (method == 1) {
-			if (!FootPrintsPlanarPartition(layers_planes_points, footprints_points, footprints_points_pp)) return false;
-		}
-		else if (method == 0) {
-			std::vector<Polyline3d> polygons;
-			std::vector<Contour3d> polygons_points;
-			for (auto & poly : footprints_points) {
-				polygons.push_back(stocker::MakeLoopPolylinefromContour(poly));
-			}
-			for (auto & poly : layers_planes_points) {
-				Contour3d pts;
-				for (auto & pt : poly) {
-					pts.insert(pts.end(), pt.begin(), pt.end());
-				}
-				polygons_points.push_back(pts);
-			}
-
-			stocker::PolygonPartition poly_partition;
-			std::string output_dir;
-			if (!buildingObj->getPath().isEmpty()) {
-				output_dir = QFileInfo(buildingObj->getPath()).absoluteFilePath().toStdString() + "/footprints";
-			}
-			else {
-				output_dir = QFileInfo(QString::fromStdString(build_unit.file_path.ori_points)).absolutePath().toStdString() + "/footprints";
-			}
-			poly_partition.setOutputDir(output_dir);
-			
-			//TODO: should give outlines rather than polygons
-			poly_partition.setPolygon(polygons, polygons_points);
-			if (!poly_partition.runBP()) {
-				return false;
-			}
-			std::vector<Outline3d> results = poly_partition.getResultPolygon();
-			for (auto & poly : results)	{
-				if (poly.empty()) continue;
-				//! for now, no holes for footprint
-				footprints_points_pp.push_back(ToContour(poly.front(), 0));
-			}
-		}
+		if (!FootPrintsPlanarPartition(layers_planes_points, footprints_points, footprints_points_pp)) return false;
 
 		if (footprints_points_pp.empty()) return false;
 
