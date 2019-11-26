@@ -14918,6 +14918,7 @@ void MainWindow::doActionBDTextureMapping()
 	catch (const std::exception& e)
 	{
 		dispToConsole(QString::fromStdString(e.what()), ERR_CONSOLE_MESSAGE);
+		ProgEnd
 	}
 	ProgEnd
 }

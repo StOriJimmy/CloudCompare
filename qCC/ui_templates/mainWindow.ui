@@ -632,7 +632,7 @@
    </widget>
    <widget class="QMenu" name="menuImage">
     <property name="title">
-     <string>Image</string>
+     <string>ImagePro</string>
     </property>
     <addaction name="actionImageLiDARRegistration"/>
     <addaction name="separator"/>
@@ -641,13 +641,13 @@
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuTools"/>
-   <addaction name="menuDisplay"/>
-   <addaction name="menu3DViews"/>
+   <addaction name="menuSchedule"/>
    <addaction name="menuSegmentation_2"/>
    <addaction name="menuImage"/>
    <addaction name="menuBDRecon"/>
+   <addaction name="menuDisplay"/>
+   <addaction name="menu3DViews"/>
    <addaction name="menuHelp"/>
-   <addaction name="menuSchedule"/>
   </widget>
   <widget class="QDockWidget" name="DockableDBTree">
    <property name="minimumSize">
@@ -1610,7 +1610,7 @@ QTreeView::branch:open:has-children:has-siblings  {
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
-    <bool>true</bool>
+    <bool>false</bool>
    </attribute>
    <addaction name="actionGroundFilteringBatch"/>
    <addaction name="actionClassificationBatch"/>
@@ -1681,7 +1681,7 @@ QTreeView::branch:open:has-children:has-siblings  {
   <widget class="QDockWidget" name="DockableProperties">
    <property name="minimumSize">
     <size>
-     <width>50</width>
+     <width>87</width>
      <height>259</height>
     </size>
    </property>
@@ -1884,7 +1884,7 @@ QTreeView::branch:open:has-children:has-siblings  {
   <widget class="QDockWidget" name="DockablePanel">
    <property name="minimumSize">
     <size>
-     <width>50</width>
+     <width>87</width>
      <height>109</height>
     </size>
    </property>
@@ -1915,8 +1915,8 @@ QTreeView::branch:open:has-children:has-siblings  {
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>258</width>
-          <height>74</height>
+          <width>304</width>
+          <height>69</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -1943,7 +1943,7 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="minimumSize">
     <size>
-     <width>50</width>
+     <width>80</width>
      <height>120</height>
     </size>
    </property>
@@ -3187,9 +3187,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="toolTip">
     <string>Toggle selected entities visibility (recursive)</string>
    </property>
-   <property name="shortcut">
-    <string>V</string>
-   </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
    </property>
@@ -3200,9 +3197,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="toolTip">
     <string>Toggle selected entities normals (recursive)</string>
-   </property>
-   <property name="shortcut">
-    <string>N</string>
    </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
@@ -3215,9 +3209,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="toolTip">
     <string>Toggle selected entities colors (recursive)</string>
    </property>
-   <property name="shortcut">
-    <string>C</string>
-   </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
    </property>
@@ -3229,9 +3220,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="toolTip">
     <string>Toggle selected entities SF (recursive)</string>
    </property>
-   <property name="shortcut">
-    <string>S</string>
-   </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
    </property>
@@ -3242,9 +3230,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="toolTip">
     <string>Apply rotation and/or translation</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+T</string>
    </property>
   </action>
   <action name="actionSmoothMeshLaplacian">
@@ -3265,9 +3250,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="text">
     <string>Save viewport as object</string>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+V</string>
-   </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
    </property>
@@ -3279,9 +3261,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="text">
     <string>Pick rotation center</string>
-   </property>
-   <property name="shortcut">
-    <string>P</string>
    </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
@@ -3325,9 +3304,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="toolTip">
     <string>Toggle active scalar field color scale</string>
    </property>
-   <property name="shortcut">
-    <string>Shift+C</string>
-   </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
    </property>
@@ -3342,9 +3318,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="toolTip">
     <string>Show previous scalar field for active entity</string>
    </property>
-   <property name="shortcut">
-    <string>Shift+Up</string>
-   </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
    </property>
@@ -3358,9 +3331,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="toolTip">
     <string>Show next scalar field for active entity</string>
-   </property>
-   <property name="shortcut">
-    <string>Shift+Down</string>
    </property>
   </action>
   <action name="actionPointPairsAlign">
@@ -3407,9 +3377,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="toolTip">
     <string>Toggle selected entities 3D name display (recursive)</string>
    </property>
-   <property name="shortcut">
-    <string>D</string>
-   </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
    </property>
@@ -3429,9 +3396,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="toolTip">
     <string>Toggle selected entities materials/textures (recursive)</string>
-   </property>
-   <property name="shortcut">
-    <string>M</string>
    </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
@@ -3849,9 +3813,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="toolTip">
     <string>Lock 3D camera rotation about an axis</string>
    </property>
-   <property name="shortcut">
-    <string>L</string>
-   </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
    </property>
@@ -3872,9 +3833,6 @@ QTreeView::branch:open:has-children:has-siblings  {
   <action name="actionEnterBubbleViewMode">
    <property name="text">
     <string>Enter bubble-view mode</string>
-   </property>
-   <property name="shortcut">
-    <string>B</string>
    </property>
   </action>
   <action name="actionExtractSections">
@@ -3932,9 +3890,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="toolTip">
     <string>Zoom in (current 3D view)</string>
    </property>
-   <property name="shortcut">
-    <string extracomment="Zoom in shortcut">+</string>
-   </property>
   </action>
   <action name="actionZoomOut">
    <property name="text">
@@ -3942,9 +3897,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="toolTip">
     <string>Zoom out (current 3D view)</string>
-   </property>
-   <property name="shortcut">
-    <string extracomment="Zoom in shortcut">=</string>
    </property>
   </action>
   <action name="actionDistanceMap">
@@ -3977,9 +3929,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="toolTip">
     <string>Enable stereo mode (with red-blue or red-cyan glasses)</string>
-   </property>
-   <property name="shortcut">
-    <string>F10</string>
    </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
@@ -4023,9 +3972,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="toolTip">
     <string>Enables visual debug traces (active 3D view)</string>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+D</string>
-   </property>
   </action>
   <action name="actionRGBToGreyScale">
    <property name="text">
@@ -4048,9 +3994,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="toolTip">
     <string>Trace a polyline by point picking</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+P</string>
    </property>
   </action>
   <action name="actionEnableQtWarnings">
@@ -4149,9 +4092,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="toolTip">
     <string>Auto-pick rotation center (rotation is always placed at the middle of the screen if possible)</string>
-   </property>
-   <property name="shortcut">
-    <string>Shift+P</string>
    </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
@@ -4808,6 +4748,9 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="iconText">
     <string>ToImage</string>
    </property>
+   <property name="shortcut">
+    <string>Alt+R</string>
+   </property>
   </action>
   <action name="actionDisplayWireframe">
    <property name="checkable">
@@ -4937,7 +4880,7 @@ QTreeView::branch:open:has-children:has-siblings  {
     <string>edit the selected item</string>
    </property>
    <property name="shortcut">
-    <string>E</string>
+    <string>Alt+E</string>
    </property>
   </action>
   <action name="actionImportFile">

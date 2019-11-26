@@ -180,7 +180,8 @@ bdrSketcher::bdrSketcher(QWidget* parent)
 	addOverridenShortcut(Qt::Key_Escape); //cancel current polyline edition
 	addOverridenShortcut(Qt::Key_Delete); //delete key to delete the selected polyline
 	addOverridenShortcut(Qt::Key_Enter);  //close
-	addOverridenShortcut(Qt::Key_C);		// click
+	addOverridenShortcut(Qt::Key_C);	  // click
+	addOverridenShortcut(Qt::Key_R);	  // edit
 
 	connect(this, &ccOverlayDialog::shortcutTriggered, this, &bdrSketcher::onShortcutTriggered);
 	connect(m_UI->saveFootprintInsidetoolButton, &QAbstractButton::clicked, this, &bdrSketcher::exportFootprintInside);
@@ -244,6 +245,9 @@ void bdrSketcher::onShortcutTriggered(int key)
 		return;
 	case Qt::Key_C:
 		// Add point
+		return;
+	case Qt::Key_R:
+		m_UI->editingToolButton->toggle();
 		return;
 	default:
 		//nothing to do
