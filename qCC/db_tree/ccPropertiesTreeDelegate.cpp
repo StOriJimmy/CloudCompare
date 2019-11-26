@@ -2837,7 +2837,9 @@ void ccPropertiesTreeDelegate::fillWithStBuilding(const StBuilding *_obj)
 	
 	BDBaseHObject* baseObj = _obj->getParent()->isA(CC_TYPES::ST_PROJECT) ? static_cast<BDBaseHObject*>(_obj->getParent()) : 0;
 	if (baseObj) {
-		auto bd = baseObj->GetBuildingUnit(_obj->getName().toStdString());
+		auto bdsp = baseObj->GetBuildingSp(_obj->getName().toStdString());
+		if (!bdsp) return;
+		auto bd = *bdsp;
 		//path
 		appendRow(ITEM(tr("Path")), ITEM(QString(bd.file_path.ori_points.c_str())));
 		//average spacing
