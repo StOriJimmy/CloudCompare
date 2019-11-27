@@ -266,9 +266,8 @@ void bdrImageEditorPanel::stopEditor(bool state)
 					//main_win->removeFromDB(prj_2d_3d.first);
 				}
 			}
-			if (prj_2d_3d.first) {
+			if (prj_2d_3d.first)
 				main_win->removeFromDB(prj_2d_3d.first);
-			}
 		}
 		ccHObject* dest_block = getTraceBlock(QString());
 		//ccCameraSensor* cam = m_pbdrImshow->getImage()->getAssociatedSensor();

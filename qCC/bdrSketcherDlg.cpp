@@ -1772,8 +1772,8 @@ void bdrSketcher::exportSections()
 		{
 			destEntity->addChild(section.entity);
 			section.isInDB = true;
-			section.entity->setDisplay_recursive(destEntity->getDisplay());
-			mainWin->addToDB_Build(section.entity, false, false);
+			//section.entity->setDisplay_recursive(destEntity->getDisplay());
+			mainWin->addToDB(section.entity, destEntity->getDBSourceType(), false, false);
 		}
 	}
 

@@ -2050,7 +2050,27 @@ void MainWindow::addToDB(ccHObject* obj,
 void MainWindow::addToDBAuto(const QStringList& filenames)
 {
 	ccGLWindow* win = qobject_cast<ccGLWindow*>(QObject::sender());
-	ccHObject::Container loaded = addToDB(filenames, getCurrentDB(), QString(), win);
+	CC_TYPES::DB_SOURCE db_type = getCurrentDB();
+	ccHObject::Container loaded = addToDB(filenames, db_type, QString(), win);
+	if (db_type == CC_TYPES::DB_IMAGE) {
+		if (m_pbdrImshow && m_pbdrImshow->getGLWindow()) {
+			for (ccHObject* imobj : loaded) {
+
+				BDImageBaseHObject* imgPrj = new BDImageBaseHObject(GetBaseName(imobj->getName()));
+				imobj->transferChildren(*imgPrj);
+				addToDB_Image(imgPrj, false, false, false, true);
+				removeFromDB(imobj);
+
+				ccHObject::Container polygons;
+				imgPrj->filterChildren(polygons, true, CC_TYPES::POLY_LINE, true, nullptr);
+				for (ccHObject* poly : polygons) {
+					poly->setDisplay_recursive(m_pbdrImshow->getGLWindow());
+					poly->setVisible(false);
+				}
+			}
+		}
+		return;
+	}
 	
 	for (ccHObject* obj : loaded) {
 		if (!obj) continue;
@@ -12498,11 +12518,89 @@ bool SaveProject(BDBaseHObject* proj)
 	return true;
 }
 
+bool MainWindow::saveImageJuctions(BDImageBaseHObject* imagePrj)
+{
+	if (!imagePrj) return false;
+
+	QStringList saveTypes;
+	saveTypes.append("junctions");
+	saveTypes.append("undistorted images");
+ 	bool ok;
+	QString save_type = QInputDialog::getItem(this, "Image Project Save", "Type", saveTypes, 0, false, &ok);
+	if (!ok) return false;
+
+	//persistent settings
+	QSettings settings;
+	settings.beginGroup(ccPS::LoadFile());
+	QString currentPath = settings.value(ccPS::CurrentPath(), ccFileUtils::defaultDocPath()).toString();
+
+	QString dir_name = QFileDialog::getExistingDirectory(this,
+		tr("Select A Directory To Save"),
+		QFileInfo(currentPath).absoluteFilePath(),
+		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
+	if (dir_name.isEmpty() || !QFileInfo(dir_name).exists()) {
+		return false;
+	}
+
+	//save last loading parameters
+	currentPath = QFileInfo(dir_name).absoluteFilePath();
+	settings.setValue(ccPS::CurrentPath(), currentPath);
+	settings.endGroup();
+
+	CC_FILE_ERROR result = CC_FERR_NO_ERROR;
+	FileIOFilter::SaveParameters parameters;
+	{
+		parameters.alwaysDisplaySaveDialog = true;
+		parameters.parentWidget = this;
+	}
+
+	if (save_type == "junctions") {
+		bool skip = false;
+		ccHObject::Container images = GetEnabledObjFromGroup(imagePrj, CC_TYPES::CAMERA_SENSOR, true, false);
+		for (ccHObject* im : images) {
+			ccHObject::Container polylines;// = GetEnabledObjFromGroup(im, CC_TYPES::POLY_LINE, true, true);
+			im->filterChildren(polylines, true, CC_TYPES::POLY_LINE, true, nullptr);
+			//! group to a big polyline
+			stocker::Polyline3d lines;
+			for (ccHObject* poly : polylines) {
+				stocker::Polyline3d cur_lines = GetPolygonFromPolyline(poly);
+				if (cur_lines.size() != 2) { skip = true; continue; }
+				lines.insert(lines.end(), cur_lines.begin(), cur_lines.end());
+			}
+			ccPolyline* polyObj = AddPolygonAsPolyline(lines, "temp", ccColor::black, false);
+			
+			if (polyObj) {
+				
+				QString filename = dir_name + "/" + im->getName() + ".poly";
+				result = FileIOFilter::SaveToFile(polyObj, filename, parameters, "Salome Hydro polylines (*.poly)");
+				delete polyObj;
+				polyObj = nullptr;
+			}
+		}
+		if (skip) {
+			QMessageBox::warning(this, "Warning", "incompatible polylines skipped");
+		}
+	}
+	else {
+		QMessageBox::critical(this, "Not Finished", "Upcoming...");
+	}
+
+	return true;
+}
+
 void MainWindow::doActionBDProjectSave()
 {
 	BDBaseHObject::Container prjx;
 	if (haveSelection()) {
-		prjx.push_back(GetRootBDBase(getSelectedEntities().front()));		
+		ccHObject* sel = getSelectedEntities().front();
+		BDBaseHObject* baseObj = GetRootBDBase(sel);
+		if (baseObj) {
+			prjx.push_back(baseObj);
+		}
+		else if (saveImageJuctions(GetRootImageBase(sel))) {
+			return;
+		}
 	}
 	else {	// save all projects		
 		prjx = GetBDBaseProjx();
@@ -15084,7 +15182,7 @@ void MainWindow::doActionShowSelectedImage()
 	}
 	ccCameraSensor* cam = ccHObjectCaster::ToCameraSensor(sels.front());
 	if (!cam) { return; }
-
+		
 	m_pbdrImshow->setImageAndCamera(cam);
 	if (m_pbdrImagePanel->isObjChecked()) {
 		ccBBox box_2d;

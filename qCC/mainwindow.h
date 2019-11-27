@@ -84,6 +84,7 @@ class StDBMainRoot;
 class StDBBuildingRoot;
 class StDBImageRoot;
 class DataBaseHObject;
+class BDImageBaseHObject;
 
 namespace Ui {
 	class MainWindow;
@@ -536,6 +537,8 @@ private slots:
 	ccHObject * LoadBDReconProject_Shell(QString Filename);
 
 	ccHObject * LoadBDReconProject(QString Filename);
+
+	bool saveImageJuctions(BDImageBaseHObject * imagePrj);
 
 	//////////////////////////////////////////////////////////////////////////
 	//! Building Reconstruction

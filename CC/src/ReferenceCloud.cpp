@@ -220,8 +220,6 @@ void ReferenceCloud::removePointGlobalIndex(unsigned localIndex)
 
 bool CCLib::ReferenceCloud::removePointGlobalIndexByGlobal(unsigned globalIndex)
 {
-	m_mutex.lock();
-
 	int remained_number = m_theIndexes.size();
 	for (size_t i = 0; i < m_theIndexes.size(); i++) {
 		if (m_theIndexes[i] == globalIndex) {
@@ -231,6 +229,8 @@ bool CCLib::ReferenceCloud::removePointGlobalIndexByGlobal(unsigned globalIndex)
 	if (remained_number < 2) {
 		return false;
 	}
+
+	m_mutex.lock();
 
 	for (ReferencesContainer::iterator p = m_theIndexes.begin(); p != m_theIndexes.end(); ) {
 		if ((*p == globalIndex) && (m_theIndexes.size() >= 3)) {

@@ -285,6 +285,7 @@ stocker::Contour3d GetPointsFromCloudInsidePolygon3d(ccHObject* entity, stocker:
 stocker::Polyline3d GetPolygonFromPolyline(ccHObject* entity)
 {
 	stocker::Polyline3d polyline;
+	if (!entity) return polyline;
 	ccPolyline* ccpolyline = nullptr;
 	if (entity->isA(CC_TYPES::POLY_LINE)) {
 		ccpolyline = ccHObjectCaster::ToPolyline(entity);
@@ -686,6 +687,7 @@ ccPolyline* AddPolygonAsPolyline(stocker::Contour3d points, QString name, ccColo
 
 ccPolyline* AddPolygonAsPolyline(stocker::Polyline3d polygon, QString name, ccColor::Rgb col, bool close)
 {
+	if (polygon.empty()) { return nullptr; }
 	Contour3d points = ToContour(polygon, 3);
 	return AddPolygonAsPolyline(points, name, col, close);
 }
