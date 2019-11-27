@@ -506,7 +506,7 @@ inline ccHObject::Container GetEnabledObjFromGroup(ccHObject* entity, CC_CLASS_E
 {
 	ccHObject::Container group;
 	if (entity) {
-		entity->filterChildren(group, recursive, type, true, entity->getDisplay());
+		entity->filterChildren(group, recursive, type, true, nullptr);
 		if (check_enable) {
 			ccHObject::Container group_enabled;
 			for (auto & gp : group) {

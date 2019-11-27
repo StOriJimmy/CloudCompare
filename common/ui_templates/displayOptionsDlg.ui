@@ -27,15 +27,15 @@
    <item>
     <widget class="QToolBox" name="toolBox">
      <property name="currentIndex">
-      <number>3</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="pageColorAndMatOptions">
       <property name="geometry">
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>493</width>
-        <height>349</height>
+        <width>496</width>
+        <height>409</height>
        </rect>
       </property>
       <attribute name="label">
@@ -338,6 +338,9 @@
          </item>
          <item>
           <widget class="QCheckBox" name="enableGradientCheckBox">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
            <property name="toolTip">
             <string>Gradient goes from 'background' color to inverse of 'Points' color</string>
            </property>
@@ -348,7 +351,7 @@
             <string>display gradient background</string>
            </property>
            <property name="checked">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
           </widget>
          </item>
@@ -374,8 +377,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>490</width>
-        <height>364</height>
+        <width>496</width>
+        <height>409</height>
        </rect>
       </property>
       <attribute name="label">
@@ -459,8 +462,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>490</width>
-        <height>364</height>
+        <width>496</width>
+        <height>409</height>
        </rect>
       </property>
       <attribute name="label">
@@ -602,8 +605,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>490</width>
-        <height>364</height>
+        <width>496</width>
+        <height>409</height>
        </rect>
       </property>
       <attribute name="label">

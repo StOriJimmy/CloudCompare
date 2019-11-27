@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1365</width>
-    <height>1047</height>
+    <width>1368</width>
+    <height>854</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -38,7 +38,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1365</width>
+     <width>1368</width>
      <height>21</height>
     </rect>
    </property>
@@ -616,10 +616,10 @@
     </widget>
     <addaction name="actionGroundFilteringBatch"/>
     <addaction name="actionClassificationBatch"/>
-    <addaction name="actionPointClassEditor"/>
-    <addaction name="separator"/>
     <addaction name="actionBuildingSegmentationBatch"/>
+    <addaction name="separator"/>
     <addaction name="actionBuildingSegmentEditor"/>
+    <addaction name="actionPointClassEditor"/>
     <addaction name="menuSettings"/>
    </widget>
    <widget class="QMenu" name="menuSchedule">
@@ -635,6 +635,7 @@
      <string>ImagePro</string>
     </property>
     <addaction name="actionImageLiDARRegistration"/>
+    <addaction name="actionRegistrationEditor"/>
     <addaction name="separator"/>
     <addaction name="actionImageViewer"/>
    </widget>
@@ -1612,11 +1613,8 @@ QTreeView::branch:open:has-children:has-siblings  {
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionGroundFilteringBatch"/>
-   <addaction name="actionClassificationBatch"/>
    <addaction name="actionPointClassEditor"/>
    <addaction name="separator"/>
-   <addaction name="actionBuildingSegmentationBatch"/>
    <addaction name="actionBuildingSegmentEditor"/>
   </widget>
   <widget class="QToolBar" name="toolBarRegistration">
@@ -1633,6 +1631,7 @@ QTreeView::branch:open:has-children:has-siblings  {
     <bool>false</bool>
    </attribute>
    <addaction name="actionImageLiDARRegistration"/>
+   <addaction name="actionRegistrationEditor"/>
   </widget>
   <widget class="QToolBar" name="toolBarBDRecon">
    <property name="windowTitle">
@@ -1682,7 +1681,13 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="minimumSize">
     <size>
      <width>87</width>
-     <height>259</height>
+     <height>0</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>524287</width>
+     <height>100</height>
     </size>
    </property>
    <property name="floating">
@@ -4976,10 +4981,13 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/editor2.png</normaloff>:/CC/Stocker/images/stocker/editor2.png</iconset>
    </property>
    <property name="text">
-    <string>Building Segment Editor</string>
+    <string>Segmentation Editor</string>
    </property>
    <property name="iconText">
     <string>Editor</string>
+   </property>
+   <property name="toolTip">
+    <string>Segmentation Editor</string>
    </property>
   </action>
   <action name="actionPointClassEditor">
@@ -4988,7 +4996,7 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/editor2.png</normaloff>:/CC/Stocker/images/stocker/editor2.png</iconset>
    </property>
    <property name="text">
-    <string>Point Class Editor</string>
+    <string>Point Class Editor (deprecated)</string>
    </property>
    <property name="iconText">
     <string>Editor</string>
@@ -4998,6 +5006,10 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/setting.png</normaloff>:/CC/Stocker/images/stocker/setting.png</iconset>
+   </property>
    <property name="text">
     <string>Ground Filtering</string>
    </property>
@@ -5006,6 +5018,10 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/setting.png</normaloff>:/CC/Stocker/images/stocker/setting.png</iconset>
+   </property>
    <property name="text">
     <string>Classification</string>
    </property>
@@ -5013,6 +5029,10 @@ QTreeView::branch:open:has-children:has-siblings  {
   <action name="actionSettingsBuildingSeg">
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/setting.png</normaloff>:/CC/Stocker/images/stocker/setting.png</iconset>
    </property>
    <property name="text">
     <string>Building Segmentation</string>
@@ -5065,6 +5085,21 @@ QTreeView::branch:open:has-children:has-siblings  {
   <action name="actionScheduleGCNode">
    <property name="text">
     <string>本机节点GCNode</string>
+   </property>
+  </action>
+  <action name="actionRegistrationEditor">
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/editor2.png</normaloff>:/CC/Stocker/images/stocker/editor2.png</iconset>
+   </property>
+   <property name="text">
+    <string>Registration Editor</string>
+   </property>
+   <property name="iconText">
+    <string>Editor</string>
+   </property>
+   <property name="statusTip">
+    <string>Registration Editor</string>
    </property>
   </action>
  </widget>

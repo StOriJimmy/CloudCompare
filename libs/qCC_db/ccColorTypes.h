@@ -137,6 +137,7 @@ namespace ccColor
 	constexpr Rgb orange					(MAX, MAX / 2, 0);
 	constexpr Rgb black						(0, 0, 0);
 	constexpr Rgb yellow					(MAX, MAX, 0);
+	constexpr Rgb khaki						(240, 230, 140);
 
 	// Predefined materials (float)
 	constexpr Rgbaf bright					(1.00f, 1.00f, 1.00f, 1.00f);
@@ -152,7 +153,7 @@ namespace ccColor
 
 	// Default foreground color (unsigned byte)
 	constexpr Rgbub defaultColor			(255, 255, 255);	// white
-	constexpr Rgbub defaultBkgColor			(222, 222, 222);	// white	( 10, 102, 151);	// dark blue
+	constexpr Rgbub defaultBkgColor			(242, 242, 242);	// white	( 10, 102, 151);	// dark blue
 	constexpr Rgbub defaultLabelBkgColor	(255, 255, 255);	// white
 	constexpr Rgbub defaultLabelMarkerColor	(255,   0, 255);	// magenta
 

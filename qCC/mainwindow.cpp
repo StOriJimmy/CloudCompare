@@ -272,6 +272,12 @@ MainWindow::MainWindow()
 	m_UI->actionFullScreen->setShortcut( QKeySequence( Qt::CTRL + Qt::META + Qt::Key_F ) );
 #endif
 
+#ifdef BBRelease
+	m_UI->menuHelp->menuAction()->setVisible(false);
+	m_UI->menu3DViews->menuAction()->setVisible(false);
+	m_UI->menuTools->menuAction()->setVisible(false);
+#endif // BBRelease
+
 	// Set up dynamic menus
 	m_UI->menuFile->insertMenu(m_UI->actionSave, m_recentFiles->menu());
 
@@ -317,6 +323,56 @@ MainWindow::MainWindow()
 		}
 	}
 
+	/// segmentation
+	{
+		{
+			m_lidarproFilterPopupButton = new QToolButton();
+			m_lidarproFilterPopupButton->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+			QMenu* menu = new QMenu(m_lidarproFilterPopupButton);
+			menu->addAction(m_UI->actionSettingsGroundFiltering);
+
+			m_lidarproFilterPopupButton->setMenu(menu);
+			m_lidarproFilterPopupButton->setDefaultAction(m_UI->actionGroundFilteringBatch);
+			m_lidarproFilterPopupButton->setPopupMode(QToolButton::MenuButtonPopup);
+			m_lidarproFilterPopupButton->setToolTip("Ground Filtering");
+			m_lidarproFilterPopupButton->setStatusTip(m_lidarproFilterPopupButton->toolTip());
+			m_UI->toolBarSegmentation->insertWidget(m_UI->actionPointClassEditor, m_lidarproFilterPopupButton);
+		}
+		{
+			m_lidarproClassifyPopupButton = new QToolButton();
+			m_lidarproClassifyPopupButton->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+			QMenu* menu = new QMenu(m_lidarproClassifyPopupButton);
+			menu->addAction(m_UI->actionSettingsClassification);
+
+			m_lidarproClassifyPopupButton->setMenu(menu);
+			m_lidarproClassifyPopupButton->setDefaultAction(m_UI->actionClassificationBatch);
+			m_lidarproClassifyPopupButton->setPopupMode(QToolButton::MenuButtonPopup);
+			m_lidarproClassifyPopupButton->setToolTip("Classification");
+			m_lidarproClassifyPopupButton->setStatusTip(m_lidarproClassifyPopupButton->toolTip());
+			m_UI->toolBarSegmentation->insertWidget(m_UI->actionPointClassEditor, m_lidarproClassifyPopupButton);
+		}
+		{
+			m_lidarproBdsegmentPopupButton = new QToolButton();
+			m_lidarproBdsegmentPopupButton->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+			QMenu* menu = new QMenu(m_lidarproBdsegmentPopupButton);
+			menu->addAction(m_UI->actionSettingsBuildingSeg);
+
+			m_lidarproBdsegmentPopupButton->setMenu(menu);
+			m_lidarproBdsegmentPopupButton->setDefaultAction(m_UI->actionBuildingSegmentationBatch);
+			m_lidarproBdsegmentPopupButton->setPopupMode(QToolButton::MenuButtonPopup);
+			m_lidarproBdsegmentPopupButton->setToolTip("Building segmentation");
+			m_lidarproBdsegmentPopupButton->setStatusTip(m_lidarproBdsegmentPopupButton->toolTip());
+			m_UI->toolBarSegmentation->insertWidget(m_UI->actionPointClassEditor, m_lidarproBdsegmentPopupButton);
+		}
+		m_UI->actionPointClassEditor->setVisible(false);
+	}
+
+	QMenu* menuImport = new QMenu(m_UI->ImportDataToolButton);
+	//menuImport->addAction(m_UI->actionImportFile);
+	menuImport->addAction(m_UI->actionImportFolder);
+	m_UI->ImportDataToolButton->setMenu(menuImport);
+	m_UI->ImportDataToolButton->setDefaultAction(m_UI->actionImportFile);
+
 	QWidget *titleWidget = m_UI->DockableDBTree->titleBarWidget();
 	QWidget *tempWidget1 = new QWidget();
 	m_UI->DockableDBTree->setTitleBarWidget(tempWidget1);
@@ -336,6 +392,7 @@ MainWindow::MainWindow()
 	//tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableImage);
 	tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableConsole);
 	m_UI->DockableProperties->raise();
+	m_UI->DockableProperties->setMaximumHeight(1000);
 
 	m_UI->DockableImage->setHidden(true);
 	m_UI->DockableImage->setWindowFlags(m_UI->DockableImage->windowFlags() | Qt::WindowMaximizeButtonHint);
@@ -588,6 +645,9 @@ void MainWindow::initPlugins( )
 	// Set up dynamic menus
 	m_UI->menubar->insertMenu( m_UI->menu3DViews->menuAction(), m_pluginUIManager->pluginMenu() );
 	m_UI->menuDisplay->insertMenu( m_UI->menuActiveScalarField->menuAction(), m_pluginUIManager->shaderAndFilterMenu() );
+#ifdef BBRelease
+	m_pluginUIManager->pluginMenu()->menuAction()->setVisible(false);
+#endif // BBRelease
 
 // 	m_UI->menuToolbars->addAction( m_pluginUIManager->actionShowMainPluginToolbar() );
 // 	m_UI->menuToolbars->addAction( m_pluginUIManager->actionShowGLFilterToolbar() );
@@ -1037,18 +1097,12 @@ void MainWindow::connectActions()
 	connect(m_UI->NewDatabaseToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionCreateDatabase);
 	connect(m_UI->OpenDatabaseToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionOpenDatabase);
 	connect(m_UI->SaveDatabaseToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionSaveDatabase);
-	QMenu* menuImport = new QMenu(m_UI->ImportDataToolButton);
-	//menuImport->addAction(m_UI->actionImportFile);
-	menuImport->addAction(m_UI->actionImportFolder);
-	m_UI->ImportDataToolButton->setMenu(menuImport);
-	m_UI->ImportDataToolButton->setDefaultAction(m_UI->actionImportFile);
+	
 	connect(m_UI->actionImportFile,					&QAction::triggered, this, &MainWindow::doActionImportData);
 	connect(m_UI->actionImportFolder,				&QAction::triggered, this, &MainWindow::doActionImportFolder);
 	connect(m_UI->EditDatabaseToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionEditDatabase);
 	connect(m_UI->createBuildingProjectToolButton,	&QAbstractButton::clicked, this, &MainWindow::doActionCreateBuildingProject);
 	connect(m_UI->loadSubstanceToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionLoadSubstance);
-	
-	connect(m_UI->actionImageLiDARRegistration,		&QAction::triggered, this, &MainWindow::doActionImageLiDARRegistration);
 
 	//! Segmentation
 	connect(m_UI->actionGroundFilteringBatch,		&QAction::triggered, this, &MainWindow::doActionGroundFilteringBatch);
@@ -1061,6 +1115,10 @@ void MainWindow::connectActions()
 	connect(m_UI->actionSettingsGroundFiltering,	&QAction::triggered, this, &MainWindow::doAactionSettingsGroundFiltering);
 	connect(m_UI->actionSettingsClassification,		&QAction::triggered, this, &MainWindow::doActionSettingsClassification);
 	connect(m_UI->actionSettingsBuildingSeg,		&QAction::triggered, this, &MainWindow::doActionSettingsBuildingSeg);
+
+	//! registration
+	connect(m_UI->actionImageLiDARRegistration,		&QAction::triggered, this, &MainWindow::doActionImageLiDARRegistration);
+	connect(m_UI->actionRegistrationEditor,			&QAction::triggered, this, &MainWindow::doActionRegistrationEditor);
 
 	//! schedule
 	connect(m_UI->actionScheduleProjectID,			&QAction::triggered, this, &MainWindow::doActionScheduleProjectID);
@@ -12772,7 +12830,7 @@ void MainWindow::doActionBDImagesLoad()
 // for point cloud (.original by default)
 void MainWindow::doActionBDPlaneSegmentation()
 {
-	if (!haveSelection()) return;	
+	if (!haveSelection()) return;
 
 	ccHObject *entity = getSelectedEntities().front();
 	ccHObject::Container _container;
@@ -15992,11 +16050,17 @@ void MainWindow::doActionImageLiDARRegistration()
 	baseObj->m_blkData->getMetaValue(REGISPRJ_PATH_KEY, regis_path);
 	QString xml = QString::fromStdString(regis_path);
 	if (QFileInfo(xml).exists()) {
-		QProcess::execute(exe_path + " " + xml);
+		QProcess::startDetached(exe_path + " " + xml);
 	}
 	else {
 		QMessageBox::critical(this, "Error!", QString::fromLocal8Bit("无法打开配准工程"));
 	}
+}
+
+void MainWindow::doActionRegistrationEditor()
+{
+	QString exe_path = QCoreApplication::applicationDirPath() + "/bin/LiDARPro/lidarPro.exe";
+	QProcess::startDetached(exe_path);
 }
 
 void LoadSettingsFiltering()
@@ -16047,7 +16111,7 @@ void MainWindow::doActionGroundFilteringBatch()
 	QMessageBox *messageBox = new QMessageBox(this);
 	messageBox->setIcon(QMessageBox::Question);
 	messageBox->setWindowTitle(QString::fromLocal8Bit("结果自动返回"));
-	messageBox->setText(QString::fromLocal8Bit("是否等待界面返回滤波结果?"));
+	messageBox->setText(QString::fromLocal8Bit("运算时间可能较长,是否等待界面返回滤波结果?\n别等.. :("));
 	messageBox->addButton(QString::fromLocal8Bit("否"), QMessageBox::RejectRole);
 	messageBox->addButton(QString::fromLocal8Bit("是"), QMessageBox::AcceptRole);
 	bool waitForResult = (messageBox->exec() == QDialog::Accepted);
@@ -16116,7 +16180,7 @@ void MainWindow::doActionClassificationBatch()
 	QMessageBox *messageBox = new QMessageBox(this);
 	messageBox->setIcon(QMessageBox::Question);
 	messageBox->setWindowTitle(QString::fromLocal8Bit("结果自动返回"));
-	messageBox->setText(QString::fromLocal8Bit("是否等待界面返回分类结果?"));
+	messageBox->setText(QString::fromLocal8Bit("运算时间可能较长,是否等待界面返回分类结果?\n别等.. :("));
 	messageBox->addButton(QString::fromLocal8Bit("否"), QMessageBox::RejectRole);
 	messageBox->addButton(QString::fromLocal8Bit("是"), QMessageBox::AcceptRole);
 	bool waitForResult = (messageBox->exec() == QDialog::Accepted);
@@ -16151,6 +16215,22 @@ void MainWindow::doActionClassificationBatch()
 
 void MainWindow::doActionBuildingSegmentationBatch()
 {
+	QStringList methods;
+	methods.append("internal");
+	methods.append("optimized");
+	bool ok;
+	QString used_method = QInputDialog::getItem(this, "Building Segmentation", "method", methods, 0, false, &ok);
+	if (!ok) return;
+
+	if (used_method == "internal") {
+		if (!haveSelection() || !m_selectedEntities[0]->isA(CC_TYPES::POINT_CLOUD))	{
+			QMessageBox::critical(this, "Error", "please select point clouds");
+			return;
+		}
+		doActionLabelConnectedComponents();
+		return;
+	}
+
 	DataBaseHObject* baseObj = getCurrentMainDatabase();
 	if (!baseObj) { ccLog::Error(QString::fromLocal8Bit("请先载入工程!")); return; }
 
@@ -16185,7 +16265,7 @@ void MainWindow::doActionBuildingSegmentationBatch()
 	QMessageBox *messageBox = new QMessageBox(this);
 	messageBox->setIcon(QMessageBox::Question);
 	messageBox->setWindowTitle(QString::fromLocal8Bit("结果自动返回"));
-	messageBox->setText(QString::fromLocal8Bit("是否等待界面返回分割结果?"));
+	messageBox->setText(QString::fromLocal8Bit("运算时间可能较长,是否等待界面返回分割结果?\n别等.. :("));
 	messageBox->addButton(QString::fromLocal8Bit("否"), QMessageBox::RejectRole);
 	messageBox->addButton(QString::fromLocal8Bit("是"), QMessageBox::AcceptRole);
 	bool waitForResult = (messageBox->exec() == QDialog::Accepted);
@@ -16268,6 +16348,7 @@ void MainWindow::deactivatePointClassEditor(bool)
 
 void MainWindow::doActionBuildingSegmentEditor()
 {
+	QMessageBox::information(this, "warning", "this tool is not finished yet, crash maybe...");
 	ccGLWindow* win = getActiveGLWindow();
 	if (!win)
 		return;
@@ -16351,7 +16432,7 @@ void MainWindow::deactivateBuildingSegmentEditor(bool state)
 
 void MainWindow::doAactionSettingsGroundFiltering()
 {
-	if (!m_pbdrSettingBDSegDlg) { m_pbdrSettingBDSegDlg = new bdrSettingBDSegDlg(this); }
+	if (!m_pbdrSettingGrdFilterDlg) { m_pbdrSettingGrdFilterDlg = new bdrSettingGrdFilterDlg(this); }
 	m_pbdrSettingGrdFilterDlg->setModal(false);
 	if (m_pbdrSettingGrdFilterDlg->isHidden()) {
 		m_pbdrSettingGrdFilterDlg->show();
@@ -16363,6 +16444,7 @@ void MainWindow::doAactionSettingsGroundFiltering()
 
 void MainWindow::doActionSettingsClassification()
 {
+	QMessageBox::information(this, "Info", "nothing to config...under construction");
 }
 
 void MainWindow::doActionSettingsBuildingSeg()
@@ -16386,6 +16468,9 @@ void MainWindow::doActionScheduleProjectID()
 		if (ok) {
 			base->m_blkData->projHdr().projectID = getint;
 		}
+	}
+	else {
+		QMessageBox::warning(this, "Warning", "please load a project");
 	}
 }
 

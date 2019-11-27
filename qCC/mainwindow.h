@@ -652,6 +652,7 @@ private slots:
 	void doActionLoadSubstance();
 
 	void doActionImageLiDARRegistration();
+	void doActionRegistrationEditor();
 
 	void doActionGroundFilteringBatch();
 	void doActionClassificationBatch();
@@ -789,6 +790,10 @@ private:
 
 	//! Pivot visibility pop-up menu button
 	QToolButton* m_pivotVisibilityPopupButton;
+
+	QToolButton* m_lidarproFilterPopupButton;
+	QToolButton* m_lidarproClassifyPopupButton;
+	QToolButton* m_lidarproBdsegmentPopupButton;
 
 	//! Flag: first time the window is made visible
 	bool m_FirstShow;

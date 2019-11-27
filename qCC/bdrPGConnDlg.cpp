@@ -3,6 +3,7 @@
 #include <QFileDialog>
 #include <QToolButton>
 #include <QPushButton>
+#include <QMessageBox>
 
 bdrPGConnDlg::bdrPGConnDlg(QWidget* parent)
 	: QDialog(parent)
@@ -21,5 +22,6 @@ void bdrPGConnDlg::AcceptAndExit()
 
 bool bdrPGConnDlg::doActionTestConnection()
 {
+	QMessageBox::information(this, "nothing to do", "under construction...");
 	return true;
 }
