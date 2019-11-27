@@ -392,8 +392,7 @@ MainWindow::MainWindow()
 	//tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableImage);
 	tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableConsole);
 	m_UI->DockableProperties->raise();
-	m_UI->DockableProperties->setMaximumHeight(1000);
-
+	
 	m_UI->DockableImage->setHidden(true);
 	m_UI->DockableImage->setWindowFlags(m_UI->DockableImage->windowFlags() | Qt::WindowMaximizeButtonHint);
 

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1368</width>
-    <height>854</height>
+    <width>1532</width>
+    <height>1047</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -38,7 +38,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1368</width>
+     <width>1532</width>
      <height>21</height>
     </rect>
    </property>
@@ -1680,14 +1680,14 @@ QTreeView::branch:open:has-children:has-siblings  {
   <widget class="QDockWidget" name="DockableProperties">
    <property name="minimumSize">
     <size>
-     <width>87</width>
-     <height>0</height>
+     <width>0</width>
+     <height>259</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
      <width>524287</width>
-     <height>100</height>
+     <height>524287</height>
     </size>
    </property>
    <property name="floating">
@@ -1836,7 +1836,7 @@ QTreeView::branch:open:has-children:has-siblings  {
   <widget class="QDockWidget" name="DockableImage">
    <property name="minimumSize">
     <size>
-     <width>100</width>
+     <width>500</width>
      <height>78</height>
     </size>
    </property>
@@ -1921,7 +1921,7 @@ QTreeView::branch:open:has-children:has-siblings  {
           <x>0</x>
           <y>0</y>
           <width>304</width>
-          <height>69</height>
+          <height>74</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_3">
