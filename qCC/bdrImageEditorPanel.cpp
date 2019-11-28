@@ -347,6 +347,11 @@ void bdrImageEditorPanel::startImageEditMode()
 	linkToMainViewState(false);
 }
 
+void bdrImageEditorPanel::clearTempProjected()
+{
+	m_projected_2D_3D.clear();
+}
+
 void bdrImageEditorPanel::clearAll()
 {
 	m_UI->imageListWidget->clear();

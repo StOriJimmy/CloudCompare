@@ -66,6 +66,8 @@ public:
 	void ZoomFitProjected();
 	void startImageEditMode();
 
+	void clearTempProjected();
+
 protected:
 	std::vector<ProjectedPair> m_projected_2D_3D;
 

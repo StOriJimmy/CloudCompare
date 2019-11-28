@@ -12680,11 +12680,19 @@ void MainWindow::doActionBDProjectSave()
 
 void MainWindow::doActionBDImagesLoad()
 {
+	BDBaseHObject* baseObj = nullptr;
 	if (!haveSelection()) {
-		dispToConsole("please load project or select a point cloud", ERR_CONSOLE_MESSAGE);
-		return;
+		ccHObject::Container projects = GetEnabledObjFromGroup(m_buildingRoot->getRootEntity(), CC_TYPES::ST_PROJECT, true, true);
+		if (!projects.empty())
+			baseObj = static_cast<BDBaseHObject*>(projects.front());
+		else {
+			dispToConsole("please load project or select a point cloud", ERR_CONSOLE_MESSAGE);
+			return;
+		}
 	}
-	BDBaseHObject* baseObj = GetRootBDBase(getSelectedEntities().front());
+	else {
+		baseObj = GetRootBDBase(getSelectedEntities().front());
+	}
 	ccHObject::Container camera_groups = GetEnabledObjFromGroup(m_imageRoot->getRootEntity(), CC_TYPES::ST_PROJECT);
 	if (baseObj) {
 		//ccHObject* camera_group = getCameraGroup(baseObj->getName());
@@ -15240,6 +15248,7 @@ void MainWindow::doActionShowSelectedImage()
 	ccCameraSensor* cam = ccHObjectCaster::ToCameraSensor(sels.front());
 	if (!cam) { return; }
 		
+	m_pbdrImagePanel->clearTempProjected();
 	m_pbdrImshow->setImageAndCamera(cam);
 	if (m_pbdrImagePanel->isObjChecked()) {
 		ccBBox box_2d;

@@ -806,7 +806,7 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vecto
 StPrimGroup* LoadPlaneParaAsPrimtiveGroup(ccPointCloud* entity_cloud, ccPointCloud* todo_cloud)
 {
 	QString path = getPrimPathByCloudPath(entity_cloud->getPath());
-	
+	if (!QFileInfo(path).exists()) return nullptr;
 	stocker::vcgPlaneVec3d planes;
 	std::vector<stocker::Contour3d> planes_points;
 	std::vector<stocker::Point_Normal> unassigned_points;

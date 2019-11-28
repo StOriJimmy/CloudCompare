@@ -294,6 +294,7 @@ void bdr2Point5DimEditor::setImageAndCamera(ccCameraSensor * cam)
 			oldcam->filterChildrenByName(tempObjs, true, ".temp", false);
 			for (ccHObject* temp : tempObjs) {
 				win->removeFromDB(temp);
+				temp = nullptr;
 			}
 		}
 	}
