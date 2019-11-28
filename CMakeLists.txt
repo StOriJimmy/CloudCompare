@@ -54,6 +54,8 @@ OPTION( OPTION_GL_QUAD_BUFFER_SUPPORT "Check to compile CloudCompare and ccViewe
 # ScalarType as float (default) or double
 option( OPTION_SCALAR_DOUBLE "Check to define ScalarType as double" OFF )
 
+OPTION( OPTION_BBRELEASE "release block builder" ON )
+
 if ( OPTION_SCALAR_DOUBLE )
 	add_definitions( -DSCALAR_TYPE_DOUBLE )
 else()
