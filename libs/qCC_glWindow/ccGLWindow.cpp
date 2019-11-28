@@ -339,7 +339,7 @@ ccGLWindow::ccGLWindow(	QSurfaceFormat* format/*=0*/,
 	, m_shouldBeRefreshed(false)
 	, m_mouseMoved(false)
 	, m_mouseButtonPressed(false)
-	, m_unclosable(false)
+	, m_unclosable(true)
 	, m_interactionFlags(TRANSFORM_CAMERA())
 	, m_pickingMode(NO_PICKING)
 	, m_pickingModeLocked(false)
@@ -2868,7 +2868,7 @@ bool ccGLWindow::getPerspectiveState(bool& objectCentered) const
 
 void ccGLWindow::setUnclosable(bool state)
 {
-	m_unclosable = state;
+	//m_unclosable = state;
 }
 
 ccHObject* ccGLWindow::getOwnDB()
