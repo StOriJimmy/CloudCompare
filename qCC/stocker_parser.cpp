@@ -985,6 +985,54 @@ ccHObject* PlaneSegmentationATPS(ccHObject* entity, bool overwrite,	ccPointCloud
 	return parsePlaneSegmentationResult(entity_cloud, planes_points_stocker, (planes.size() == planes_points_stocker.size()) ? &planes : nullptr, todo_cloud, &unassigned_stocker);
 }
 
+void CalculatePlaneQuality(ccHObject::Container primObjs, int mode)
+{
+	QString rms_meta = QString("RMS");
+	for (ccHObject* ent : primObjs) {
+		if (ent->hasMetaData(QString("Flatness"))) { ent->removeMetaData(QString("Flatness")); }
+
+		ccPlane* planeObj = ccHObjectCaster::ToPlane(ent); if (!planeObj) continue;
+		ccPointCloud* plane_cloud = GetPlaneCloud(planeObj); if (!plane_cloud) continue;
+		
+		double rms(0); bool rms_ok = false;
+		
+		if (planeObj->hasMetaData(rms_meta)) {
+			rms = planeObj->getMetaData(rms_meta).toDouble(&rms_ok);
+		}
+		if (!rms_ok) {
+			//! distance from point to plane
+			vcg::Plane3d vcg_plane = GetVcgPlane(planeObj);
+			double dSumSq = 0.0;
+			unsigned count = plane_cloud->size();
+			for (unsigned i = 0; i < count; ++i)
+			{
+				CCVector3 P = *plane_cloud->getPoint(i);
+				dSumSq += vcg::PlanePointSquaredDistance(vcg_plane, vcg::Point3d(P.x, P.y, P.z));
+			}
+			rms = sqrt(dSumSq / count);
+			planeObj->setMetaData(QString("RMS"), QVariant(rms));
+			rms_ok = true;
+		}
+		if (!rms_ok) continue;
+
+		double flatness = rms;
+		if (mode == 0) {
+			flatness /= (planeObj->getXWidth()*planeObj->getYWidth());
+		}
+		else {
+			stocker::Contour3d points = ccToPoints3<CCVector3, stocker::Vec3d>(planeObj->getProfile());
+			double length(0);
+			for (auto seg : MakeLoopPolylinefromContour(points))
+				length += seg.Length();
+			if (fabs(length) > FLT_EPSILON)	{
+				flatness /= length;
+			}
+		}
+		planeObj->setMetaData(QString("Flatness"), QVariant(flatness));
+	}
+	return;
+}
+
 void RetrieveUnassignedPoints(ccHObject* original_cloud, ccHObject* prim_group, ccPointCloud* todo_point)
 {
 	Contour3d all_points = GetPointsFromCloud3d(original_cloud);
@@ -1474,7 +1522,7 @@ bool FastPlanarTextureMapping(ccHObject* planeObj)
 	return true;
 }
 
-bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices)
+bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices, double refine_length)
 {
 	if (buildings.empty()) return false;
 	BDBaseHObject* baseObj = GetRootBDBase(buildings.front());
@@ -1532,6 +1580,15 @@ bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVecto
 	if (task_indices) {
 		texture_mapping.setTaskIndice(*task_indices);
 	}
+
+	if (refine_length > 0) {
+		texture_mapping.m_refineMesh = true;
+		texture_mapping.m_refineLength = refine_length;
+	}
+	else {
+		texture_mapping.m_refineMesh = false;
+	}
+
 	if (!texture_mapping.runTextureMapping())
 		return false;
 
@@ -1901,6 +1958,34 @@ bool PlanarPartition(ccHObject* block_group, ccHObject* prim_group)
 	return true;
 }
 
+ccHObject* LoD1FromFootPrint_Flat(ccHObject* ftObj)
+{
+	ccHObject* block_entity = nullptr;
+
+	return block_entity;
+}
+
+ccHObject* LoD1FromFootPrint_Planar(ccHObject* entity)
+{
+	StFootPrint* footprintObj = nullptr;
+	if (entity->isA(CC_TYPES::ST_FOOTPRINT)) {
+		footprintObj = ccHObjectCaster::ToStFootPrint(entity); if (!footprintObj) return nullptr;
+		
+
+	}
+	else {
+		ccPointCloud* plane_cloud = GetPlaneCloud(entity);
+		ccPlane* planeObj = GetPlaneFromPlaneOrCloud(entity);
+		
+		
+	}
+	ccHObject* block_entity = nullptr;
+	if (block_entity) {
+		footprintObj->addChild(block_entity); 
+	}
+	return block_entity;
+}
+
 ccHObject* LoD1FromFootPrint(ccHObject* buildingObj)
 {	
 	BDBaseHObject* baseObj = GetRootBDBase(buildingObj);
@@ -2183,6 +2268,20 @@ ccHObject* LoD2FromFootPrint(ccHObject* buildingObj, ccHObject::Container footpr
 		else {
 			primObjs = GetNonVerticalPlaneClouds(prim_group_obj, 15);
 		}
+		if (primObjs.empty()) {
+			// TODO: LOD1
+			std::vector<CCVector3> top_points;
+			for (auto pt : ToContour(polygon, 0)) {
+				top_points.push_back(CCVector3(pt.X(), pt.Y(), pt.Z()));
+			}
+			StBlock* block_entity = StBlock::Create(top_points, ground_height);
+			int block_number = GetMaxNumberExcludeChildPrefix(ftObj, BDDB_BLOCK_PREFIX) + 1;
+			block_entity->setName(BDDB_BLOCK_PREFIX + QString::number(block_number++));
+			ftObj->addChild(block_entity);
+			continue;
+		}
+
+
 		for (auto & pt : polygon) {
 			pt.P0().Z() = ftObj->getLowest();
 			pt.P1().Z() = ftObj->getLowest();

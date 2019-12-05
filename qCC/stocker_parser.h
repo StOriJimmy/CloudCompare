@@ -96,6 +96,8 @@ ccHObject * PlaneSegmentationATPS(ccHObject * entity, bool overwrite, ccPointClo
 	int* kappa_t = nullptr, double* delta_t = nullptr, double* tau_t = nullptr, 
 	double* gamma_t = nullptr, double* epsilon_t = nullptr, double* theta_t = nullptr);
 
+//! mode = 0, area, mode = 1, perimeter of convex hull, 
+void CalculatePlaneQuality(ccHObject::Container primObjs, int mode);
 
 void RetrieveUnassignedPoints(ccHObject * original_cloud, ccHObject * prim_group, ccPointCloud * todo_point);
 void RetrieveAssignedPoints(ccPointCloud * todo_cloud, ccPointCloud * plane_cloud, double distance_threshold);
@@ -111,7 +113,7 @@ ccHObject* PlaneFrameLineGrow(ccHObject* planeObj, double alpha, double intersec
 
 bool FastPlanarTextureMapping(ccHObject * planeObj);
 
-bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices = nullptr);
+bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices = nullptr, double refine_length = 3);
 
 ccHObject * ConstrainedMesh(ccHObject * planeObj);
 

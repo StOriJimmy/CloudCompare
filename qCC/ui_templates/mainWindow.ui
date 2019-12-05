@@ -358,6 +358,7 @@
     <addaction name="menuToggle"/>
     <addaction name="separator"/>
     <addaction name="actionDelete"/>
+    <addaction name="actionClearEmptyItems"/>
    </widget>
    <widget class="QMenu" name="menu3DViews">
     <property name="title">
@@ -461,7 +462,6 @@
      <addaction name="actionComputeBestICPRmsMatrix"/>
      <addaction name="separator"/>
      <addaction name="actionEnableVisualDebugTraces"/>
-     <addaction name="actionClearEmptyItems"/>
     </widget>
     <widget class="QMenu" name="menuFit">
      <property name="title">
@@ -527,6 +527,7 @@
      <addaction name="actionBDPrimMergePlane"/>
      <addaction name="actionBDPrimMakePlane"/>
      <addaction name="actionBDPrimPointProjection"/>
+     <addaction name="actionBDPrimPlaneQuality"/>
     </widget>
     <widget class="QMenu" name="menuLine_Primitive">
      <property name="title">
@@ -594,9 +595,6 @@
     <addaction name="actionBDFootPrintGetPlane"/>
     <addaction name="actionBDMeshToBlock"/>
     <addaction name="separator"/>
-    <addaction name="actionShowBestImage"/>
-    <addaction name="actionShowSelectedImage"/>
-    <addaction name="actionImageOverlay"/>
     <addaction name="actionProjectToImage"/>
     <addaction name="actionTogglePlaneEditState"/>
     <addaction name="actionSelectWorkingPlane"/>
@@ -637,6 +635,9 @@
     <addaction name="actionImageLiDARRegistration"/>
     <addaction name="actionRegistrationEditor"/>
     <addaction name="separator"/>
+    <addaction name="actionShowBestImage"/>
+    <addaction name="actionShowSelectedImage"/>
+    <addaction name="actionImageOverlay"/>
     <addaction name="actionImageViewer"/>
    </widget>
    <addaction name="menuFile"/>
@@ -1564,6 +1565,95 @@ QTreeView::branch:open:has-children:has-siblings  {
    <addaction name="actionSetViewLeft"/>
    <addaction name="actionSetViewRight"/>
   </widget>
+  <widget class="QToolBar" name="toolBarSegmentation">
+   <property name="windowTitle">
+    <string>Segmentation tools</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionPointClassEditor"/>
+  </widget>
+  <widget class="QToolBar" name="toolBarRegistration">
+   <property name="windowTitle">
+    <string>Registration tools</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionImageLiDARRegistration"/>
+   <addaction name="actionRegistrationEditor"/>
+  </widget>
+  <widget class="QToolBar" name="toolBarPrimitives">
+   <property name="windowTitle">
+    <string>Primitive Tools</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionBDPlaneSegmentation"/>
+   <addaction name="actionBDPrimPlaneQuality"/>
+   <addaction name="separator"/>
+   <addaction name="actionBDPrimBoundary"/>
+   <addaction name="actionBDPrimOutline"/>
+   <addaction name="actionBDPrimIntersections"/>
+   <addaction name="actionBDPrimPlaneFrame"/>
+   <addaction name="separator"/>
+   <addaction name="actionBDPrimMergePlane"/>
+   <addaction name="actionBDPrimSplitPlane"/>
+   <addaction name="actionBDPlane_Deduction"/>
+   <addaction name="actionBDPlaneFromPoints"/>
+   <addaction name="actionBDPlaneFromPolygon"/>
+   <addaction name="actionBDPrimMakePlane"/>
+   <addaction name="actionTogglePlaneEditState"/>
+  </widget>
+  <widget class="QToolBar" name="toolBarBDRecon">
+   <property name="windowTitle">
+    <string>Reconstruction tools</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionBDFootPrintAuto"/>
+   <addaction name="actionBDFootPrintManual"/>
+   <addaction name="actionBDFootPrintPack"/>
+   <addaction name="actionBDLoD1Generation"/>
+   <addaction name="actionBD3D4EM"/>
+   <addaction name="separator"/>
+   <addaction name="actionBDPolyFitHypothesis"/>
+   <addaction name="actionBDPolyFitFacetFilter"/>
+   <addaction name="actionBDPolyFitSelection"/>
+   <addaction name="actionBDPolyFitSettings"/>
+   <addaction name="separator"/>
+   <addaction name="actionProjectToImage"/>
+   <addaction name="actionEditSelectedItem"/>
+   <addaction name="separator"/>
+   <addaction name="actionBDTextureMapping"/>
+  </widget>
   <widget class="QToolBar" name="toolBarEditor">
    <property name="windowTitle">
     <string>Edit tools</string>
@@ -1600,87 +1690,10 @@ QTreeView::branch:open:has-children:has-siblings  {
    <addaction name="actionScalarFieldArithmetic"/>
    <addaction name="actionOpenColorScalesManager"/>
   </widget>
-  <widget class="QToolBar" name="toolBarSegmentation">
-   <property name="windowTitle">
-    <string>Segmentation tools</string>
-   </property>
-   <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonTextUnderIcon</enum>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="actionPointClassEditor"/>
-   <addaction name="separator"/>
-   <addaction name="actionBuildingSegmentEditor"/>
-  </widget>
-  <widget class="QToolBar" name="toolBarRegistration">
-   <property name="windowTitle">
-    <string>Registration tools</string>
-   </property>
-   <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonTextUnderIcon</enum>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="actionImageLiDARRegistration"/>
-   <addaction name="actionRegistrationEditor"/>
-  </widget>
-  <widget class="QToolBar" name="toolBarBDRecon">
-   <property name="windowTitle">
-    <string>Reconstruction tools</string>
-   </property>
-   <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonTextUnderIcon</enum>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="actionBDPlaneSegmentation"/>
-   <addaction name="separator"/>
-   <addaction name="actionEditSelectedItem"/>
-   <addaction name="separator"/>
-   <addaction name="actionBDPrimBoundary"/>
-   <addaction name="actionBDPrimOutline"/>
-   <addaction name="actionBDPrimIntersections"/>
-   <addaction name="actionBDPrimPlaneFrame"/>
-   <addaction name="separator"/>
-   <addaction name="actionBDPrimMergePlane"/>
-   <addaction name="actionBDPrimSplitPlane"/>
-   <addaction name="actionBDPlane_Deduction"/>
-   <addaction name="actionBDPlaneFromPoints"/>
-   <addaction name="actionBDPlaneFromPolygon"/>
-   <addaction name="actionBDPrimMakePlane"/>
-   <addaction name="actionTogglePlaneEditState"/>
-   <addaction name="separator"/>
-   <addaction name="actionBDFootPrintAuto"/>
-   <addaction name="actionBDFootPrintManual"/>
-   <addaction name="actionProjectToImage"/>
-   <addaction name="actionBDFootPrintPack"/>
-   <addaction name="actionBDLoD1Generation"/>
-   <addaction name="actionBD3D4EM"/>
-   <addaction name="separator"/>
-   <addaction name="actionBDPolyFitHypothesis"/>
-   <addaction name="actionBDPolyFitFacetFilter"/>
-   <addaction name="actionBDPolyFitSelection"/>
-   <addaction name="actionBDPolyFitSettings"/>
-   <addaction name="separator"/>
-   <addaction name="actionBDTextureMapping"/>
-  </widget>
   <widget class="QDockWidget" name="DockableProperties">
    <property name="minimumSize">
     <size>
-     <width>0</width>
+     <width>87</width>
      <height>259</height>
     </size>
    </property>
@@ -1921,7 +1934,7 @@ QTreeView::branch:open:has-children:has-siblings  {
           <x>0</x>
           <y>0</y>
           <width>304</width>
-          <height>74</height>
+          <height>69</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -4981,7 +4994,7 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/editor2.png</normaloff>:/CC/Stocker/images/stocker/editor2.png</iconset>
    </property>
    <property name="text">
-    <string>Segmentation Editor</string>
+    <string>Building Editor (will be deprecated)</string>
    </property>
    <property name="iconText">
     <string>Editor</string>
@@ -4996,7 +5009,7 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/editor2.png</normaloff>:/CC/Stocker/images/stocker/editor2.png</iconset>
    </property>
    <property name="text">
-    <string>Point Class Editor (deprecated)</string>
+    <string>Segmentation Editor</string>
    </property>
    <property name="iconText">
     <string>Editor</string>
@@ -5100,6 +5113,30 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="statusTip">
     <string>Registration Editor</string>
+   </property>
+  </action>
+  <action name="actionBDPrimPlaneQuality">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/primitive.png</normaloff>:/CC/Stocker/images/stocker/primitive.png</iconset>
+   </property>
+   <property name="text">
+    <string>PlaneQuality</string>
+   </property>
+   <property name="iconText">
+    <string>Quality</string>
+   </property>
+   <property name="toolTip">
+    <string>Calculate Plane Quality, filter by quality</string>
+   </property>
+   <property name="iconVisibleInMenu">
+    <bool>true</bool>
+   </property>
+   <property name="shortcutVisibleInContextMenu">
+    <bool>false</bool>
    </property>
   </action>
  </widget>

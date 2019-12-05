@@ -21,7 +21,6 @@
 #include "ui_bdrPlaneSegDlg.h"
 #include "mainwindow.h"
 
-//! Dialog for qRansacSD plugin
 class bdrPlaneSegDlg : public QDialog, public Ui::BDRPlaneSegDlg
 {
 	Q_OBJECT

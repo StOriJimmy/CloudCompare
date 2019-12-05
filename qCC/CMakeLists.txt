@@ -80,7 +80,8 @@ else()
 endif()
 
 if (OPTION_BBRELEASE)
-	set_property( TARGET ${PROJECT_NAME} APPEND PROPERTY COMPILE_DEFINITIONS BBRELEASE )
+	add_definitions(-DBBRELEASE)
+	#set_property( TARGET ${PROJECT_NAME} APPEND PROPERTY COMPILE_DEFINITIONS BBRELEASE )
 endif()
 
 # 3dConnexion devices support

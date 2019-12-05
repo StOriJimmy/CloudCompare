@@ -72,6 +72,7 @@ class bdrFacetFilterDlg;
 class bdr2Point5DimEditor;
 class bdrImageEditorPanel;
 class bdrPlaneEditorDlg;
+class bdrPlaneQualityDlg;
 
 class bdrSettingBDSegDlg;
 class bdrSettingGrdFilterDlg;
@@ -548,6 +549,8 @@ private slots:
 	void doActionBDImagesLoad();
 	/// Plane Segmentation
 	void doActionBDPlaneSegmentation();
+	void doActionBDPrimPlaneQuality();
+
 	void doActionBDRetrieve();
 	void doActionBDRetrievePlanePoints();
 	/// Create Image Lines
@@ -865,6 +868,7 @@ private:
 	//! Primitive factory dialog
 	ccPrimitiveFactoryDlg* m_pfDlg;
 
+
 	/*** plugins ***/
 	//! Manages plugins - menus, toolbars, and the about dialog
 	ccPluginUIManager	*m_pluginUIManager;
@@ -891,6 +895,7 @@ private:
 	bdr2Point5DimEditor* m_pbdrImshow;
 	bdrImageEditorPanel* m_pbdrImagePanel;
 	bdrPlaneEditorDlg* m_pbdrPlaneEditDlg;
+	bdrPlaneQualityDlg* m_pbdrPlaneQDlg;
 
 	bdrSettingBDSegDlg* m_pbdrSettingBDSegDlg;
 	bdrSettingGrdFilterDlg* m_pbdrSettingGrdFilterDlg;
