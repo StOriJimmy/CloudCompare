@@ -15142,9 +15142,18 @@ void MainWindow::doActionBDConstrainedMesh()
 		return;
 	}
 
+	ccAskThreeDoubleValuesDlg paraDlg("rarefy", "temp", "temp", -1.0e12, 1.0e12, -1, 1, 1, 6, "parameters", this);
+	if (!paraDlg.exec()) {
+		return;
+	}
+	double rarefy = paraDlg.doubleSpinBox1->value();
+	//s_last_polyfit_coverage = paraDlg.doubleSpinBox2->value();
+	//s_last_polyfit_complexity = paraDlg.doubleSpinBox3->value();
+
+	ProgStartNorm("generate constrained mesh", plane_container.size())
 	for (auto & planeObj : plane_container) {
 		try	{
-			ccHObject* mesh = ConstrainedMesh(planeObj);
+			ccHObject* mesh = ConstrainedMesh(planeObj, rarefy);
 			if (mesh) {
 				addToDB(mesh, planeObj->getDBSourceType());
 				refreshAll();
@@ -15156,7 +15165,9 @@ void MainWindow::doActionBDConstrainedMesh()
 			dispToConsole("[BDRecon] Constrained mesh failed", ERR_CONSOLE_MESSAGE);
 			return;
 		}
+		ProgStepBreak
 	}
+	ProgEnd
 }
 
 ccHObject * MainWindow::getCameraGroup(QString name)

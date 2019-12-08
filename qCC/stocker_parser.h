@@ -115,7 +115,7 @@ bool FastPlanarTextureMapping(ccHObject * planeObj);
 
 bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices = nullptr, double refine_length = 3);
 
-ccHObject * ConstrainedMesh(ccHObject * planeObj);
+ccHObject * ConstrainedMesh(ccHObject * planeObj, int rare_pts = -1);
 
 ccHObject::Container GenerateFootPrints_PP(ccHObject * prim_group, double ground);
 

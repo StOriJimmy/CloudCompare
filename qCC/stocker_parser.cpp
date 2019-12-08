@@ -805,7 +805,11 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vecto
 
 StPrimGroup* LoadPlaneParaAsPrimtiveGroup(ccPointCloud* entity_cloud, ccPointCloud* todo_cloud)
 {
-	QString path = getPrimPathByCloudPath(entity_cloud->getPath());
+	QString cloud_path = entity_cloud->getPath();
+	if (!QFileInfo(cloud_path).exists() && entity_cloud->getParent()) {
+		cloud_path = entity_cloud->getParent()->getPath();
+	}
+	QString path = getPrimPathByCloudPath(cloud_path);
 	if (!QFileInfo(path).exists()) return nullptr;
 	stocker::vcgPlaneVec3d planes;
 	std::vector<stocker::Contour3d> planes_points;
@@ -1595,61 +1599,17 @@ bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVecto
 	return true;
 }
 
-#include "vcg/space/distance3.h"
-bool SamePoint(Vec3d pt1, Vec3d pt2) {
-	return (pt1 - pt2).Norm() < 0.000001;
-}
-bool DistPoint(Vec3d pt1, Vec3d pt2) {
-	return (pt1 - pt2).Norm() > 0.01;
-}
-bool SegmentSegmentShouldMerge(Seg3d ln_1, Seg3d ln_2, double dist_thre = 1, double angle_thre = 0.9)
-{
-	if (SamePoint(ln_1.P0(), ln_2.P0()) && DistPoint(ln_1.P0(), ln_2.P1()))	{
-		return false;
-	}
-	if (SamePoint(ln_1.P1(), ln_2.P0()) && DistPoint(ln_1.P1(), ln_2.P1())) {
-		return false;
-	}
-
-	bool parallel; double dist;
-	vcg::Point3d pt1, pt2;
-	vcg::SegmentSegmentDistance(ln_1, ln_2, dist, parallel, pt1, pt2);
-	if (dist < 0.000001) {
-		return true;
-	}
-	Vec3d dir_1(ln_1.P1() - ln_1.P0());
-	Vec3d dir_2(ln_2.P1() - ln_2.P0());
-
-	// < 25 degree
-	if (dir_1*dir_2 > 0.9 && dist < 1) {
-		return true;
-	}
-	
-	return false;
-}
-bool SegmentCanAddToPolyline(Polyline3d lines, Seg3d ln, double dist_thre = 1, double angle_thre = 0.9)
-{
-	for (auto & ln_ : lines) {
-		if (SegmentSegmentShouldMerge(ln_, ln, dist_thre, angle_thre)) {
-			return false;
-		}
-	}
-	return true;
-}
-ccHObject* ConstrainedMesh(ccHObject* planeObj)
+ccHObject* ConstrainedMesh(ccHObject* planeObj, int rare_pts)
 {
 	ccHObject* plane_cloud_obj = planeObj->getParent();
 	if (!planeObj->isA(CC_TYPES::PLANE) || !plane_cloud_obj) {
-		throw std::runtime_error("invalid planar entity");
 		return nullptr;
 	}
 
 	Contour3d plane_points = GetPointsFromCloud3d(plane_cloud_obj);
-	PlaneUnit plane_unit = FormPlaneUnit(plane_points, "temp", true);
-	
-	Polyline3d plane_sharps;
-	Contour3d alpha_shape;
-	GLMesh mesh_out;
+	vcg::Plane3d vcg_plane = GetVcgPlane(planeObj);
+	PlaneUnit plane_unit = FormPlaneUnit("", vcg_plane, plane_points, false);
+	Contour2d plane_points_2d = Point3dToPlpoint2d(plane_unit, plane_points);
 
 	// prepare boundary lines
 	Polyline3d boundary_lines; Contour3d boundary_points; {
@@ -1671,35 +1631,55 @@ ccHObject* ConstrainedMesh(ccHObject* planeObj)
 			}
 		}
 	}
-	Polyline3d outline_poly = MakeLoopPolylinefromContour(outline_points);
+	Contour2d outline_points_2d = Point3dToPlpoint2d(plane_unit, outline_points);
+	Polyline2d outline_2d = MakeLoopPolylinefromContour(outline_points_2d);
+	
+	//Polyline3d outline_poly = MakeLoopPolylinefromContour(outline_points);
 
-	Polyline3d line_pool;
-// 	for (auto & ln : boundary_lines) {
-// 		if (SegmentCanAddToPolyline(line_pool, ln)) {
-// 			line_pool.push_back(ln);
+	Polyline2d sharp_2d = Line3dToPlline2d(plane_unit, boundary_lines);
+
+	if (rare_pts > 0) {
+		double area(-DBL_MAX);
+		if (outline_points_2d.size() > 2) {
+			area = CalcPolygonArea(outline_points_2d);
+		}
+		else {
+			ccPlane* cc_Plane = ccHObjectCaster::ToPlane(planeObj); assert(cc_Plane);
+			area = cc_Plane->getXWidth() * cc_Plane->getYWidth();
+		}
+		if (area > 0)
+			rarefydata(plane_points, rare_pts * area);
+	}
+
+	Contour2d point_pool = plane_points_2d;
+// 	for (auto pt : boundary_points) {		
+// 		if (DistancePointPolygon(pt,line_pool) < 1)	continue;
+// 		bool add = true;
+// 		for (auto & pt_ : point_pool) {
+// 			if (vcg::Distance(pt, pt_) < 1) {
+// 				add = false;
+// 				break;
+// 			}			
 // 		}
+// 		if (!add) continue;
+// 		
+// 		point_pool.push_back(pt);
 // 	}
-	for (auto & ln : outline_poly) {
-		if (/*SegmentCanAddToPolyline(line_pool, ln)*/1) {
-			line_pool.push_back(ln);
-		}
-	}
-	Contour3d point_pool;
-	for (auto pt : boundary_points) {		
-		if (DistancePointPolygon(pt,line_pool) < 1)	continue;
-		bool add = true;
-		for (auto & pt_ : point_pool) {
-			if (vcg::Distance(pt, pt_) < 1) {
-				add = false;
-				break;
-			}			
-		}
-		if (!add) continue;
-		
-		point_pool.push_back(pt);
-	}
+	
 
-	PlaneConstrainedDelaunayTriangulation(plane_unit, point_pool, line_pool, mesh_out, false);
+	std::vector<Triangle2d> triangles_2d;
+	PlaneTriangulationConstriantbySharp(point_pool, sharp_2d, outline_points_2d, triangles_2d, false, false);
+
+	std::vector<Triangle3d> triangles_3d(triangles_2d.size());
+	Concurrency::parallel_for(size_t(0), triangles_2d.size(), [&](size_t i) {
+		triangles_3d[i] = Triangle3d(
+			plane_unit.ToPlpoint3d(triangles_2d[i].P(0)),
+			plane_unit.ToPlpoint3d(triangles_2d[i].P(1)),
+			plane_unit.ToPlpoint3d(triangles_2d[i].P(2)));
+	});
+
+	GLMesh mesh_out;
+	TrianglesToMesh(triangles_3d, mesh_out);
 
 	ccPointCloud* vertices = new ccPointCloud("vertices");
 	for (auto & pt : mesh_out.vert) {		
@@ -1707,12 +1687,10 @@ ccHObject* ConstrainedMesh(ccHObject* planeObj)
 	}
 	if (vertices->reserveTheNormsTable()) {
 		for (auto & pt : mesh_out.vert) {
-//			vertices->addNorm(CCVector3(vcgXYZ(pt.N())));
 			vertices->addNorm(CCVector3(vcgXYZ(plane_unit.plane.Direction())));
 		}
 	}
-
-	Polyline2d outlines = Line3dToPlline2d(plane_unit, outline_poly);
+	
 	ccMesh* mesh = new ccMesh(vertices);
 	mesh->setName(GetBaseName(planeObj->getParent()->getName() + ".cdt"));
 	mesh->addChild(vertices);
@@ -1721,13 +1699,10 @@ ccHObject* ConstrainedMesh(ccHObject* planeObj)
 	vertices->setGlobalScale(point_cloud_entity->getGlobalScale());	
 
 	for (auto & face : mesh_out.face) {
-		Vec2d pt = plane_unit.Point3dPrjtoPlpoint2d( (face.P(0) + face.P(1) + face.P(2)) / 3);
-		if (vcg::PointInsidePolygon(pt, outlines)) {
-			mesh->addTriangle(
-				vcg::tri::Index(mesh_out, face.cV(0)),
-				vcg::tri::Index(mesh_out, face.cV(1)),
-				vcg::tri::Index(mesh_out, face.cV(2)));
-		}		
+		mesh->addTriangle(
+			vcg::tri::Index(mesh_out, face.cV(0)),
+			vcg::tri::Index(mesh_out, face.cV(1)),
+			vcg::tri::Index(mesh_out, face.cV(2)));
 	}
 	planeObj->getParent()->addChild(mesh);
 	planeObj->getParent()->prepareDisplayForRefresh_recursive();
@@ -2030,71 +2005,6 @@ ccHObject* LoD1FromFootPrint(ccHObject* buildingObj)
 		foot_print->addChild(block_entity);
 	}
 	return blockgroup_obj;
-
-#if 0
-	std::vector<std::vector<int>> components;
-
-	CCVector3d loadCoordinatesShift(0, 0, 0);
-	bool loadCoordinatesTransEnabled = false;
-	FileIOFilter::LoadParameters parameters; {
-		parameters.alwaysDisplayLoadDialog = false;
-		parameters.shiftHandlingMode = ccGlobalShiftManager::NO_DIALOG_AUTO_SHIFT;
-	}
-	CC_FILE_ERROR result = CC_FERR_NO_ERROR;
-
-	// deprecated
-	std::vector<Polyline3d> polygons;
-	std::vector<double> ft_heights;
-
-	{
-		// TODO: get the relationships of the polygons
-		// now the polygons should not be overlapped
-		// if more than one polygons are given, will create multiple models
-		for (size_t i = 0; i < polygonObjs.size(); i++) {
-			StFootPrint* polyObj = ccHObjectCaster::ToStFootPrint(polygonObjs[i]);
-			assert(polyObj);
-			Polyline3d polygon = GetPolygonFromPolyline(polyObj);
-			double footprint_height = polyObj->getHeight();
-			polygons.push_back(polygon);
-			ft_heights.push_back(footprint_height);
-		}
-	}
-
-	QString model_group_name = building_name + BDDB_LOD1MODEL_SUFFIX;
-	ccHObject* model_group = nullptr;
-	for (size_t i = 0; i < buildingObj->getChildrenNumber(); i++) {
-		if (buildingObj->getChild(i)->getName() == model_group_name) {
-			model_group = buildingObj->getChild(i);
-		}
-	}
-	if (!model_group) {
-		model_group = new ccHObject(model_group_name);
-	}
-
-	for (size_t i = 0; i < polygons.size(); i++) {
-
-		int biggest = GetMaxNumberExcludeChildPrefix(model_group, BDDB_LOD1MODEL_SUFFIX);
-		QString model_name = BDDB_LOD1MODEL_PREFIX + QString::number(biggest + 1);
-
-		char output_path[256];
-		sprintf(output_path, "%s%s%s%s%s",
-			build_unit.file_path.model_dir.c_str(),
-			building_name.toStdString().c_str(), ".",
-			model_name.toStdString().c_str(), ".obj");
-
-		if (!LoD1FromFootPrintAndHeight(polygons[i], ft_heights[i], output_path)) {
-			continue;
-		}
-
-		if (!QFile::exists(QString(output_path))) return nullptr;
-
-		ccHObject* cur_model = FileIOFilter::LoadFromFile(output_path, parameters, result, QString());
-
-		model_group->addChild(cur_model);
-	}
-	buildingObj->addChild(model_group);
-	return model_group;
-#endif
 }
 
 //! 3D4EM	.lod2.model

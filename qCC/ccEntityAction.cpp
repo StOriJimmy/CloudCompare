@@ -166,6 +166,7 @@ namespace ccEntityAction
 				{
 					cloud->getParent()->showColors(true);
 					cloud->getParent()->showSF(false); //just in case
+					static_cast<ccMesh*>(cloud->getParent())->showFaces(true);
 				}
 			}
 			else if (ent->isKindOf(CC_TYPES::PRIMITIVE))
