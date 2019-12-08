@@ -47,6 +47,7 @@
 #include <ccProgressDialog.h>
 #include <ccQuadric.h>
 #include <ccSphere.h>
+#include <ccCylinder.h>
 #include <ccSubMesh.h>
 
 //qCC_io
@@ -7994,23 +7995,29 @@ void MainWindow::doActionCloudPrimitiveDist()
 {
 	bool foundPrimitive = false;
 	ccHObject::Container clouds;
-	ccPlane* refPlane = nullptr;
-	ccSphere* refSphere = nullptr;
-	QString primitiveName;
+	ccHObject* refEntity = nullptr;
+	CC_CLASS_ENUM entityType = CC_TYPES::OBJECT;
+	const char* errString = "[Compute Primitive Distances] Cloud to %s failed, error code = %i!";
+
 	for (unsigned i = 0; i < getSelectedEntities().size(); ++i)
 	{
-		if (m_selectedEntities[i]->isA(CC_TYPES::PLANE) || m_selectedEntities[i]->isA(CC_TYPES::SPHERE))
+		
+		if (m_selectedEntities[i]->isKindOf(CC_TYPES::PRIMITIVE))
 		{
-			if (foundPrimitive)
+			if (m_selectedEntities[i]->isA(CC_TYPES::PLANE) || 
+				m_selectedEntities[i]->isA(CC_TYPES::SPHERE) ||
+				m_selectedEntities[i]->isA(CC_TYPES::CYLINDER) ||
+				m_selectedEntities[i]->isA(CC_TYPES::CONE))
 			{
-				ccConsole::Error("[Compute Primitive Distances] Select only a single Plane/Sphere Primitive");
-				return;
+				if (foundPrimitive)
+				{
+					ccConsole::Error("[Compute Primitive Distances] Select only a single Plane/Sphere/Cylinder/Cone Primitive");
+					return;
+				}
+				foundPrimitive = true;
+				refEntity = m_selectedEntities[i];
+				entityType = refEntity->getClassID();
 			}
-			foundPrimitive = true;
-			refPlane = ccHObjectCaster::ToPlane(m_selectedEntities[i]);
-			refSphere = ccHObjectCaster::ToSphere(m_selectedEntities[i]);
-			primitiveName = m_selectedEntities[i]->getName();
-			
 		}
 		else if (m_selectedEntities[i]->isKindOf(CC_TYPES::POINT_CLOUD))
 		{
@@ -8020,7 +8027,7 @@ void MainWindow::doActionCloudPrimitiveDist()
 
 	if (!foundPrimitive)
 	{
-		ccConsole::Error("[Compute Primitive Distances] Select at least one Plane/Sphere Primitive!");
+		ccConsole::Error("[Compute Primitive Distances] Select at least one Plane/Sphere/Cylinder/Cone Primitive!");
 		return;
 	}
 	if (clouds.size() <= 0)
@@ -8051,17 +8058,29 @@ void MainWindow::doActionCloudPrimitiveDist()
 			compEnt->setCurrentScalarField(sfIdx);
 			compEnt->enableScalarField();
 			compEnt->forEach(CCLib::ScalarFieldTools::SetScalarValueToNaN);
-
-			if (refSphere)
+			int returnCode;
+			switch (entityType)
 			{
-				CCLib::DistanceComputationTools::computeCloud2SphereEquation(compEnt, refSphere->getOwnBB().getCenter(), refSphere->getRadius(), signedDist);
-				
+			case CC_TYPES::SPHERE:
+				if (!(returnCode = CCLib::DistanceComputationTools::computeCloud2SphereEquation(compEnt, refEntity->getOwnBB().getCenter(), static_cast<ccSphere*>(refEntity)->getRadius(), signedDist)))
+					ccConsole::Error(errString, "Sphere", returnCode);
+				break;
+			case CC_TYPES::PLANE:
+				if (!(returnCode = CCLib::DistanceComputationTools::computeCloud2PlaneEquation(compEnt, static_cast<ccPlane*>(refEntity)->getEquation(), signedDist)))
+					ccConsole::Error(errString, "Plane", returnCode);
+				break;
+			case CC_TYPES::CYLINDER:
+				if (!(returnCode = CCLib::DistanceComputationTools::computeCloud2CylinderEquation(compEnt, static_cast<ccCylinder*>(refEntity)->getBottomCenter(), static_cast<ccCylinder*>(refEntity)->getTopCenter(), static_cast<ccCylinder*>(refEntity)->getBottomRadius(), signedDist)))
+					ccConsole::Error(errString, "Cylinder", returnCode);
+				break;
+			case CC_TYPES::CONE:
+				if(!(returnCode = CCLib::DistanceComputationTools::computeCloud2ConeEquation(compEnt, static_cast<ccCone*>(refEntity)->getLargeCenter(), static_cast<ccCone*>(refEntity)->getSmallCenter(), static_cast<ccCone*>(refEntity)->getLargeRadius(), static_cast<ccCone*>(refEntity)->getSmallRadius(), signedDist)))
+					ccConsole::Error(errString, "Cone", returnCode);
+				break;
+			default:
+				ccConsole::Error("[Compute Primitive Distances] Unsupported primitive type"); //Shouldn't ever reach here...
+				break;
 			}
-			else if (refPlane)
-			{
-				CCLib::DistanceComputationTools::computeCloud2PlaneEquation(compEnt, refPlane->getEquation(), signedDist);
-			}
-
 			QString sfName;
 			sfName.clear();
 			sfName = QString(signedDist ? CC_CLOUD2PRIMITIVE_SIGNED_DISTANCES_DEFAULT_SF_NAME : CC_CLOUD2PRIMITIVE_DISTANCES_DEFAULT_SF_NAME);
@@ -8086,14 +8105,14 @@ void MainWindow::doActionCloudPrimitiveDist()
 				ScalarType mean, variance;				
 				sf->computeMinAndMax();
 				sf->computeMeanAndVariance(mean, &variance);
-				ccLog::Print("[Compute Primitive Distances] [Primitive: %s] [Cloud: %s] [%s] Mean distance = %f / std deviation = %f", qPrintable(primitiveName), qPrintable(compEnt->getName()), qPrintable(sfName), mean, sqrt(variance));
+				ccLog::Print("[Compute Primitive Distances] [Primitive: %s] [Cloud: %s] [%s] Mean distance = %f / std deviation = %f", qPrintable(refEntity->getName()), qPrintable(compEnt->getName()), qPrintable(sfName), mean, sqrt(variance));			
 			}
 			compEnt->setCurrentDisplayedScalarField(sfIdx);
 			compEnt->showSF(sfIdx >= 0);
 			compEnt->prepareDisplayForRefresh_recursive();
 		}
-	MainWindow::UpdateUI();
-	MainWindow::RefreshAllGLWindow(false);
+		MainWindow::UpdateUI();
+		MainWindow::RefreshAllGLWindow(false);
 	}
 }
 

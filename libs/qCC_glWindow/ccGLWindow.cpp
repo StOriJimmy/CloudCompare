@@ -5486,10 +5486,6 @@ void ccGLWindow::displayNewMessage(	const QString& message,
 void ccGLWindow::setPointSize(float size, bool silent/*=false*/)
 {
 	float newSize = std::max(std::min(size, MAX_POINT_SIZE_F), MIN_POINT_SIZE_F);
-	if (!silent)
-	{
-		ccLog::Print(QString("New point size: %1").arg(newSize));
-	}
 	
 	if (m_viewportParams.defaultPointSize != newSize)
 	{
@@ -5499,15 +5495,25 @@ void ccGLWindow::setPointSize(float size, bool silent/*=false*/)
 		if (!silent)
 		{
 			displayNewMessage(	QString("New default point size: %1").arg(newSize),
-								ccGLWindow::LOWER_LEFT_MESSAGE, //DGM HACK: we cheat and use the same 'slot' as the window size
+								ccGLWindow::LOWER_LEFT_MESSAGE,
 								false,
 								2,
-								SCREEN_SIZE_MESSAGE);
+								SCREEN_SIZE_MESSAGE); //DGM HACK: we cheat and use the same 'slot' as the window size
+		}
+	}
+	else
+	{
+		if (!silent)
+		{
+			if (size < MIN_POINT_SIZE_F)
+				ccLog::Print(QString("Defaut point size is already at minimum : %1").arg(MIN_POINT_SIZE_F));
+			else
+				ccLog::Print(QString("Defaut point size is already at maximum : %1").arg(MAX_POINT_SIZE_F));
 		}
 	}
 }
 
-void ccGLWindow::setLineWidth(float width)
+void ccGLWindow::setLineWidth(float width, bool silent/*=false*/)
 {
 	float newWidth = std::max(std::min(width, MAX_LINE_WIDTH_F), MIN_LINE_WIDTH_F);
 	
@@ -5515,6 +5521,24 @@ void ccGLWindow::setLineWidth(float width)
 	{
 		m_viewportParams.defaultLineWidth = newWidth;
 		deprecate3DLayer();
+		if (!silent)
+		{
+			displayNewMessage(QString("New default line width: %1").arg(newWidth),
+				ccGLWindow::LOWER_LEFT_MESSAGE,
+				false,
+				2,
+				SCREEN_SIZE_MESSAGE); //DGM HACK: we cheat and use the same 'slot' as the window size
+		}
+	}
+	else
+	{
+		if (!silent)
+		{
+			if (width < MIN_LINE_WIDTH_F)
+				ccLog::Print(QString("Defaut line width is already at minimum : %1").arg(MIN_LINE_WIDTH_F));
+			else
+				ccLog::Print(QString("Defaut line width is already at maximum : %1").arg(MAX_LINE_WIDTH_F));
+		}
 	}
 }
 
