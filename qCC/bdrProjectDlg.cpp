@@ -1139,6 +1139,7 @@ void bdrProjectDlg::doActionImportFolder()
 
 void bdrProjectDlg::doActionExportDB()
 {
+	QMessageBox::information(this, "nothing to do", "under construction...");
 }
 
 void bdrProjectDlg::doActionDelete()

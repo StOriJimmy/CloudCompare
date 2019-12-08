@@ -75,10 +75,10 @@ void ccGui::ParamStruct::reset()
 	backgroundCol		= ccColor::defaultBkgColor;
 	labelBackgroundCol	= ccColor::defaultLabelBkgColor;
 	labelMarkerCol		= ccColor::defaultLabelMarkerColor;
-	bbDefaultCol		= ccColor::yellow;
+	bbDefaultCol		= ccColor::khaki;
 
 	lightDoubleSided			= true;
-	drawBackgroundGradient		= true;
+	drawBackgroundGradient		= false;
 	drawRoundedPoints			= false;
 	decimateMeshOnMove			= false;
 	minLoDMeshSize				= 2500000;
@@ -128,14 +128,14 @@ void ccGui::ParamStruct::fromPersistentSettings()
 	backgroundCol		= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("backgroundColor",		QByteArray::fromRawData((const char*)ccColor::defaultBkgColor.rgb,			c_ubColorArraySize)).toByteArray().data()));
 	labelBackgroundCol	= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("labelBackgroundColor",	QByteArray::fromRawData((const char*)ccColor::defaultLabelBkgColor.rgb,		c_ubColorArraySize)).toByteArray().data()));
 	labelMarkerCol		= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("labelMarkerColor",		QByteArray::fromRawData((const char*)ccColor::defaultLabelMarkerColor.rgb,	c_ubColorArraySize)).toByteArray().data()));
-	bbDefaultCol		= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("bbDefaultColor",			QByteArray::fromRawData((const char*)ccColor::yellow.rgb,					c_ubColorArraySize)).toByteArray().data()));
+	bbDefaultCol		= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("bbDefaultColor",			QByteArray::fromRawData((const char*)ccColor::khaki.rgb,					c_ubColorArraySize)).toByteArray().data()));
 
 	lightDoubleSided			=                                      settings.value("lightDoubleSided",        true ).toBool();
-	drawBackgroundGradient		=                                      settings.value("backgroundGradient",      true ).toBool();
+	drawBackgroundGradient		=                                      settings.value("backgroundGradient",      false ).toBool();
 	drawRoundedPoints			=                                      settings.value("drawRoundedPoints",       false).toBool();
-	decimateMeshOnMove			=                                      settings.value("meshDecimation",          true ).toBool();
+	decimateMeshOnMove			=                                      settings.value("meshDecimation",          false ).toBool();
 	minLoDMeshSize				=                                      settings.value("minLoDMeshSize",       2500000 ).toUInt();
-	decimateCloudOnMove			=                                      settings.value("cloudDecimation",         true ).toBool();
+	decimateCloudOnMove			=                                      settings.value("cloudDecimation",         false ).toBool();
 	minLoDCloudSize				=                                      settings.value("minLoDCloudSize",     10000000 ).toUInt();
 	useVBOs						=                                      settings.value("useVBOs",                 true ).toBool();
 	displayCross				=                                      settings.value("crossDisplayed",          true ).toBool();

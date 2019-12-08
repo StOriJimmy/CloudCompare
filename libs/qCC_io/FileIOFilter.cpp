@@ -578,7 +578,7 @@ bool FileIOFilter::HandleGlobalShift(	const CCVector3d& P,
 											shiftAlreadyEnabled || useInputCoordinatesShiftIfPossible,
 											Pshift,
 											&preserveCoordinateShift,
-											nullptr,
+											loadParameters.coordinatesScale,
 											&applyAll) )
 	{
 		//we save coordinates shift information

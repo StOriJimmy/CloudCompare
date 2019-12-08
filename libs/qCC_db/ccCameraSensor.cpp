@@ -494,6 +494,8 @@ bool ccCameraSensor::toFile_MeOnly(QFile& out) const
 	outStream << m_frustumInfos.center.y;
 	outStream << m_frustumInfos.center.z;
 	outStream << m_frustumInfos.drawImage;
+	
+	outStream << m_image_path;
 
 	return true;
 }
@@ -624,6 +626,7 @@ bool ccCameraSensor::fromFile_MeOnly(QFile& in, short dataVersion, int flags)
 			ccSerializationHelper::CoordsFromDataStream(inStream, flags, P.u, 3);
 		}
 	}
+	inStream >> m_image_path;
 
 	return true;
 }

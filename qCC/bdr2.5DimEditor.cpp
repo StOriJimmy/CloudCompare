@@ -275,6 +275,34 @@ void bdr2Point5DimEditor::setImage(QString image_path)
 
 void bdr2Point5DimEditor::setImageAndCamera(ccCameraSensor * cam)
 {
+	if (!cam) return;
+
+	MainWindow* win = MainWindow::TheInstance();
+	if (!win) return;
+
+	if (getImage()) {
+		ccCameraSensor* oldcam = getImage()->getAssociatedSensor();
+		if (oldcam) {
+			
+			ccHObject::Container polylines;
+			oldcam->filterChildren(polylines, true, CC_TYPES::POLY_LINE, true, nullptr);
+			for (ccHObject* poly : polylines) {
+				poly->setVisible(false);
+			}
+
+			ccHObject::Container tempObjs;
+			oldcam->filterChildrenByName(tempObjs, true, ".temp", false);
+			for (ccHObject* temp : tempObjs) {
+				win->removeFromDB(temp);
+				temp = nullptr;
+			}
+		}
+	}
+	ccHObject::Container cur_polylines; cam->filterChildren(cur_polylines, true, CC_TYPES::POLY_LINE, true, nullptr);
+	for (ccHObject* poly : cur_polylines) {
+		poly->setVisible(true);
+	}
+
 	setImage(cam->imagePath());
 	m_image->setAssociatedSensor(cam);
 }
@@ -282,7 +310,7 @@ void bdr2Point5DimEditor::setImageAndCamera(ccCameraSensor * cam)
 ccHObject* bdr2Point5DimEditor::projectToImage(ccHObject * obj)
 {
 	if (!getImage()) { return nullptr; }
-	ccCameraSensor* cam = m_image->getAssociatedSensor();
+	ccCameraSensor* cam = getImage()->getAssociatedSensor();
 	if (!cam) { return nullptr; }
 	
 	ccHObject* entity_in_image_2d = nullptr;
@@ -291,7 +319,9 @@ ccHObject* bdr2Point5DimEditor::projectToImage(ccHObject * obj)
 	ccGenericPointCloud* associate_cloud = nullptr;
 
 	if (obj->isKindOf(CC_TYPES::POINT_CLOUD)) {
-		associate_cloud = ccHObjectCaster::ToGenericPointCloud(obj)->clone();
+		associate_cloud = new ccPointCloud();
+		ccHObjectCaster::ToGenericPointCloud(obj)->clone(associate_cloud);
+		associate_cloud->setName(associate_cloud->getName() + ".temp");
 		entity_in_image_2d = associate_cloud;
 	}
 	else if (obj->isA(CC_TYPES::MESH)) {

@@ -180,7 +180,8 @@ bdrSketcher::bdrSketcher(QWidget* parent)
 	addOverridenShortcut(Qt::Key_Escape); //cancel current polyline edition
 	addOverridenShortcut(Qt::Key_Delete); //delete key to delete the selected polyline
 	addOverridenShortcut(Qt::Key_Enter);  //close
-	addOverridenShortcut(Qt::Key_C);		// click
+	addOverridenShortcut(Qt::Key_C);	  // click
+	addOverridenShortcut(Qt::Key_R);	  // edit
 
 	connect(this, &ccOverlayDialog::shortcutTriggered, this, &bdrSketcher::onShortcutTriggered);
 	connect(m_UI->saveFootprintInsidetoolButton, &QAbstractButton::clicked, this, &bdrSketcher::exportFootprintInside);
@@ -244,6 +245,9 @@ void bdrSketcher::onShortcutTriggered(int key)
 		return;
 	case Qt::Key_C:
 		// Add point
+		return;
+	case Qt::Key_R:
+		m_UI->editingToolButton->toggle();
 		return;
 	default:
 		//nothing to do
@@ -870,13 +874,13 @@ void bdrSketcher::setTraceViewMode(bool trace_image)
 		m_UI->exportSectionsToolButton->setVisible(true);
 		m_UI->saveFootprintInsidetoolButton->setVisible(false);
 		m_UI->saveFootprintOutsidetoolButton->setVisible(false);
-		setFixedWidth(360);
+		//setFixedWidth(360);
 	}
 	else {
 		m_UI->exportSectionsToolButton->setVisible(false);
 		m_UI->saveFootprintInsidetoolButton->setVisible(true);
 		m_UI->saveFootprintOutsidetoolButton->setVisible(true);
-		setFixedWidth(210);
+		//setFixedWidth(210);
 	}
 }
 
@@ -1768,8 +1772,8 @@ void bdrSketcher::exportSections()
 		{
 			destEntity->addChild(section.entity);
 			section.isInDB = true;
-			section.entity->setDisplay_recursive(destEntity->getDisplay());
-			mainWin->addToDB_Build(section.entity, false, false);
+			//section.entity->setDisplay_recursive(destEntity->getDisplay());
+			mainWin->addToDB(section.entity, destEntity->getDBSourceType(), false, false);
 		}
 	}
 

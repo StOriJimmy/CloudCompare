@@ -72,6 +72,7 @@ class bdrFacetFilterDlg;
 class bdr2Point5DimEditor;
 class bdrImageEditorPanel;
 class bdrPlaneEditorDlg;
+class bdrPlaneQualityDlg;
 
 class bdrSettingBDSegDlg;
 class bdrSettingGrdFilterDlg;
@@ -84,6 +85,7 @@ class StDBMainRoot;
 class StDBBuildingRoot;
 class StDBImageRoot;
 class DataBaseHObject;
+class BDImageBaseHObject;
 
 namespace Ui {
 	class MainWindow;
@@ -141,12 +143,15 @@ public:
 
 	CC_TYPES::DB_SOURCE getCurrentDB() override;
 
+	/// load mode -1 for normal, 0 for really fast (no shift), 1 for general fast (auto shift)
+	std::vector<ccHObject*> loadFiles(const QStringList& filenames, int loadMode = -1, QString fileFilter = QString());
+
 	//! Tries to load several files (and then pushes them into main DB)
 	/** \param filenames list of all filenames
 		\param fileFilter selected file filter (i.e. type)
 		\param destWin destination window (0 = active one)
 	**/	
-	virtual std::vector<ccHObject*> addToDB( const QStringList& filenames, 
+	std::vector<ccHObject*> addToDB( const QStringList& filenames, 
 						  CC_TYPES::DB_SOURCE dest,
 						  QString fileFilter = QString(),
 						  ccGLWindow* destWin = nullptr);
@@ -165,13 +170,13 @@ public:
 		bool checkDimensions = false,
 		bool autoRedraw = true) override;
 
-	virtual std::vector<ccHObject*> addToDB_Main(const QStringList& filenames, QString fileFilter = QString(), ccGLWindow* destWin = nullptr) {	
+	std::vector<ccHObject*> addToDB_Main(const QStringList& filenames, QString fileFilter = QString(), ccGLWindow* destWin = nullptr) {	
 		return addToDB(filenames, CC_TYPES::DB_MAINDB, fileFilter, destWin); 
 	}
-	virtual std::vector<ccHObject*> addToDB_Build(const QStringList& filenames, QString fileFilter = QString(), ccGLWindow* destWin = nullptr) {
+	std::vector<ccHObject*> addToDB_Build(const QStringList& filenames, QString fileFilter = QString(), ccGLWindow* destWin = nullptr) {
 		return addToDB(filenames, CC_TYPES::DB_BUILDING, fileFilter, destWin);
 	}
-	virtual std::vector<ccHObject*> addToDB_Image(const QStringList& filenames, QString fileFilter = QString(), ccGLWindow* destWin = nullptr) {
+	std::vector<ccHObject*> addToDB_Image(const QStringList& filenames, QString fileFilter = QString(), ccGLWindow* destWin = nullptr) {
 		return addToDB(filenames, CC_TYPES::DB_IMAGE, fileFilter, destWin);
 	}
 
@@ -186,7 +191,9 @@ public:
 	}
 
 	void addToDatabase(QStringList files, ccHObject* import_pool, bool remove_exist = true, bool auto_sort = true);
-	ccHObject::Container addPointsToDatabase(QStringList files, ccHObject* import_pool, bool remove_exist = true, bool auto_sort = true, bool fastLoad = false);
+	ccHObject::Container addPointsToDatabase(QStringList files, ccHObject* import_pool, bool remove_exist = true, bool auto_sort = true);
+
+	ccHObject::Container addFilesToDatabase(QStringList files, ccHObject * import_pool, bool remove_exist, bool auto_sort);
 	
 	void registerOverlayDialog(ccOverlayDialog* dlg, Qt::Corner pos) override;
 	void unregisterOverlayDialog(ccOverlayDialog* dlg) override;
@@ -528,7 +535,11 @@ private slots:
 	inline void doActionMoveBBMinCornerToOrigin() { doActionFastRegistration(MoveBBMinCornerToOrigin); }
 	inline void doActionMoveBBMaxCornerToOrigin() { doActionFastRegistration(MoveBBMaxCornerToOrigin); }
 
+	ccHObject * LoadBDReconProject_Shell(QString Filename);
+
 	ccHObject * LoadBDReconProject(QString Filename);
+
+	bool saveImageJuctions(BDImageBaseHObject * imagePrj);
 
 	//////////////////////////////////////////////////////////////////////////
 	//! Building Reconstruction
@@ -538,6 +549,8 @@ private slots:
 	void doActionBDImagesLoad();
 	/// Plane Segmentation
 	void doActionBDPlaneSegmentation();
+	void doActionBDPrimPlaneQuality();
+
 	void doActionBDRetrieve();
 	void doActionBDRetrievePlanePoints();
 	/// Create Image Lines
@@ -642,6 +655,7 @@ private slots:
 	void doActionLoadSubstance();
 
 	void doActionImageLiDARRegistration();
+	void doActionRegistrationEditor();
 
 	void doActionGroundFilteringBatch();
 	void doActionClassificationBatch();
@@ -780,6 +794,10 @@ private:
 	//! Pivot visibility pop-up menu button
 	QToolButton* m_pivotVisibilityPopupButton;
 
+	QToolButton* m_lidarproFilterPopupButton;
+	QToolButton* m_lidarproClassifyPopupButton;
+	QToolButton* m_lidarproBdsegmentPopupButton;
+
 	//! Flag: first time the window is made visible
 	bool m_FirstShow;
 
@@ -850,6 +868,7 @@ private:
 	//! Primitive factory dialog
 	ccPrimitiveFactoryDlg* m_pfDlg;
 
+
 	/*** plugins ***/
 	//! Manages plugins - menus, toolbars, and the about dialog
 	ccPluginUIManager	*m_pluginUIManager;
@@ -876,6 +895,7 @@ private:
 	bdr2Point5DimEditor* m_pbdrImshow;
 	bdrImageEditorPanel* m_pbdrImagePanel;
 	bdrPlaneEditorDlg* m_pbdrPlaneEditDlg;
+	bdrPlaneQualityDlg* m_pbdrPlaneQDlg;
 
 	bdrSettingBDSegDlg* m_pbdrSettingBDSegDlg;
 	bdrSettingGrdFilterDlg* m_pbdrSettingGrdFilterDlg;
@@ -900,7 +920,7 @@ private:
 		progDlg.setAutoClose(false);\
 		if (progDlg.textCanBeEdited()) {\
 			progDlg.setMethodTitle(title);\
-			char infos[256]; sprintf(infos, "Processing %d items...", number);\
+			char infos[256]; sprintf(infos, "Processing %d items...please wait", number);\
 			progDlg.setInfo(infos);}\
 		CCLib::NormalizedProgress nprogress(&progDlg, number);\
 		progDlg.start();
@@ -909,11 +929,12 @@ private:
 		progDlg.setAutoClose(false);\
 		if (progDlg.textCanBeEdited()) {\
 			progDlg.setMethodTitle(title);\
-			char infos[256]; sprintf(infos, "Processing %d items...", number);\
+			char infos[256]; sprintf(infos, "Processing %d items...please wait", number);\
 			progDlg.setInfo(infos);}\
 		CCLib::NormalizedProgress nprogress(&progDlg, number);\
 		progDlg.start();
-#define ProgStep(x) if (!nprogress.oneStep()) {progDlg.stop(); return x;}
+#define ProgStepReturn(x) if (!nprogress.oneStep()) {progDlg.stop(); return x;}
+#define ProgStepBreak if (!nprogress.oneStep()) {progDlg.stop(); break;}
 #define ProgEnd progDlg.update(100.0f); progDlg.stop();
 
 #endif

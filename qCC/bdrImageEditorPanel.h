@@ -53,13 +53,21 @@ public:
 	void setObjViewBox(ccBBox box) { m_objViewBox = box; }
 	CCVector3d getObjViewUpDir() { return m_objViewUpDir.norm2d() < 1e-6 ? CCVector3d(0, 1, 0) : m_objViewUpDir; }
 	void setObjViewUpDir(CCVector3d up) { m_objViewUpDir = up; }
+	CCVector3d getImageViewUpDir();
 
 	bool isObjChecked();
 	void updateCursorPos(const CCVector3d& P, bool b3d);
 	bool isLinkToMainView();
+	void linkToMainViewState(bool state);
 
-	void setProjection(std::vector<ccHObject*> project_entities);
+	void addProjection(std::vector<ccHObject*> project_entities);
 	std::vector<ProjectedPair> getProjectedObjects() { return m_projected_2D_3D; }
+
+	void ZoomFitProjected();
+	void startImageEditMode();
+
+	void clearTempProjected();
+
 protected:
 	std::vector<ProjectedPair> m_projected_2D_3D;
 
@@ -71,6 +79,8 @@ private:
 	ccBBox m_objViewBox;
 	CCVector3d m_objViewUpDir;
 	int m_image_display_height;
+
+	bool* m_storedLinkMainState;
 };
 
 #endif

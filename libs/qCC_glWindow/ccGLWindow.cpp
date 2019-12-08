@@ -339,7 +339,7 @@ ccGLWindow::ccGLWindow(	QSurfaceFormat* format/*=0*/,
 	, m_shouldBeRefreshed(false)
 	, m_mouseMoved(false)
 	, m_mouseButtonPressed(false)
-	, m_unclosable(false)
+	, m_unclosable(true)
 	, m_interactionFlags(TRANSFORM_CAMERA())
 	, m_pickingMode(NO_PICKING)
 	, m_pickingModeLocked(false)
@@ -2648,16 +2648,17 @@ void ccGLWindow::drawForeground(CC_DRAW_CONTEXT& CONTEXT, RenderingParams& rende
 
 		if (!m_captureMode.enabled || m_captureMode.renderOverlayItems)
 		{
-			//scale: only in ortho mode
+			//only in ortho mode
 			if (!m_viewportParams.perspectiveView)
 			{
+				//scale
 				drawScale(textCol);
+
+				//trihedron
+				drawTrihedron();
 			}
-
-			//trihedron
-			drawTrihedron();
 		}
-
+#ifdef JIMMY
 		if (!m_captureMode.enabled)
 		{
 			int yStart = 0;
@@ -2785,6 +2786,7 @@ void ccGLWindow::drawForeground(CC_DRAW_CONTEXT& CONTEXT, RenderingParams& rende
 				yStart += lodIconSize + margin;
 			}
 		}
+#endif // !XINYI	
 	}
 
 	drawCursor();
@@ -2866,7 +2868,7 @@ bool ccGLWindow::getPerspectiveState(bool& objectCentered) const
 
 void ccGLWindow::setUnclosable(bool state)
 {
-	m_unclosable = state;
+	//m_unclosable = state;
 }
 
 ccHObject* ccGLWindow::getOwnDB()
@@ -3219,7 +3221,7 @@ void ccGLWindow::drawScale(const ccColor::Rgbub& color)
 	//we first compute the width equivalent to 25% of horizontal screen width
 	//(this is why it's only valid in orthographic mode !)
 	float equivalentWidthRaw = scaleMaxW * m_viewportParams.pixelSize / m_viewportParams.zoom;
-	float equivalentWidth = RoundScale(equivalentWidthRaw);
+	float equivalentWidth = /*RoundScale*/(equivalentWidthRaw);
 
 	QFont font = getTextDisplayFont(); //we take rendering zoom into account!
 	QFontMetrics fm(font);
@@ -3258,7 +3260,7 @@ void ccGLWindow::drawScale(const ccColor::Rgbub& color)
 
 	glFunc->glPopAttrib(); //GL_LINE_BIT
 
-	QString text = QString::number(equivalentWidth);
+	QString text = QString::number(equivalentWidth, 'f', 2);
 	glColor3ubv_safe<ccQOpenGLFunctions>(glFunc, color.rgb);
 	renderText(m_glViewport.width() - static_cast<int>(scaleW_pix / 2 + dW) - fm.width(text) / 2, m_glViewport.height() - static_cast<int>(dH / 2) + fm.height() / 3, text, font);
 }
@@ -3292,13 +3294,13 @@ void ccGLWindow::drawTrihedron()
 
 		//trihedron OpenGL drawing
 		glFunc->glBegin(GL_LINES);
-		glFunc->glColor3f(1.0f, 0.0f, 0.0f);
+		glFunc->glColor3f(0.73f, 0.56f, 0.56f);
 		glFunc->glVertex3f(0.0f, 0.0f, 0.0f);
 		glFunc->glVertex3f(CC_DISPLAYED_TRIHEDRON_AXES_LENGTH, 0.0f, 0.0f);
-		glFunc->glColor3f(0.0f, 1.0f, 0.0f);
+		glFunc->glColor3f(0.56f, 0.73f, 0.56f);
 		glFunc->glVertex3f(0.0f, 0.0f, 0.0f);
 		glFunc->glVertex3f(0.0f, CC_DISPLAYED_TRIHEDRON_AXES_LENGTH, 0.0f);
-		glFunc->glColor3f(0.0f, 0.7f, 1.0f);
+		glFunc->glColor3f(0.69f, 0.77f, 0.87f);
 		glFunc->glVertex3f(0.0f, 0.0f, 0.0f);
 		glFunc->glVertex3f(0.0f, 0.0f, CC_DISPLAYED_TRIHEDRON_AXES_LENGTH);
 		glFunc->glEnd();
@@ -5755,8 +5757,8 @@ void ccGLWindow::drawPivot()
 
 		//draw a small sphere
 		{
-			ccSphere sphere(static_cast<PointCoordinateType>(10.0 / symbolRadius));
-			sphere.setColor(ccColor::yellow);
+			ccSphere sphere(static_cast<PointCoordinateType>(3.0/*10.0*/ / symbolRadius));
+			sphere.setColor(ccColor::Rgb(245, 222, 179)/*ccColor::yellow*/);
 			sphere.showColors(true);
 			sphere.setVisible(true);
 			sphere.setEnabled(true);
@@ -5780,21 +5782,24 @@ void ccGLWindow::drawPivot()
 		const float c_alpha = 0.6f;
 
 		//pivot symbol: 3 circles
-		glFunc->glColor4f(1.0f, 0.0f, 0.0f, c_alpha);
+		glFunc->glColor4f(0.73f, 0.56f, 0.56f, c_alpha); // rosybrown 188, 143, 143
+		//glFunc->glColor4f(1.0f, 0.0f, 0.0f, c_alpha);
 		glDrawUnitCircle(context(), 0);
 		glFunc->glBegin(GL_LINES);
 		glFunc->glVertex3f(-1.0f, 0.0f, 0.0f);
 		glFunc->glVertex3f(1.0f, 0.0f, 0.0f);
 		glFunc->glEnd();
 
-		glFunc->glColor4f(0.0f, 1.0f, 0.0f, c_alpha);
+		glFunc->glColor4f(0.56f, 0.73f, 0.56f, c_alpha); ///darkseagreen 143, 188, 143
+		//glFunc->glColor4f(0.0f, 1.0f, 0.0f, c_alpha); 
 		glDrawUnitCircle(context(), 1);
 		glFunc->glBegin(GL_LINES);
 		glFunc->glVertex3f(0.0f, -1.0f, 0.0f);
 		glFunc->glVertex3f(0.0f, 1.0f, 0.0f);
 		glFunc->glEnd();
 
-		glFunc->glColor4f(0.0f, 0.7f, 1.0f, c_alpha);
+		glFunc->glColor4f(0.69f, 0.77f, 0.87f, c_alpha); ///lightsteelblue 176,196,222
+		//glFunc->glColor4f(0.0f, 0.7f, 1.0f, c_alpha); 
 		glDrawUnitCircle(context(), 2);
 		glFunc->glBegin(GL_LINES);
 		glFunc->glVertex3f(0.0f, 0.0f, -1.0f);
@@ -5807,7 +5812,7 @@ void ccGLWindow::drawPivot()
 	}
 
 	//constant scale
-	const double scale = symbolRadius * computeActualPixelSize();
+	const double scale = symbolRadius * computeActualPixelSize() / 4;
 	glFunc->glScaled(scale, scale, scale);
 
 	glFunc->glCallList(m_pivotGLList);

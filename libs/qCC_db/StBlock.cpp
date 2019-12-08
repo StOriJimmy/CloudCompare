@@ -95,8 +95,11 @@ StBlock* StBlock::Create(const std::vector<CCVector3>& top,
 		profile_points.push_back(CCVector3(pt.x, pt.y, bottom_height));
 	}
 	ccPlane* mainPlane = ccPlane::Fit(profile_points);
+	if (!mainPlane) { return nullptr; }
 	ccFacet* top_facet = ccFacet::CreateFromContour(top, "top", true);
+	if (!top_facet) return nullptr;
 	ccFacet* bottom_facet = ccFacet::CreateFromContour(profile_points, "bottom", true);
+	if (!bottom_facet) return nullptr;
 	bottom_facet->invertNormal();
 
 	//! 
@@ -669,17 +672,19 @@ bool StBlock::fromFile_MeOnly(QFile& in, short dataVersion, int flags)
 	if (classID != CC_TYPES::PLANE) {
 		return CorruptError();
 	}
-	ccPlane* plane = new ccPlane;
-	if (!plane->fromFile(in, dataVersion, flags)) {
-		return ReadError();
-	}
-	m_mainPlane = new ccPlane(plane->getXWidth(), plane->getYWidth(), &plane->getTransformation(), plane->getName());
 
-	plane->setAssociatedCloud(0);
-	plane->setTriNormsTable(0, false);
-	plane->setTexCoordinatesTable(0, false);
-	delete plane;
-	plane = nullptr;
+ 	ccPlane* plane = new ccPlane;
+ 	if (!plane->fromFile(in, dataVersion, flags)) {
+ 		return ReadError();
+ 	}
+ 	m_mainPlane = new ccPlane(plane->getXWidth(), plane->getYWidth(), &plane->getTransformation(), plane->getName());
+	m_mainPlane->setProfile(plane->getProfile());
+ 
+ 	plane->setAssociatedCloud(0);
+ 	plane->setTriNormsTable(0, false);
+ 	plane->setTexCoordinatesTable(0, false);
+ 	delete plane;
+ 	plane = nullptr;
 
 	return true;
 }

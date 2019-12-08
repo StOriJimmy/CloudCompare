@@ -17,6 +17,36 @@
 
 using namespace stocker;
 
+QString getCompleteBaseName(QString name)
+{
+	return QFileInfo(name).completeBaseName();
+}
+
+QString getPrimPathByCloudPath(QString cloud_path)
+{
+	QFileInfo path_info = QFileInfo(cloud_path);
+	QString path;
+	if (path_info.exists()) {
+		path = path_info.absolutePath() + "/" + path_info.completeBaseName() + ".prim.ply";
+	}
+	return path;
+}
+
+QString getPrimGroupNameByCloudName(QString cloud_name)
+{
+	return GetBaseName(cloud_name) + BDDB_PRIMITIVE_SUFFIX;
+}
+
+QString getBlockPathByCloudPath(QString cloud_path)
+{
+	QFileInfo path_info = QFileInfo(cloud_path);
+	QString path;
+	if (path_info.exists()) {
+		path = path_info.absolutePath() + "/" + path_info.completeBaseName() + ".block.ply";
+	}
+	return path;
+}
+
 DataBaseHObject * GetRootDataBase(StHObject * obj)
 {
 	StHObject* bd_obj_ = obj;
@@ -560,8 +590,15 @@ StBuilding* BDBaseHObject::GetBuildingGroup(QString building_name, bool check_en
 	return nullptr;
 }
 ccPointCloud * BDBaseHObject::GetOriginPointCloud(QString building_name, bool check_enable) {
-	StHObject* obj = GetHObj(CC_TYPES::POINT_CLOUD, BDDB_ORIGIN_CLOUD_SUFFIX, building_name, check_enable);
-	if (obj) return static_cast<ccPointCloud*>(obj);
+	StHObject* obj = GetHObj(CC_TYPES::HIERARCHY_OBJECT, BDDB_ORIGIN_CLOUD_SUFFIX, building_name, check_enable);
+	if (obj) {
+		ccHObject::Container pcs = GetEnabledObjFromGroup(obj, CC_TYPES::POINT_CLOUD, false, false);
+		for (ccHObject* pc : pcs) {
+			if (GetBaseName(pc->getName()) == building_name) {
+				return static_cast<ccPointCloud*>(pc);
+			}
+		}
+	}
 	return nullptr;
 }
 StPrimGroup * BDBaseHObject::GetPrimitiveGroup(QString building_name) {
@@ -657,31 +694,32 @@ ccPointCloud * BDBaseHObject::GetTodoLine(QString buildig_name)
 }
 std::string BDBaseHObject::GetPathModelObj(std::string building_name)
 {
-	auto& bd = block_prj.m_builder.sbuild.find(stocker::BuilderBase::BuildNode::Create(building_name));
-	if (bd == block_prj.m_builder.sbuild.end()) {
-		throw std::runtime_error("cannot find building!" + building_name);
-	}
-	return std::string((*bd)->data.file_path.model_dir + building_name + MODEL_LOD3_OBJ_SUFFIX);
+	return std::string(GetBuildingUnit(building_name).file_path.model_dir + building_name + MODEL_LOD3_OBJ_SUFFIX);
 }
 
 const stocker::BuildUnit BDBaseHObject::GetBuildingUnit(std::string building_name) {
-	auto iter = block_prj.m_builder.sbuild.find(BuilderBase::BuildNode::Create(building_name));
-	if (iter == block_prj.m_builder.sbuild.end()) {
+	stocker::BuildUnit* sp = GetBuildingSp(building_name);
+	if (!sp) {
 		throw runtime_error("internal error: cannot find building");
 		return stocker::BuildUnit("invalid");
 	}
-	else return (*iter)->data;
+	else {
+		return *sp;
+	}
 }
 
-stocker::BuilderBase::SpBuild BDBaseHObject::GetBuildingSp(std::string building_name)
+stocker::BuildUnit* BDBaseHObject::GetBuildingSp(std::string building_name)
 {
-	auto iter = block_prj.m_builder.sbuild.find(BuilderBase::BuildNode::Create(building_name));
-	if (iter == block_prj.m_builder.sbuild.end())
-		return nullptr;
-	else
-		return *iter;
-	//return stocker::BuilderSet::SpBuild();
+	auto bd_iter = std::find_if(build_data.begin(), build_data.end(), [=](BuildUnit bd) {
+		return building_name == bd.GetName().Str();
+	});
+	if (bd_iter != build_data.end()) {
+		return &*bd_iter;
+	}
+	else return nullptr;
 }
+
+std::vector<stocker::ImageUnit> BDBaseHObject::GetImageData() { return image_data; }
 
 StHObject* findChildByName(StHObject* parent,
 	bool recursive,

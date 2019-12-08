@@ -121,6 +121,7 @@
 #include "bdrSettingBDSegDlg.h"
 #include "bdrSettingGrdFilterDlg.h"
 #include "bdrProjectDlg.h"
+#include "bdrPlaneQualityDlg.h"
 
 //other
 #include "ccCropTool.h"
@@ -168,6 +169,7 @@
 #include "bdrPlaneEditorDlg.h"
 
 #include "stocker_parser.h"
+#include "builderlod2/lod2parser.h"
 #include "polyfit/basic/logger.h"
 #endif // USE_STOCKER
 
@@ -254,6 +256,7 @@ MainWindow::MainWindow()
 	, m_pbdrSettingBDSegDlg(nullptr)
 	, m_pbdrSettingGrdFilterDlg(nullptr)
 	, m_pbdrPrjDlg(nullptr)
+	, m_pbdrPlaneQDlg(nullptr)
 {
 	m_UI->setupUi( this );
 
@@ -270,6 +273,12 @@ MainWindow::MainWindow()
 	m_UI->actionFullScreen->setText( tr( "Enter Full Screen" ) );
 	m_UI->actionFullScreen->setShortcut( QKeySequence( Qt::CTRL + Qt::META + Qt::Key_F ) );
 #endif
+
+#ifdef BBRelease
+	m_UI->menuHelp->menuAction()->setVisible(false);
+	m_UI->menu3DViews->menuAction()->setVisible(false);
+	m_UI->menuTools->menuAction()->setVisible(false);
+#endif // BBRelease
 
 	// Set up dynamic menus
 	m_UI->menuFile->insertMenu(m_UI->actionSave, m_recentFiles->menu());
@@ -316,6 +325,56 @@ MainWindow::MainWindow()
 		}
 	}
 
+	/// segmentation
+	{
+		{
+			m_lidarproFilterPopupButton = new QToolButton();
+			m_lidarproFilterPopupButton->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+			QMenu* menu = new QMenu(m_lidarproFilterPopupButton);
+			menu->addAction(m_UI->actionSettingsGroundFiltering);
+
+			m_lidarproFilterPopupButton->setMenu(menu);
+			m_lidarproFilterPopupButton->setDefaultAction(m_UI->actionGroundFilteringBatch);
+			m_lidarproFilterPopupButton->setPopupMode(QToolButton::MenuButtonPopup);
+			m_lidarproFilterPopupButton->setToolTip("Ground Filtering");
+			m_lidarproFilterPopupButton->setStatusTip(m_lidarproFilterPopupButton->toolTip());
+			m_UI->toolBarSegmentation->insertWidget(m_UI->actionPointClassEditor, m_lidarproFilterPopupButton);
+		}
+		{
+			m_lidarproClassifyPopupButton = new QToolButton();
+			m_lidarproClassifyPopupButton->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+			QMenu* menu = new QMenu(m_lidarproClassifyPopupButton);
+			menu->addAction(m_UI->actionSettingsClassification);
+
+			m_lidarproClassifyPopupButton->setMenu(menu);
+			m_lidarproClassifyPopupButton->setDefaultAction(m_UI->actionClassificationBatch);
+			m_lidarproClassifyPopupButton->setPopupMode(QToolButton::MenuButtonPopup);
+			m_lidarproClassifyPopupButton->setToolTip("Classification");
+			m_lidarproClassifyPopupButton->setStatusTip(m_lidarproClassifyPopupButton->toolTip());
+			m_UI->toolBarSegmentation->insertWidget(m_UI->actionPointClassEditor, m_lidarproClassifyPopupButton);
+		}
+		{
+			m_lidarproBdsegmentPopupButton = new QToolButton();
+			m_lidarproBdsegmentPopupButton->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+			QMenu* menu = new QMenu(m_lidarproBdsegmentPopupButton);
+			menu->addAction(m_UI->actionSettingsBuildingSeg);
+
+			m_lidarproBdsegmentPopupButton->setMenu(menu);
+			m_lidarproBdsegmentPopupButton->setDefaultAction(m_UI->actionBuildingSegmentationBatch);
+			m_lidarproBdsegmentPopupButton->setPopupMode(QToolButton::MenuButtonPopup);
+			m_lidarproBdsegmentPopupButton->setToolTip("Building segmentation");
+			m_lidarproBdsegmentPopupButton->setStatusTip(m_lidarproBdsegmentPopupButton->toolTip());
+			m_UI->toolBarSegmentation->insertWidget(m_UI->actionPointClassEditor, m_lidarproBdsegmentPopupButton);
+		}
+		m_UI->toolBarSegmentation->insertSeparator(m_UI->actionPointClassEditor);
+	}
+
+	QMenu* menuImport = new QMenu(m_UI->ImportDataToolButton);
+	//menuImport->addAction(m_UI->actionImportFile);
+	menuImport->addAction(m_UI->actionImportFolder);
+	m_UI->ImportDataToolButton->setMenu(menuImport);
+	m_UI->ImportDataToolButton->setDefaultAction(m_UI->actionImportFile);
+
 	QWidget *titleWidget = m_UI->DockableDBTree->titleBarWidget();
 	QWidget *tempWidget1 = new QWidget();
 	m_UI->DockableDBTree->setTitleBarWidget(tempWidget1);
@@ -332,9 +391,12 @@ MainWindow::MainWindow()
 	// 	delete titleWidget; titleWidget = nullptr;
 		
 	tabifyDockWidget(m_UI->DockableProperties, m_UI->DockablePanel);
-	tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableImage);
+	//tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableImage);
 	tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableConsole);
 	m_UI->DockableProperties->raise();
+	
+	m_UI->DockableImage->setHidden(true);
+	m_UI->DockableImage->setWindowFlags(m_UI->DockableImage->windowFlags() | Qt::WindowMaximizeButtonHint);
 
 	//db-main-tree
 	{
@@ -584,6 +646,9 @@ void MainWindow::initPlugins( )
 	// Set up dynamic menus
 	m_UI->menubar->insertMenu( m_UI->menu3DViews->menuAction(), m_pluginUIManager->pluginMenu() );
 	m_UI->menuDisplay->insertMenu( m_UI->menuActiveScalarField->menuAction(), m_pluginUIManager->shaderAndFilterMenu() );
+#ifdef BBRelease
+	m_pluginUIManager->pluginMenu()->menuAction()->setVisible(false);
+#endif // BBRelease
 
 // 	m_UI->menuToolbars->addAction( m_pluginUIManager->actionShowMainPluginToolbar() );
 // 	m_UI->menuToolbars->addAction( m_pluginUIManager->actionShowGLFilterToolbar() );
@@ -977,6 +1042,7 @@ void MainWindow::connectActions()
 	connect(m_UI->actionBDImagesLoad,				&QAction::triggered, this, &MainWindow::doActionBDImagesLoad);
 	
 	connect(m_UI->actionBDPlaneSegmentation,		&QAction::triggered, this, &MainWindow::doActionBDPlaneSegmentation);
+	connect(m_UI->actionBDPrimPlaneQuality,			&QAction::triggered, this, &MainWindow::doActionBDPrimPlaneQuality);
 	connect(m_UI->actionBDRetrieve,					&QAction::triggered, this, &MainWindow::doActionBDRetrieve);
 	connect(m_UI->actionBDRetrievePlanePoints,		&QAction::triggered, this, &MainWindow::doActionBDRetrievePlanePoints);
 	connect(m_UI->actionBDImage_Lines,				&QAction::triggered, this, &MainWindow::doActionBDImageLines);
@@ -1033,18 +1099,12 @@ void MainWindow::connectActions()
 	connect(m_UI->NewDatabaseToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionCreateDatabase);
 	connect(m_UI->OpenDatabaseToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionOpenDatabase);
 	connect(m_UI->SaveDatabaseToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionSaveDatabase);
-	QMenu* menuImport = new QMenu(m_UI->ImportDataToolButton);
-	//menuImport->addAction(m_UI->actionImportFile);
-	menuImport->addAction(m_UI->actionImportFolder);
-	m_UI->ImportDataToolButton->setMenu(menuImport);
-	m_UI->ImportDataToolButton->setDefaultAction(m_UI->actionImportFile);
+	
 	connect(m_UI->actionImportFile,					&QAction::triggered, this, &MainWindow::doActionImportData);
 	connect(m_UI->actionImportFolder,				&QAction::triggered, this, &MainWindow::doActionImportFolder);
 	connect(m_UI->EditDatabaseToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionEditDatabase);
 	connect(m_UI->createBuildingProjectToolButton,	&QAbstractButton::clicked, this, &MainWindow::doActionCreateBuildingProject);
 	connect(m_UI->loadSubstanceToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionLoadSubstance);
-	
-	connect(m_UI->actionImageLiDARRegistration,		&QAction::triggered, this, &MainWindow::doActionImageLiDARRegistration);
 
 	//! Segmentation
 	connect(m_UI->actionGroundFilteringBatch,		&QAction::triggered, this, &MainWindow::doActionGroundFilteringBatch);
@@ -1057,6 +1117,10 @@ void MainWindow::connectActions()
 	connect(m_UI->actionSettingsGroundFiltering,	&QAction::triggered, this, &MainWindow::doAactionSettingsGroundFiltering);
 	connect(m_UI->actionSettingsClassification,		&QAction::triggered, this, &MainWindow::doActionSettingsClassification);
 	connect(m_UI->actionSettingsBuildingSeg,		&QAction::triggered, this, &MainWindow::doActionSettingsBuildingSeg);
+
+	//! registration
+	connect(m_UI->actionImageLiDARRegistration,		&QAction::triggered, this, &MainWindow::doActionImageLiDARRegistration);
+	connect(m_UI->actionRegistrationEditor,			&QAction::triggered, this, &MainWindow::doActionRegistrationEditor);
 
 	//! schedule
 	connect(m_UI->actionScheduleProjectID,			&QAction::triggered, this, &MainWindow::doActionScheduleProjectID);
@@ -1858,6 +1922,73 @@ void MainWindow::setSelectedInDB(ccHObject* obj, bool selected)
 	}
 }
 
+std::vector<ccHObject*> MainWindow::loadFiles(const QStringList & filenames, int loadMode, QString fileFilter)
+{
+	ccHObject::Container loads;
+	//to use the same 'global shift' for multiple files
+	CCVector3d loadCoordinatesShift(0, 0, 0);
+	double loadCoordinatesScale(1);
+	bool loadCoordinatesTransEnabled = false;
+
+	FileIOFilter::LoadParameters parameters;
+	{
+		parameters.alwaysDisplayLoadDialog = (loadMode == -1);
+		parameters.shiftHandlingMode = ccGlobalShiftManager::DIALOG_IF_NECESSARY;
+		parameters.coordinatesShift = &loadCoordinatesShift;
+		parameters.coordinatesScale = &loadCoordinatesScale;
+		parameters.coordinatesShiftEnabled = &loadCoordinatesTransEnabled;
+		parameters.parentWidget = filenames.size() > 1 ? nullptr : this;
+		parameters.loadMode = loadMode;
+	}
+
+	const ccOptions& options = ccOptions::Instance();
+	FileIOFilter::ResetSesionCounter();
+
+	ProgStartNorm("Loading Files...", filenames.size());
+	for (const QString &filename : filenames)
+	{
+		CC_FILE_ERROR result = CC_FERR_NO_ERROR;
+
+		std::cout << "loading.." << filename.toStdString();
+		ccHObject* newGroup = FileIOFilter::LoadFromFile(filename, parameters, result, fileFilter);
+		std::cout << " succeeded!" << std::endl;
+
+		//! add even if the new group is empty
+		loads.push_back(newGroup);
+
+		if (newGroup) {
+			ccHObject::Container clouds;
+			newGroup->filterChildren(clouds, true, CC_TYPES::POINT_CLOUD);
+			for (ccHObject* cloud : clouds) {
+				if (cloud) {
+					ccGenericPointCloud* cloudObj = static_cast<ccGenericPointCloud*>(cloud);
+					if (cloudObj->hasColors()) {
+						cloudObj->showSF(false);
+						cloudObj->showColors(true);
+					}
+
+					/// disable the normals on all loaded clouds!
+					if (!options.normalsDisplayedByDefault)
+						cloudObj->showNormals(false);
+				}
+			}
+			
+			newGroup->setPath(filename);
+
+			m_recentFiles->addFilePath(filename);
+		}
+
+		if (result == CC_FERR_CANCELED_BY_USER)
+		{
+			//stop importing the file if the user has cancelled the current process!
+			break;
+		}
+		ProgStepBreak
+	}
+	ProgEnd
+	return loads;
+}
+
 void MainWindow::addToDB(ccHObject* obj,
 	CC_TYPES::DB_SOURCE dest,
 	bool updateZoom/*=true*/,
@@ -1940,6 +2071,7 @@ void MainWindow::addToDB(ccHObject* obj,
 	{
 		ccLog::Warning("[MainWindow::addToDB] Internal error: no associated db?!");
 		assert(false);
+		return;
 	}
 
 	//we can now set destination display (if none already)
@@ -1978,7 +2110,27 @@ void MainWindow::addToDB(ccHObject* obj,
 void MainWindow::addToDBAuto(const QStringList& filenames)
 {
 	ccGLWindow* win = qobject_cast<ccGLWindow*>(QObject::sender());
-	ccHObject::Container loaded = addToDB(filenames, getCurrentDB(), QString(), win);
+	CC_TYPES::DB_SOURCE db_type = getCurrentDB();
+	ccHObject::Container loaded = addToDB(filenames, db_type, QString(), win);
+	if (db_type == CC_TYPES::DB_IMAGE) {
+		if (m_pbdrImshow && m_pbdrImshow->getGLWindow()) {
+			for (ccHObject* imobj : loaded) {
+
+				BDImageBaseHObject* imgPrj = new BDImageBaseHObject(GetBaseName(imobj->getName()));
+				imobj->transferChildren(*imgPrj);
+				addToDB_Image(imgPrj, false, false, false, true);
+				removeFromDB(imobj);
+
+				ccHObject::Container polygons;
+				imgPrj->filterChildren(polygons, true, CC_TYPES::POLY_LINE, true, nullptr);
+				for (ccHObject* poly : polygons) {
+					poly->setDisplay_recursive(m_pbdrImshow->getGLWindow());
+					poly->setVisible(false);
+				}
+			}
+		}
+		return;
+	}
 	
 	for (ccHObject* obj : loaded) {
 		if (!obj) continue;
@@ -2003,7 +2155,7 @@ void MainWindow::addToDBAuto(const QStringList& filenames)
 				point_size += pcObj->size();
 
 				pcObj->prepareDisplayForRefresh();
-				ProgStep()
+				ProgStepBreak
 			}
 		ProgEnd
 
@@ -2024,6 +2176,7 @@ std::vector<ccHObject*> MainWindow::addToDB(const QStringList& filenames,
 	ccHObject::Container loads;
 	//to use the same 'global shift' for multiple files
 	CCVector3d loadCoordinatesShift(0, 0, 0);
+	double loadCoordinatesScale(1);
 	bool loadCoordinatesTransEnabled = false;
 
 	FileIOFilter::LoadParameters parameters;
@@ -2031,12 +2184,10 @@ std::vector<ccHObject*> MainWindow::addToDB(const QStringList& filenames,
 		parameters.alwaysDisplayLoadDialog = true;
 		parameters.shiftHandlingMode = ccGlobalShiftManager::DIALOG_IF_NECESSARY;
 		parameters.coordinatesShift = &loadCoordinatesShift;
+		parameters.coordinatesScale = &loadCoordinatesScale;
 		parameters.coordinatesShiftEnabled = &loadCoordinatesTransEnabled;
 		parameters.parentWidget = this;
 	}
-
-	//the same for 'addToDB' (if the first one is not supported, or if the scale remains too big)
-	CCVector3d addCoordinatesShift(0, 0, 0);
 
 	const ccOptions& options = ccOptions::Instance();
 	FileIOFilter::ResetSesionCounter();
@@ -2044,7 +2195,10 @@ std::vector<ccHObject*> MainWindow::addToDB(const QStringList& filenames,
 	for (const QString &filename : filenames)
 	{
 		CC_FILE_ERROR result = CC_FERR_NO_ERROR;
+
+		std::cout << "loading.." << filename.toStdString();
 		ccHObject* newGroup = FileIOFilter::LoadFromFile(filename, parameters, result, fileFilter);
+		std::cout << " succeeded!" <<std::endl;
 
 		//! add even if the new group is empty
 		loads.push_back(newGroup);
@@ -11976,11 +12130,10 @@ void MainWindow::doActionBDDisplayPlaneOn()
 	ccHObject::Container Objs;
 	Root_Entity->filterChildren(Objs, true, CC_TYPES::PLANE, true);
 
-	ProgStart("Show Plane");
-	for (auto & Obj : Objs) {
+	ProgStart(QStringLiteral("Show %1 Planes...").arg(QString::number(Objs.size())));
+	Concurrency::parallel_for_each(Objs.begin(), Objs.end(), [](auto & Obj) {
 		Obj->setVisible(true);
-		Obj->redrawDisplay();
-	}
+	});
 	ProgEnd
 
 	refreshAll();
@@ -11996,13 +12149,12 @@ void MainWindow::doActionBDDisplayPlaneOff()
 		Root_Entity = db(getCurrentDB())->getRootEntity();
 
 	ccHObject::Container Objs;
-	Root_Entity->filterChildren(Objs, true, CC_TYPES::PLANE, true);
-	ProgStartNorm("Hide Plane", Objs.size());
-	for (auto & Obj : Objs) {
+	Root_Entity->filterChildren(Objs, true, CC_TYPES::PLANE, true); 
+	
+	ProgStart(QStringLiteral("Hide %1 Planes...").arg(QString::number(Objs.size())));
+	Concurrency::parallel_for_each(Objs.begin(), Objs.end(), [](auto & Obj) {
 		Obj->setVisible(false);
-		Obj->redrawDisplay();
-		ProgStep()
-	}
+	});
 	ProgEnd
 
 	refreshAll();
@@ -12019,11 +12171,11 @@ void MainWindow::doActionBDDisplayPointOn()
 
 	ccHObject::Container Objs;
 	Root_Entity->filterChildren(Objs, true, CC_TYPES::POINT_CLOUD, true);
-	ProgStart("Show Points");
-	for (auto & Obj : Objs) {
+
+	ProgStart(QStringLiteral("Show %1 Point Clouds...").arg(QString::number(Objs.size())));
+	Concurrency::parallel_for_each(Objs.begin(), Objs.end(), [](auto & Obj) {
 		Obj->setVisible(true);
-		Obj->redrawDisplay();
-	}
+	});
 	ProgEnd
 	refreshAll();
 	UpdateUI();
@@ -12039,11 +12191,11 @@ void MainWindow::doActionBDDisplayPointOff()
 
 	ccHObject::Container Objs;
 	Root_Entity->filterChildren(Objs, true, CC_TYPES::POINT_CLOUD, false);
-	ProgStart("Hide Points");
-	for (auto & Obj : Objs) {
+
+	ProgStart(QStringLiteral("Hide %1 Point Clouds...").arg(QString::number(Objs.size())));
+	Concurrency::parallel_for_each(Objs.begin(), Objs.end(), [](auto & Obj) {
 		Obj->setVisible(false);
-		Obj->redrawDisplay();
-	}
+	});
 	ProgEnd
 	refreshAll();
 	UpdateUI();
@@ -12103,7 +12255,7 @@ void MainWindow::doActionDisplayNormalPerFace()
 				mesh->prepareDisplayForRefresh_recursive();
 			}
 		}
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 
@@ -12144,7 +12296,7 @@ void MainWindow::doActionDisplayNormalPerVertex()
 				}
 			}
 		}
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 
@@ -12171,16 +12323,15 @@ BDBaseHObject::Container GetBDBaseProjx() {
 	return prjx;
 }
 
+ccHObject* MainWindow::LoadBDReconProject_Shell(QString Filename)
+{
+	BDBaseHObject* bd_grp = nullptr;
+	return bd_grp;
+}
+
 ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 {
 	BDBaseHObject* bd_grp = nullptr;
-
-	stocker::BlockProj block_prj; std::string error_info;
-	if (!stocker::LoadProject(Filename.toStdString(), block_prj, error_info)) {
-		std::cout << error_info << std::endl;
-		//dispToConsole(error_info.c_str(), ccMainAppInterface::ERR_CONSOLE_MESSAGE);
-		return nullptr;
-	}
 
 	QFileInfo prj_file(Filename);
 	QString prj_name = prj_file.completeBaseName();
@@ -12190,55 +12341,94 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 	if (QFileInfo(bin_file).exists()) {
 		std::cout << "start loading " << bin_file.toStdString() << std::endl;
 		QStringList files; files.append(bin_file);
-		ccHObject::Container loaded = addToDB_Build(files);
+		ccHObject::Container loaded;
+		try
+		{
+			loaded = loadFiles(files);
+		}
+		catch (const std::exception& e)	{
+			std::cout << "internal error!" << std::endl;
+			return nullptr;
+		}
 		ccHObject* newGroup = loaded.empty() ? nullptr : loaded.front();
 
 		if (newGroup) {
 			bd_grp = new BDBaseHObject(prj_name);
 			bd_grp->setName(prj_name);
 			newGroup->transferChildren(*bd_grp);
-			removeFromDB(newGroup);
-			std::cout << bin_file.toStdString() << " loaded" << std::endl;
+
+			delete newGroup;
+			newGroup = nullptr;
 		}
 	}
+
+	std::string error_info; stocker::BuilderOption options;
+	if (!stocker::LoadProjectIni(Filename.toStdString(), options, error_info)) {
+		return nullptr;
+	}
+	std::vector<stocker::ImageUnit> image_data;
+	options.with_image = stocker::LoadBundleFiles(options.prj_file.image_list, options.prj_file.sfm_out, image_data);
+
+	std::vector<stocker::BuildUnit> build_data;
+	if (!stocker::LoadBuildingListFile(build_data, options.prj_file.building_list)) {
+		return nullptr;
+	}
+
 	if (!bd_grp) {
 
 		QStringList names; QStringList files;
-		for (auto & bd : block_prj.m_builder.sbuild) {
-			QString building_name = bd->GetName().Str().c_str(); names.append(building_name);
-			QFileInfo point_path(bd->data.file_path.ori_points.c_str()); files.append(point_path.absoluteFilePath());
+		for (auto & bd : build_data) {
+			QString building_name = bd.GetName().Str().c_str(); names.append(building_name);
+			QFileInfo point_path(bd.file_path.ori_points.c_str()); files.append(point_path.absoluteFilePath());
 			std::cout << "file: " << point_path.absoluteFilePath().toStdString() << std::endl;
 		}
 		std::cout << "loading " << files.size() << " files" << std::endl;
-		ccHObject::Container loaded = addToDB_Build(files);
+		ccHObject::Container loaded = loadFiles(files, -1);
 		std::cout << files.size() << " files loaded" << std::endl;
-		if (loaded.size() == names.size()) {
-			bd_grp = new BDBaseHObject(prj_name);
-			for (size_t i = 0; i < names.size(); i++) {
-				ccHObject* newGroup = loaded[i]; if (!newGroup) { continue; }
-				QString building_name = names[i];
-				StBuilding* building = new StBuilding(building_name);
-				building->setName(building_name);
-				newGroup->transferChildren(*building);
-				ccHObject::Container clouds;
-				building->filterChildren(clouds, true, CC_TYPES::POINT_CLOUD); if (clouds.empty()) continue;
-				ccPointCloud* cloud = ccHObjectCaster::ToPointCloud(clouds.front()); if (!cloud) { continue; }
-				cloud->setName(building_name + BDDB_ORIGIN_CLOUD_SUFFIX);
-				if (cloud->hasColors()) {
-					cloud->showSF(false);
-					cloud->showColors(true);
-				}
-				removeFromDB(newGroup);
+		
+		bd_grp = new BDBaseHObject(prj_name);
+		for (size_t i = 0; i < loaded.size(); ++i) {
+			ccHObject* newGroup = loaded[i];
+			if (!newGroup) continue;
 
-				bd_grp->addChild(building);
-			}
+			QString building_name = names[i];
+			StBuilding* building = new StBuilding(building_name);
+
+			newGroup->setName(building_name + BDDB_ORIGIN_CLOUD_SUFFIX);
+			building->addChild(newGroup);
+
+			bd_grp->addChild(building);
 		}
+// 		if (loaded.size() == names.size()) {
+// 			bd_grp = new BDBaseHObject(prj_name);
+// 			for (size_t i = 0; i < names.size(); i++) {
+// 				ccHObject* newGroup = loaded[i]; if (!newGroup) { continue; }
+// 				QString building_name = names[i];
+// 				StBuilding* building = new StBuilding(building_name);
+// 				building->setName(building_name);
+// 				newGroup->transferChildren(*building);
+// 				ccHObject::Container clouds;
+// 				building->filterChildren(clouds, true, CC_TYPES::POINT_CLOUD); if (clouds.empty()) continue;
+// 				ccPointCloud* cloud = ccHObjectCaster::ToPointCloud(clouds.front()); if (!cloud) { continue; }
+// 				cloud->setName(building_name + BDDB_ORIGIN_CLOUD_SUFFIX);
+// 				if (cloud->hasColors()) {
+// 					cloud->showSF(false);
+// 					cloud->showColors(true);
+// 				}
+// 				removeFromDB(newGroup);
+// 
+// 				bd_grp->addChild(building);
+// 			}
+// 		}
 	}
 	//! prepare buildings now
 	if (bd_grp) {
-		bd_grp->block_prj = block_prj;
+		bd_grp->m_options = options;
+		bd_grp->build_data = build_data;
+		bd_grp->image_data = image_data;
+
 		if (bd_grp->getPath().isEmpty()) {
-			bd_grp->setPath(QString::fromStdString(block_prj.m_options.prj_file.root_dir));
+			bd_grp->setPath(QString::fromStdString(options.prj_file.root_dir));
 		}
 
 		bool first_cloud = false;
@@ -12251,56 +12441,53 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 				continue;
 			}
 
-			if (!LoadBuildingInfo(sp_build->data, sp_build->data.file_path.info)) {
+			std::cout << "preparing: " << sp_build->GetName().Str() << std::endl;
+			if (!LoadBuildingInfo(*sp_build, (*sp_build).file_path.info)) {
 				ccPointCloud* cloud = bd_grp->GetOriginPointCloud(bdObj->getName(), false);
 				stocker::Contour3d points_global; stocker::Contour3f points_local;
 				if (!GetPointsFromCloud(cloud, points_global, points_local)) { continue; }
 
 				CCVector3d minbb, maxbb;
 				if (cloud->getGlobalBB(minbb, maxbb)) {
-					sp_build->data.bbox.Add({ minbb.x,minbb.y, minbb.z });
-					sp_build->data.bbox.Add({ maxbb.x,maxbb.y, maxbb.z });
+					(*sp_build).bbox.Add({ minbb.x,minbb.y, minbb.z });
+					(*sp_build).bbox.Add({ maxbb.x,maxbb.y, maxbb.z });
 				}
 
-// 				if (!stocker::PrepareBuildingByPoints(bd_grp->block_prj, sp_build->data, points_global, points_local)) {
-// 					continue;
-// 				}
-
 				// TODO: save these paras to the StBuilding
-				sp_build->data.average_spacing = stocker::ComputeAverageSpacing3f(points_local, true);
+				(*sp_build).average_spacing = stocker::ComputeAverageSpacing3f(points_local, true);
 				stocker::Contour3d ground_contour = stocker::CalcBuildingGround(points_global, 0.1);
 				if (ground_contour.size() < 3) {
 					return false;
 				}
-				sp_build->data.ground_height = ground_contour.front().Z();
-				sp_build->data.convex_hull_xy = stocker::ToContour2d(ground_contour);
-				if (bd_grp->block_prj.m_options.with_image) {
-					for (auto & img : bd_grp->block_prj.m_builder.simage) {
+				(*sp_build).ground_height = ground_contour.front().Z();
+				(*sp_build).convex_hull_xy = stocker::ToContour2d(ground_contour);
+				if (bd_grp->m_options.with_image) {
+					for (auto img : bd_grp->GetImageData()) {
 						bool img_check = false;
 						for (size_t i = 0; i < 8; i++) {
-							if (img->data.CheckInImg3d(sp_build->data.bbox.P(i))) {
+							if (img.CheckInImg3d((*sp_build).bbox.P(i))) {
 								img_check = true;
 								break;
 							}
 						}
 						if (img_check) {
-							sp_build->data.image_list.push_back(img->data.GetName().Str());
-							bd_grp->block_prj.m_builder.InsertImageBuild(img->data.GetName(), sp_build->data.GetName());
+							(*sp_build).image_list.push_back(img.GetName().Str());
+							//bd_grp->block_prj.m_builder.InsertImageBuild(img->data.GetName(), (*sp_build).GetName());
 						}
 					}
 				}
 
 				// TODO: still wrong sometimes, the file cannot be saved??
-				if (!SaveBuildingInfo(sp_build->data, sp_build->data.file_path.info)) {
-					cout << "failed to save building info: " << sp_build->data.GetName().Str() << endl;
+				if (!SaveBuildingInfo((*sp_build), (*sp_build).file_path.info)) {
+					cout << "failed to save building info: " << (*sp_build).GetName().Str() << endl;
 					return false;
 				}
 
 			}
 			else {
-				for (auto & img : sp_build->data.image_list) {
-					bd_grp->block_prj.m_builder.InsertImageBuild(img.c_str(), sp_build->data.GetName());
-				}
+// 				for (auto & img : (*sp_build).image_list) {
+// 					bd_grp->block_prj.m_builder.InsertImageBuild(img.c_str(), sp_build->data.GetName());
+// 				}
 			}
 
 			if (!first_cloud) {
@@ -12358,12 +12545,17 @@ void MainWindow::doActionBDProjectLoad()
 		STOCKER_ERROR_ASSERT(e.what());
 		return;
 	}
+	catch (...)
+	{
+		STOCKER_ERROR_ASSERT("something wrong");
+		return;
+	}
 }
 
 bool SaveProject(BDBaseHObject* proj)
 {
 	try {
-		QFileInfo prj_file(proj->block_prj.m_options.prj_file.project_ini.c_str());
+		QFileInfo prj_file(proj->m_options.prj_file.project_ini.c_str());
 		QString prj_name = prj_file.completeBaseName();
 
 		QString selectedFilename = prj_file.absolutePath() + "\\" + prj_name + ".bin";
@@ -12386,11 +12578,89 @@ bool SaveProject(BDBaseHObject* proj)
 	return true;
 }
 
+bool MainWindow::saveImageJuctions(BDImageBaseHObject* imagePrj)
+{
+	if (!imagePrj) return false;
+
+	QStringList saveTypes;
+	saveTypes.append("junctions");
+	saveTypes.append("undistorted images");
+ 	bool ok;
+	QString save_type = QInputDialog::getItem(this, "Image Project Save", "Type", saveTypes, 0, false, &ok);
+	if (!ok) return false;
+
+	//persistent settings
+	QSettings settings;
+	settings.beginGroup(ccPS::LoadFile());
+	QString currentPath = settings.value(ccPS::CurrentPath(), ccFileUtils::defaultDocPath()).toString();
+
+	QString dir_name = QFileDialog::getExistingDirectory(this,
+		tr("Select A Directory To Save"),
+		QFileInfo(currentPath).absoluteFilePath(),
+		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
+	if (dir_name.isEmpty() || !QFileInfo(dir_name).exists()) {
+		return false;
+	}
+
+	//save last loading parameters
+	currentPath = QFileInfo(dir_name).absoluteFilePath();
+	settings.setValue(ccPS::CurrentPath(), currentPath);
+	settings.endGroup();
+
+	CC_FILE_ERROR result = CC_FERR_NO_ERROR;
+	FileIOFilter::SaveParameters parameters;
+	{
+		parameters.alwaysDisplaySaveDialog = true;
+		parameters.parentWidget = this;
+	}
+
+	if (save_type == "junctions") {
+		bool skip = false;
+		ccHObject::Container images = GetEnabledObjFromGroup(imagePrj, CC_TYPES::CAMERA_SENSOR, true, false);
+		for (ccHObject* im : images) {
+			ccHObject::Container polylines;// = GetEnabledObjFromGroup(im, CC_TYPES::POLY_LINE, true, true);
+			im->filterChildren(polylines, true, CC_TYPES::POLY_LINE, true, nullptr);
+			//! group to a big polyline
+			stocker::Polyline3d lines;
+			for (ccHObject* poly : polylines) {
+				stocker::Polyline3d cur_lines = GetPolygonFromPolyline(poly);
+				if (cur_lines.size() != 2) { skip = true; continue; }
+				lines.insert(lines.end(), cur_lines.begin(), cur_lines.end());
+			}
+			ccPolyline* polyObj = AddPolygonAsPolyline(lines, "temp", ccColor::black, false);
+			
+			if (polyObj) {
+				
+				QString filename = dir_name + "/" + im->getName() + ".poly";
+				result = FileIOFilter::SaveToFile(polyObj, filename, parameters, "Salome Hydro polylines (*.poly)");
+				delete polyObj;
+				polyObj = nullptr;
+			}
+		}
+		if (skip) {
+			QMessageBox::warning(this, "Warning", "incompatible polylines skipped");
+		}
+	}
+	else {
+		QMessageBox::critical(this, "Not Finished", "Upcoming...");
+	}
+
+	return true;
+}
+
 void MainWindow::doActionBDProjectSave()
 {
 	BDBaseHObject::Container prjx;
 	if (haveSelection()) {
-		prjx.push_back(GetRootBDBase(getSelectedEntities().front()));		
+		ccHObject* sel = getSelectedEntities().front();
+		BDBaseHObject* baseObj = GetRootBDBase(sel);
+		if (baseObj) {
+			prjx.push_back(baseObj);
+		}
+		else if (saveImageJuctions(GetRootImageBase(sel))) {
+			return;
+		}
 	}
 	else {	// save all projects		
 		prjx = GetBDBaseProjx();
@@ -12413,11 +12683,19 @@ void MainWindow::doActionBDProjectSave()
 
 void MainWindow::doActionBDImagesLoad()
 {
+	BDBaseHObject* baseObj = nullptr;
 	if (!haveSelection()) {
-		dispToConsole("please load project or select a point cloud", ERR_CONSOLE_MESSAGE);
-		return;
+		ccHObject::Container projects = GetEnabledObjFromGroup(m_buildingRoot->getRootEntity(), CC_TYPES::ST_PROJECT, true, true);
+		if (!projects.empty())
+			baseObj = static_cast<BDBaseHObject*>(projects.front());
+		else {
+			dispToConsole("please load project or select a point cloud", ERR_CONSOLE_MESSAGE);
+			return;
+		}
 	}
-	BDBaseHObject* baseObj = GetRootBDBase(getSelectedEntities().front());
+	else {
+		baseObj = GetRootBDBase(getSelectedEntities().front());
+	}
 	ccHObject::Container camera_groups = GetEnabledObjFromGroup(m_imageRoot->getRootEntity(), CC_TYPES::ST_PROJECT);
 	if (baseObj) {
 		//ccHObject* camera_group = getCameraGroup(baseObj->getName());
@@ -12461,10 +12739,10 @@ void MainWindow::doActionBDImagesLoad()
 	}
 	CC_FILE_ERROR result = CC_FERR_NO_ERROR;
 	QString out_file, image_list;
-	if (baseObj && baseObj->block_prj.m_options.with_image) {
-		out_file = baseObj->block_prj.m_options.prj_file.sfm_out.c_str();
+	if (baseObj && baseObj->m_options.with_image) {
+		out_file = baseObj->m_options.prj_file.sfm_out.c_str();
 		std::cout << "sfm file: " << out_file.toStdString() << std::endl;
-		image_list = baseObj->block_prj.m_options.prj_file.image_list.c_str();
+		image_list = baseObj->m_options.prj_file.image_list.c_str();
 		std::cout << "img file: " << image_list.toStdString() << std::endl;
 	}
 
@@ -12562,7 +12840,7 @@ void MainWindow::doActionBDImagesLoad()
 // for point cloud (.original by default)
 void MainWindow::doActionBDPlaneSegmentation()
 {
-	if (!haveSelection()) return;	
+	if (!haveSelection()) return;
 
 	ccHObject *entity = getSelectedEntities().front();
 	ccHObject::Container _container;
@@ -12570,6 +12848,9 @@ void MainWindow::doActionBDPlaneSegmentation()
 
 	if (entity->isA(CC_TYPES::POINT_CLOUD))
 		_container.push_back(entity);
+	else if (!baseObj && entity->isA(CC_TYPES::HIERARCHY_OBJECT)) {
+		_container = GetEnabledObjFromGroup(entity, CC_TYPES::POINT_CLOUD, true, true);
+	}
 	else {
 		ccHObject::Container building_groups;		
 		if (!baseObj) {
@@ -12626,12 +12907,15 @@ void MainWindow::doActionBDPlaneSegmentation()
 	double distance_eps = m_pbdrPSDlg->DistanceEpsilonDoubleSpinBox->value();
 	double cluster_eps = m_pbdrPSDlg->ClusterEpsilonDoubleSpinBox->value();
 
+	bool overwrite = m_pbdrPSDlg->overwriteCheckBox->isChecked();
+
 	ProgStartNorm("Plane Segmentation", _container.size())
 	for (int i = 0; i < _container.size(); i++) {
 		ccHObject* cloudObj = _container[i];
 		ccPointCloud* todo_point = nullptr;
 		if (baseObj) {
 			todo_point = baseObj->GetTodoPoint(GetBaseName(cloudObj->getName()));
+			todo_point->clear();
 		}
 		else {
 			ccPointCloud* pc = ccHObjectCaster::ToPointCloud(cloudObj);
@@ -12647,22 +12931,28 @@ void MainWindow::doActionBDPlaneSegmentation()
 			}
 		}
 
+		if (cloudObj->getPath().isEmpty() && cloudObj->getParent()) {
+			QString path = cloudObj->getParent()->getPath();
+			if (QFileInfo(path).exists()) {
+				cloudObj->setPath(path);
+			}
+		}
+
 		ccHObject* seged = nullptr;
 		if (m_pbdrPSDlg->PlaneSegRansacRadioButton->isChecked()) {
 			double normal_dev = cos(m_pbdrPSDlg->maxNormDevAngleSpinBox->value() * CC_DEG_TO_RAD);
 			double prob = m_pbdrPSDlg->probaDoubleSpinBox->value();
-			seged = PlaneSegmentationRansac(cloudObj,
+			seged = PlaneSegmentationRansac(cloudObj, overwrite, todo_point,
 				support_pts,
 				distance_eps,
 				cluster_eps,
 				normal_dev,
 				prob,
-				merge_threshold, split_threshold,
-				todo_point);
+				merge_threshold, split_threshold);
 		}
 		else if (m_pbdrPSDlg->PlaneSegRegionGrowRadioButton->isChecked()) {
 			double growing_radius = m_pbdrPSDlg->GrowingRadiusDoubleSpinBox->value();
-			seged = PlaneSegmentationRgGrow(cloudObj,
+			seged = PlaneSegmentationRgGrow(cloudObj, overwrite,
 				support_pts,
 				distance_eps,
 				cluster_eps,
@@ -12673,12 +12963,12 @@ void MainWindow::doActionBDPlaneSegmentation()
 			double curvature_delta = m_pbdrPSDlg->APTSCurvatureSpinBox->value();
 			double nfa_epsilon = m_pbdrPSDlg->APTSNFASpinBox->value();
 			double normal_theta = m_pbdrPSDlg->APTSNormalSpinBox->value();
-			bool iter_times = m_pbdrPSDlg->ATPSIterOneRadioButton->isChecked();
+			bool iter_times = m_pbdrPSDlg->ATPSIterInfiniteRadioButton->isChecked();
 			if (m_pbdrPSDlg->autoParaCheckBox->isChecked()) {
-				seged = PlaneSegmentationATPS(cloudObj, todo_point, &iter_times);
+				seged = PlaneSegmentationATPS(cloudObj, overwrite, todo_point, &iter_times);
 			}
 			else {
-				seged = PlaneSegmentationATPS(cloudObj, todo_point,
+				seged = PlaneSegmentationATPS(cloudObj, overwrite, todo_point,
 					&iter_times,
 					&support_pts,
 					&curvature_delta,					
@@ -12688,20 +12978,47 @@ void MainWindow::doActionBDPlaneSegmentation()
 					&normal_theta);
 			}
 		}
+		
 		if (todo_point->size() == 0) {
 			removeFromDB(todo_point);
 		}
 
 		if (seged) {
 			addToDB(seged, entity->getDBSourceType(), false, false);
-			cloudObj->setEnabled(false);
 		}
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 
 	refreshAll();
 	updateUI();
+}
+
+void MainWindow::doActionBDPrimPlaneQuality()
+{
+	ccHObject::Container all_planes;
+	for (ccHObject* sel : m_selectedEntities) {
+		ccHObject::Container planes = GetPlaneEntitiesBySelected(sel);
+		all_planes.insert(all_planes.end(), planes.begin(), planes.end());
+	}
+	if (all_planes.empty())	{
+		return;
+	}
+
+	if (!m_pbdrPlaneQDlg) {
+		m_pbdrPlaneQDlg = new bdrPlaneQualityDlg;
+		m_pbdrPlaneQDlg->setModal(false);
+		m_pbdrPlaneQDlg->setWindowModality(Qt::NonModal);
+		m_pbdrPlaneQDlg->setWindowFlags(Qt::WindowStaysOnTopHint);
+	}
+	if (m_pbdrPlaneQDlg->isHidden()) {
+		m_pbdrPlaneQDlg->setPlanes(all_planes);
+		m_pbdrPlaneQDlg->show();
+	}
+	else {
+		m_pbdrPlaneQDlg->setPlanes(ccHObject::Container());
+		m_pbdrPlaneQDlg->hide();
+	}
 }
 
 // for plane/plane_cloud (.primitive by default)
@@ -12751,7 +13068,7 @@ void MainWindow::doActionBDRetrievePlanePoints()
 	for (auto pl : plane_container) {
 		GetParentBuilding(pl);
 
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 
@@ -12850,7 +13167,7 @@ void MainWindow::doActionBDPrimIntersections()
 			SetGlobalShiftAndScale(seg);
 			addToDB(seg, building_prims[i].front()->getDBSourceType(), false, false);
 		}
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 	refreshAll();
@@ -12881,7 +13198,7 @@ void MainWindow::doActionBDPrimAssignSharpLines()
 	}
 	if (!buildings.empty() && baseObj) {
 		std::string error_info;
-		if (!stocker::LoadLine3D(baseObj->block_prj.m_options.prj_file.image_border, all_sharp_lines, error_info)) {
+		if (!stocker::LoadLine3D(baseObj->m_options.prj_file.image_border, all_sharp_lines, error_info)) {
 			std::cout << error_info << std::endl;
 		}
 		//! to local
@@ -12970,7 +13287,7 @@ void MainWindow::doActionBDPrimAssignSharpLines()
 			}
 		}
 
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 	refreshAll();
@@ -13069,7 +13386,7 @@ void MainWindow::doActionBDPrimBoundary()
 			return;
 		}
 		if (boundary) { addToDB(boundary, planeObj->getDBSourceType(), false, false); }
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 	refreshAll();
@@ -13102,7 +13419,7 @@ void MainWindow::doActionBDPrimOutline()
 			dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
 			return;
 		}
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 
@@ -13118,11 +13435,46 @@ void MainWindow::doActionBDPrimPlaneFrame()
 	methods.append("optimization");
 	methods.append("linegrow");
 	methods.append("houghline");
+	methods.append("convexhull");
 	bool ok;
 	QString used_method = QInputDialog::getItem(this, "Boundary extraction", "method", methods, 0, false, &ok);
 	if (!ok) return;
 
 	ccHObject *entity = getSelectedEntities().front();
+
+	BDBaseHObject* baseObj = GetRootBDBase(entity);
+	if (!baseObj) {
+
+		double sample = 3;
+		if (used_method == "linegrow") {
+			bool ok = true;
+			sample = QInputDialog::getDouble(this, "Input Param", "point line distance", 3, 0.0, 999999.0, 1, &ok);
+			if (!ok) return;
+		} 
+
+		ccHObject::Container polygons = GetEnabledObjFromGroup(entity, CC_TYPES::POLY_LINE, true, true);
+
+		for (ccHObject* polygon : polygons)	{
+			stocker::Polyline3d poly = GetPolygonFromPolyline(polygon);
+			std::vector<stocker::Contour3d> contours;
+			if (used_method == "convexhull") {
+				stocker::PlaneUnit plane_unit = stocker::FormPlaneUnit(stocker::ToContour(poly, 3), "temp", true);
+				contours.push_back(plane_unit.convex_hull_prj);
+			}
+			else if (used_method == "linegrow")	{
+				stocker::PolygonGeneralizationLineGrow_Contour(stocker::ToContour(poly, 3), contours, 0, 0, sample);
+			}
+
+			if (contours.empty()) continue;
+			ccHObject* new_poly = AddPolygonAsPolyline(contours.front(), polygon->getName(), ccColor::Generator::Random(), true);
+			if (!new_poly) continue;
+			polygon->getParent()->addChild(new_poly);
+			polygon->setName("del-" + polygon->getName());
+			polygon->setEnabled(false);
+		}
+		return;
+	}
+
 	ccHObject::Container plane_container = GetPlaneEntitiesBySelected(entity);
 
 	if (plane_container.empty()) {
@@ -13165,7 +13517,7 @@ void MainWindow::doActionBDPrimPlaneFrame()
 			dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
 			return;
 		}
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 
@@ -13327,7 +13679,7 @@ void MainWindow::doActionBDPrimCreateGround()
 		stocker::Vec3d box_min = stocker::parse_xyz(box.minCorner());
 		stocker::Vec3d box_max = stocker::parse_xyz(box.maxCorner());
 		stocker::BBox2d box_2d = stocker::BBox2d(stocker::ToVec2d(box_min), stocker::ToVec2d(box_max));
-		stocker::Contour2d pts_2d = stocker::PointSampleInBox2d(box_2d, sample);
+		stocker::Contour2d pts_2d = stocker::PointSampleInBox2<double>(box_2d, sample);
 
 		ccPointCloud* plane_cloud = new ccPointCloud("Ground");
 		ccColor::Rgb col = ccColor::Generator::Random();
@@ -13359,7 +13711,7 @@ void MainWindow::doActionBDPrimCreateGround()
 			plane->prepareDisplayForRefresh_recursive();
 		}
 		addToDB(plane_cloud, entity->getDBSourceType(), false, false);
-		ProgStep()
+		ProgStepBreak
 	}	
 	ProgEnd
 
@@ -13399,7 +13751,7 @@ void MainWindow::doActionBDPrimShrinkPlane()
 			dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
 			return;			
 		}
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 
@@ -14103,7 +14455,7 @@ void MainWindow::doActionBDPolyFitFacetFilter()
 	m_pbdrffDlg->initWith(win, facetObjs);
 	m_pbdrffDlg->setModal(false);
 	m_pbdrffDlg->setWindowModality(Qt::NonModal);
-	
+	m_pbdrffDlg->setWindowFlags(Qt::WindowStaysOnTopHint);
 	
 	m_pbdrffDlg->show();
 }
@@ -14113,6 +14465,7 @@ void MainWindow::doActionBDPolyFitSettings()
 	if (!m_pbdrpfDlg) m_pbdrpfDlg = new bdrPolyFitDlg(this);
 	m_pbdrpfDlg->setModal(false);
 	m_pbdrpfDlg->setWindowModality(Qt::NonModal);
+	m_pbdrpfDlg->setWindowFlags(Qt::WindowStaysOnTopHint);
 	m_pbdrpfDlg->show();
 }
 
@@ -14167,7 +14520,7 @@ void MainWindow::doActionBDFootPrintAuto()
 			dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
 			//return;
 		}
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 	//doActionBDProjectSave();
@@ -14267,13 +14620,40 @@ void MainWindow::doActionBDFootPrintManual()
 		updateOverlayDialogsPlacement();
 }
 
+int g_ppp_maxiter = 3;
+double g_ppp_ptsnumratio = 0.5;
+double g_ppp_data_ratio = 1.0;
+bool g_ppp_caphole = true;
 void MainWindow::doActionBDFootPrintPack()
 {
 	if (!haveSelection()) return;
-	ccHObject *entity = getSelectedEntities().front();
+	ccHObject* entity = getSelectedEntities().front();
 	BDBaseHObject* baseObj = GetRootBDBase(entity);
-	ccHObject* bd_entity = GetParentBuilding(entity);
-	if (!bd_entity) return;
+	if (!baseObj) {
+		bool ok = true;
+		int sample = QInputDialog::getInt(this, "Parameters", "Please input sampling distance", 100, 0, 999999, 1, &ok);
+		if (!ok) return;
+
+		ProgStart("polygon selection...")
+
+		ccHObject::Container polygons = GetEnabledObjFromGroup(entity, CC_TYPES::POLY_LINE, true, true);
+		ccHObject::Container packed_polys = PackPolygons(polygons, sample);
+		if (packed_polys.empty()) { return; }
+
+		ccHObject* new_group = new ccHObject("packed_obj");
+		for (ccHObject* poly : packed_polys) {
+			new_group->addChild(poly);
+		}
+		addToDB(new_group, entity->getDBSourceType());
+
+		ProgEnd
+		return;
+	}
+
+	ccHObject::Container bds = GetBuildingEntitiesBySelected(entity);
+	if (bds.empty()) {
+		return;
+	}
 
 	QStringList methods;
 	methods.append("optimization");
@@ -14283,16 +14663,40 @@ void MainWindow::doActionBDFootPrintPack()
 	QString used_method = QInputDialog::getItem(this, "Pack Footprint", "method", methods, 0, false, &ok);
 	if (!ok) return;
 
-	int method = 0;
-	if (used_method == "optimization") method = 0;	
-	else if (used_method == "pprepair")	method = 1;
-
-	ProgStart("polygon partition")
-	try	{
-		if (!PackFootprints(bd_entity, method)) {
+	if (used_method == "optimization") {
+		ccAskThreeDoubleValuesDlg setDlg("max iter", "ptsnum ratio(0-1)", "data ratio(0-1)", 0, 100, g_ppp_maxiter, g_ppp_ptsnumratio, g_ppp_data_ratio, 4, "pack footprints", this);
+		setDlg.showCheckbox("cap hole", g_ppp_caphole, "run cap hole?");
+		
+		if (setDlg.buttonBox->button(QDialogButtonBox::Ok))
+			setDlg.buttonBox->button(QDialogButtonBox::Ok)->setFocus();
+		if (!setDlg.exec())
 			return;
-		}
-		addToDB(bd_entity, bd_entity->getDBSourceType());
+
+		g_ppp_maxiter = static_cast<int>(setDlg.doubleSpinBox1->value());
+		g_ppp_ptsnumratio = setDlg.doubleSpinBox2->value();
+		g_ppp_data_ratio = setDlg.doubleSpinBox3->value();
+		g_ppp_caphole = setDlg.getCheckboxState();
+	}
+	else if (used_method == "pprepair") {
+	}
+
+	ProgStartNorm("polygon partition", bds.size());
+	try	{
+		for (ccHObject* bd_entity : bds) {
+			bool ret = false;
+			if (used_method == "optimization") {
+				ret = PackFootprints_PPP(bd_entity, g_ppp_maxiter, g_ppp_caphole, g_ppp_ptsnumratio, g_ppp_data_ratio);
+			}
+			else if (used_method == "pprepair")	{
+				ret = PackFootprints_PPRepair(bd_entity);
+			}
+
+			if (ret) {
+				addToDB(bd_entity, bd_entity->getDBSourceType());
+			}
+
+			ProgStepBreak
+		}		
 	}
 	catch (const std::exception& e)	{
 		dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
@@ -14346,7 +14750,7 @@ void MainWindow::doActionBDFootPrintGetPlane()
 					GetPlanesInsideFootPrint(ft, prim_group, s_settings, bVertical, bClearExist);
 				}
 			}
-			ProgStep()
+			ProgStepBreak
 		}
 	}
 	catch (const std::exception& e) {
@@ -14388,7 +14792,7 @@ void MainWindow::doActionBDLoD1Generation()
 	ProgStartNorm("lod1 generation", building_entites.size())
 	for (ccHObject* bd_entity : building_entites) {
 		StBuilding* building = ccHObjectCaster::ToStBuilding(bd_entity);
-		if (!building) { ProgStep() continue; }
+		if (!building) { continue; }
 
 		try {
 			ccHObject* bd_model_obj = LoD1FromFootPrint(building);
@@ -14403,7 +14807,7 @@ void MainWindow::doActionBDLoD1Generation()
 			dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
 			return;
 		}
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 // 	if (entity->isA(CC_TYPES::ST_FOOTPRINT)) {
@@ -14545,12 +14949,12 @@ void MainWindow::doActionBDLoD2Generation()
 						return;
 					}
 				}
-				catch (const std::exception&)
+				catch (...)
 				{
 					continue;
 				}
 				if (m_pbdrSettingLoD2Dlg->PolygonPartitionGroupBox->isChecked()) {
-					PackFootprints(bd_entity, 1);
+					//TODO: 
 				}
 			}
 		}
@@ -14568,13 +14972,19 @@ void MainWindow::doActionBDLoD2Generation()
 			std::cout << e.what() << std::endl;
 			throw(std::runtime_error(e.what()));
 			STOCKER_ERROR_ASSERT(e.what());
-			//continue;
+			ProgStepBreak
+			continue;
+
 			//dispToConsole("[BDRecon] cannot build lod2 model", ERR_CONSOLE_MESSAGE);
 			//dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
 			//return;
 		}
+		catch (...) {
+			ProgStepBreak
+			continue;
+		}
 		//doActionBDProjectSave();
-		ProgStep()
+		ProgStepBreak
 	}
 	ProgEnd
 	refreshAll();
@@ -14660,6 +15070,7 @@ void MainWindow::doActionSettingsLoD2()
 	if (!m_pbdrSettingLoD2Dlg) {
 		m_pbdrSettingLoD2Dlg = new bdrSettingLoD2Dlg(this);
 		m_pbdrSettingLoD2Dlg->setModal(false);
+		m_pbdrSettingLoD2Dlg->setWindowFlags(Qt::WindowStaysOnTopHint);
 	}
 	if (m_pbdrSettingLoD2Dlg->isHidden()) {
 		m_pbdrSettingLoD2Dlg->show();
@@ -14669,6 +15080,7 @@ void MainWindow::doActionSettingsLoD2()
 	}
 }
 
+double g_refineLength = 3.0f;
 void MainWindow::doActionBDTextureMapping()
 {
 	if (!haveSelection()) return;
@@ -14693,15 +15105,29 @@ void MainWindow::doActionBDTextureMapping()
 	}
 	
 	////////////////////////////////////////////////////////////////////////// 
+
+	ccAskThreeDoubleValuesDlg setDlg("refine length", "temp", "temp", -1.0e12, 1.0e12, g_refineLength, 1, 30, 4, "Texture mapping configuration", this);
+	//setDlg.showCheckbox("temp", true, "Get vertical planes?");
+	if (setDlg.buttonBox->button(QDialogButtonBox::Ok))
+		setDlg.buttonBox->button(QDialogButtonBox::Ok)->setFocus();
+	if (!setDlg.exec())
+		return;
+	g_refineLength = setDlg.doubleSpinBox1->value();
+	//s_settings.y = setDlg.doubleSpinBox2->value();
+	//s_settings.z = setDlg.doubleSpinBox3->value();
+	//bool bVertical = setDlg.getCheckboxState();
+
+
 	ProgStart("polygon partition")
 	try
 	{
 		ccHObject::Container bds = GetBuildingEntitiesBySelected(entity);
-		TextureMappingBuildings(bds);
+		TextureMappingBuildings(bds, nullptr, g_refineLength);
 	}
 	catch (const std::exception& e)
 	{
 		dispToConsole(QString::fromStdString(e.what()), ERR_CONSOLE_MESSAGE);
+		ProgEnd
 	}
 	ProgEnd
 }
@@ -14716,9 +15142,18 @@ void MainWindow::doActionBDConstrainedMesh()
 		return;
 	}
 
+	ccAskThreeDoubleValuesDlg paraDlg("rarefy", "temp", "temp", -1.0e12, 1.0e12, -1, 1, 1, 6, "parameters", this);
+	if (!paraDlg.exec()) {
+		return;
+	}
+	double rarefy = paraDlg.doubleSpinBox1->value();
+	//s_last_polyfit_coverage = paraDlg.doubleSpinBox2->value();
+	//s_last_polyfit_complexity = paraDlg.doubleSpinBox3->value();
+
+	ProgStartNorm("generate constrained mesh", plane_container.size())
 	for (auto & planeObj : plane_container) {
 		try	{
-			ccHObject* mesh = ConstrainedMesh(planeObj);
+			ccHObject* mesh = ConstrainedMesh(planeObj, rarefy);
 			if (mesh) {
 				addToDB(mesh, planeObj->getDBSourceType());
 				refreshAll();
@@ -14730,7 +15165,9 @@ void MainWindow::doActionBDConstrainedMesh()
 			dispToConsole("[BDRecon] Constrained mesh failed", ERR_CONSOLE_MESSAGE);
 			return;
 		}
+		ProgStepBreak
 	}
+	ProgEnd
 }
 
 ccHObject * MainWindow::getCameraGroup(QString name)
@@ -14775,11 +15212,15 @@ void MainWindow::doActionShowBestImage()
 		objBox = ccBBox(objBox.getCenter() - objBox.getDiagVec()*scale_box / 2, objBox.getCenter() + objBox.getDiagVec()*scale_box / 2);
 		std::cout << "calc bbox from clouds" << std::endl;
 	}
+
+#ifdef _DEBUG
 	std::cout << "obj_bbox_min: " << objBox.minCorner().x << " " << objBox.minCorner().y << " " << objBox.minCorner().z << std::endl;
 	std::cout << "obj_bbox_max: " << objBox.maxCorner().x << " " << objBox.maxCorner().y << " " << objBox.maxCorner().z << std::endl;
 	std::cout << "up dir: " << glwin->getCurrentUpDir().x << " " << glwin->getCurrentUpDir().y << " " << glwin->getCurrentUpDir().z << std::endl;
+#endif // _DEBUG
 	
 	if (!objBox.isValid()) {
+		std::cout << "cannot deduce object bbox" << std::endl;
 		return;
 	}
 	m_pbdrImagePanel->setObjViewBox(objBox);
@@ -14861,10 +15302,10 @@ void MainWindow::doActionShowSelectedImage()
 	if (sels.empty()) {
 		return;
 	}
-	ccHObject* sel = sels.front();
-	ccCameraSensor* cam = ccHObjectCaster::ToCameraSensor(sel);
+	ccCameraSensor* cam = ccHObjectCaster::ToCameraSensor(sels.front());
 	if (!cam) { return; }
-
+		
+	m_pbdrImagePanel->clearTempProjected();
 	m_pbdrImshow->setImageAndCamera(cam);
 	if (m_pbdrImagePanel->isObjChecked()) {
 		ccBBox box_2d;
@@ -14873,19 +15314,16 @@ void MainWindow::doActionShowSelectedImage()
 			m_pbdrImshow->FromGlobalToImage(m_pbdrImagePanel->getObjViewBox().P(i), b_2d);
 			box_2d.add(b_2d);
 		}
-		if (!box_2d.isValid()) return;
+		if (!box_2d.isValid()) { m_pbdrImshow->ZoomFit(); return; }
 
-		CCVector3d up_3d = m_pbdrImagePanel->getObjViewUpDir();
+		CCVector3d up_2d = m_pbdrImagePanel->getImageViewUpDir();
+		m_pbdrImshow->update2DDisplayZoom(box_2d, up_2d);
 
-		CCVector3 center; m_pbdrImshow->FromGlobalToImage(m_pbdrImagePanel->getObjViewBox().getCenter(), center);
-		CCVector3 to_end;  m_pbdrImshow->FromGlobalToImage(CCVector3::fromArray(up_3d.u) + m_pbdrImagePanel->getObjViewBox().getCenter(), to_end);
-		CCVector3 up_2d = to_end - center; up_2d.normalize();
-		
-		m_pbdrImshow->update2DDisplayZoom(box_2d, CCVector3d::fromArray(up_2d.u));
-
+#ifdef _DEBUG
 		std::cout << "img_bbox_min: " << box_2d.minCorner().x << " " << box_2d.minCorner().y << " " << box_2d.minCorner().z << std::endl;
 		std::cout << "img_bbox_max: " << box_2d.maxCorner().x << " " << box_2d.maxCorner().y << " " << box_2d.maxCorner().z << std::endl;
 		std::cout << "up dir: " << up_2d.x << " " << up_2d.y << " " << up_2d.z << std::endl;
+#endif // _DEBUG
 	}
 	else {
 		m_pbdrImshow->ZoomFit();
@@ -14899,8 +15337,10 @@ void MainWindow::doActionProjectToImage()
 		doActionShowBestImage();
 	}
 	if (m_pbdrImshow->getImage()) {
-		m_pbdrImagePanel->setProjection(m_selectedEntities);
+		m_pbdrImagePanel->addProjection(m_selectedEntities);
 	}
+	m_pbdrImagePanel->ZoomFitProjected();
+	m_pbdrImagePanel->startImageEditMode();
 }
 
 void MainWindow::doActionSelectWorkingPlane()
@@ -15012,7 +15452,7 @@ void MainWindow::doActionOpenDatabase()
 		QFileInfo(currentPath).absolutePath(),
 		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
-	if (!QFileInfo(database_name).exists())	{
+	if (database_name.isEmpty() || !QFileInfo(database_name).exists())	{
 		return;
 	}
 
@@ -15145,37 +15585,13 @@ void MainWindow::addToDatabase(QStringList files, ccHObject * import_pool, bool 
 	}
 }
 
-ccHObject::Container MainWindow::addPointsToDatabase(QStringList files, ccHObject * import_pool, bool remove_exist, bool auto_sort, bool fastLoad)
+ccHObject::Container MainWindow::addPointsToDatabase(QStringList files, ccHObject * import_pool, bool remove_exist, bool auto_sort)
 {
-	ccHObject::Container loaded_files = addToDB(files, CC_TYPES::DB_MAINDB);
+	ccHObject::Container loaded_files = addToDB(files, import_pool->getDBSourceType());
 	ccHObject::Container trans_files;
 	for (ccHObject* lf : loaded_files) {
 		if (!lf) { continue; }
-		if (fastLoad) {
-			if (lf->isA(CC_TYPES::HIERARCHY_OBJECT)) {
-				lf->setName(QFileInfo(lf->getName()).completeBaseName());
-				// TODO: check existing
-				if (remove_exist) {
-					for (size_t i = 0; i < import_pool->getChildrenNumber(); i++) {
-						ccHObject* child = import_pool->getChild(i);
-						if (child->getName() == lf->getName()) {
-							if (child->getPath() == lf->getPath()) {
-								delete child;
-								child = nullptr;
-							}
-							//removeFromDB(child);
-						}
-					}
-				}
-				if (lf->getParent()) {
-					lf->getParent()->transferChild(lf, *import_pool);
-				}
-				else {
-					import_pool->addChild(lf);
-				}
-			}
-			continue;
-		}
+		
 		if (lf->isA(CC_TYPES::HIERARCHY_OBJECT)) {
 			ccHObject::Container loaded_objs;
 			lf->filterChildren(loaded_objs, false, CC_TYPES::POINT_CLOUD, true);
@@ -15197,6 +15613,29 @@ ccHObject::Container MainWindow::addPointsToDatabase(QStringList files, ccHObjec
 		}
 		else if (lf->isA(CC_TYPES::POINT_CLOUD)) {
 			assert(false);//! not happened
+		}
+	}
+
+	if (auto_sort) {
+		db(CC_TYPES::DB_MAINDB)->sortItemChildren(import_pool, ccDBRoot::SORT_A2Z);
+	}
+	return trans_files;
+}
+
+ccHObject::Container MainWindow::addFilesToDatabase(QStringList files, ccHObject * import_pool, bool remove_exist, bool auto_sort)
+{
+	ccHObject::Container loaded_files = addToDB(files, import_pool->getDBSourceType());
+	ccHObject::Container trans_files;
+	for (ccHObject* lf : loaded_files) {
+		if (!lf || !lf->isA(CC_TYPES::HIERARCHY_OBJECT)) { continue; }
+		
+		lf->setName(QFileInfo(lf->getName()).completeBaseName());
+		// TODO: check existing
+		if (lf->getParent()) {
+			lf->getParent()->transferChild(lf, *import_pool);
+		}
+		else {
+			import_pool->addChild(lf);
 		}
 	}
 
@@ -15276,59 +15715,83 @@ void MainWindow::doActionImportData()
 	settings.setValue(ccPS::SelectedInputFilter(), currentOpenDlgFilter);
 	settings.endGroup();
 
-	addPointsToDatabase(selectedFiles, import_pool, true, true, true);
+	addFilesToDatabase(selectedFiles, import_pool, false, false);
 }
 
+inline QStringList _splitString(char* str, const char* seps)
+{
+	QStringList sub_strs;
+	char* token = strtok(str, seps);
+	while (token) {
+		std::string sub(token);
+		sub = sub.substr(0, sub.find_last_of("\t\r\n"));
+		sub_strs << QString::fromStdString(sub);
+		token = strtok(NULL, seps);
+	}
+	return sub_strs;
+}
+
+QStringList g_nameFilters;
 void MainWindow::doActionImportFolder()
 {
-	//! any database?
-	ccHObject* root = db(CC_TYPES::DB_MAINDB)->getRootEntity();
-	ccHObject* current_database = nullptr; ccHObject::Container dbs;
-	for (size_t i = 0; i < root->getChildrenNumber(); i++) {
-		if (isDatabaseProject(root->getChild(i))) {
-			dbs.push_back(root->getChild(i));
-		}
-	}
-	if (dbs.empty()) {
-		return;
-	}
-	if (dbs.size() > 1) {
-		current_database = askUserToSelect(CC_TYPES::ST_PROJECT);
-	}
-	else {
-		current_database = dbs.front();
-	}
-	if (!current_database) { return; }
-
 	if (!haveSelection()) {
 		return;
 	}
+
+	DataBaseHObject* baseObj = getCurrentMainDatabase();
+	if (!baseObj && !m_selectedEntities.front()->isA(CC_TYPES::HIERARCHY_OBJECT)) {
+		dispToConsole("please open a database or create an empty group", ERR_CONSOLE_MESSAGE);
+		return;
+	}
+
 	ccHObject* import_pool = m_selectedEntities.front();
+	if (baseObj) {
+		//TODO: can only select certain types
+	}
+
 	QString dirname = QFileDialog::getExistingDirectory(this,
 		tr("Open Directory"),
 		"",
 		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
-	if (!QFileInfo(dirname).exists()) {
+	if (dirname.isEmpty() || !QFileInfo(dirname).exists()) {
 		return;
 	}
 
-	QStringList files;
-	QStringList nameFilters;
-	// TODO: Dialog settings
-	//if (import_pool->getName() == "pointClouds")
-	nameFilters << "*.las" << "*.laz" << "*.ply" << "*.obj";
-// 	else if (import_pool->getName() == "images") {
-// 		nameFilters << "*.tif" << "*.tiff";
-// 	}
-	//else return;
+	//TODO: data type
+	
+	if (g_nameFilters.isEmpty()) {
+		g_nameFilters << "*.las" << "*.laz" << "*.ply" << "*.obj" << "*.pcd";
+	}
 
-	QDirIterator dir_iter(dirname, nameFilters, QDir::Files | QDir::NoSymLinks | QDir::Readable, QDirIterator::Subdirectories);
+	QString str_name_filter;
+	for (auto str : g_nameFilters) {
+		str_name_filter += str;
+		str_name_filter += ";";
+	}
+	bool isOK;
+	QString text = QInputDialog::getText(NULL, "File filters",
+		"Please input your support file extends",
+		QLineEdit::Normal,
+		str_name_filter,
+		&isOK);
+	if (!isOK) {
+		return;
+	}
+	char char_name_filters[1024];
+	sprintf(char_name_filters, "%s", text.toStdString().c_str());
+	g_nameFilters = _splitString(char_name_filters, ";");
+	if (g_nameFilters.isEmpty()) {
+		return;
+	}
+	
+	QDirIterator dir_iter(dirname, g_nameFilters, QDir::Files | QDir::NoSymLinks | QDir::Readable, QDirIterator::Subdirectories);
+	QStringList files;
 	while (dir_iter.hasNext()) {
 		files.append(dir_iter.next());
 	}
 	
-	addPointsToDatabase(files, import_pool, true, true, true);
+	addFilesToDatabase(files, import_pool, false, false);
 }
 
 void MainWindow::doActionCreateBuildingProject()
@@ -15369,7 +15832,7 @@ void MainWindow::doActionCreateBuildingProject()
 				QFileInfo(currentPath).absolutePath(),
 				QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 		}
-		if (!QFileInfo(project_dir).exists()) { return; }
+		if (project_dir.isEmpty() || !QFileInfo(project_dir).exists()) { return; }
 	}
 
 	//! project name: 
@@ -15403,7 +15866,6 @@ void MainWindow::doActionCreateBuildingProject()
 		}
 	}
 
-	stocker::BlockProj block_prj;
 	stocker::BuilderOption options;
 
 	try
@@ -15476,10 +15938,8 @@ void MainWindow::doActionCreateBuildingProject()
 		options.prj_file.project_ini = bbprj_path.toStdString();
 		options.prj_file.root_dir = project_dir.toStdString();
 		options.prj_file.sfm_out = sfm_out.toStdString();
-
-		block_prj.m_options = options;
-
-		//! save .bbprj	
+		
+		//! save .bbprj
 		stocker::SaveProjectIni(bbprj_path.toStdString(), options);
 	}	
 	catch (const std::exception& e) {
@@ -15509,7 +15969,7 @@ void MainWindow::doActionLoadSubstance()
 	if (!sel) { return; }
 	QStringList files;
 	files.append(sel->getPath());
-	addPointsToDatabase(files, sel, true, false, false);
+	addPointsToDatabase(files, sel, true, false);
 }
 
 inline QString getCmdLine(QString prj_path, QString task_name, int prj_id)
@@ -15655,11 +16115,17 @@ void MainWindow::doActionImageLiDARRegistration()
 	baseObj->m_blkData->getMetaValue(REGISPRJ_PATH_KEY, regis_path);
 	QString xml = QString::fromStdString(regis_path);
 	if (QFileInfo(xml).exists()) {
-		QProcess::execute(exe_path + " " + xml);
+		QProcess::startDetached(exe_path + " " + xml);
 	}
 	else {
 		QMessageBox::critical(this, "Error!", QString::fromLocal8Bit("无法打开配准工程"));
 	}
+}
+
+void MainWindow::doActionRegistrationEditor()
+{
+	QString exe_path = QCoreApplication::applicationDirPath() + "/bin/LiDARPro/lidarPro.exe";
+	QProcess::startDetached(exe_path);
 }
 
 void LoadSettingsFiltering()
@@ -15710,7 +16176,7 @@ void MainWindow::doActionGroundFilteringBatch()
 	QMessageBox *messageBox = new QMessageBox(this);
 	messageBox->setIcon(QMessageBox::Question);
 	messageBox->setWindowTitle(QString::fromLocal8Bit("结果自动返回"));
-	messageBox->setText(QString::fromLocal8Bit("是否等待界面返回滤波结果?"));
+	messageBox->setText(QString::fromLocal8Bit("运算时间可能较长,是否等待界面返回滤波结果?\n别等.. :("));
 	messageBox->addButton(QString::fromLocal8Bit("否"), QMessageBox::RejectRole);
 	messageBox->addButton(QString::fromLocal8Bit("是"), QMessageBox::AcceptRole);
 	bool waitForResult = (messageBox->exec() == QDialog::Accepted);
@@ -15779,7 +16245,7 @@ void MainWindow::doActionClassificationBatch()
 	QMessageBox *messageBox = new QMessageBox(this);
 	messageBox->setIcon(QMessageBox::Question);
 	messageBox->setWindowTitle(QString::fromLocal8Bit("结果自动返回"));
-	messageBox->setText(QString::fromLocal8Bit("是否等待界面返回分类结果?"));
+	messageBox->setText(QString::fromLocal8Bit("运算时间可能较长,是否等待界面返回分类结果?\n别等.. :("));
 	messageBox->addButton(QString::fromLocal8Bit("否"), QMessageBox::RejectRole);
 	messageBox->addButton(QString::fromLocal8Bit("是"), QMessageBox::AcceptRole);
 	bool waitForResult = (messageBox->exec() == QDialog::Accepted);
@@ -15814,6 +16280,22 @@ void MainWindow::doActionClassificationBatch()
 
 void MainWindow::doActionBuildingSegmentationBatch()
 {
+	QStringList methods;
+	methods.append("internal");
+	methods.append("optimized");
+	bool ok;
+	QString used_method = QInputDialog::getItem(this, "Building Segmentation", "method", methods, 0, false, &ok);
+	if (!ok) return;
+
+	if (used_method == "internal") {
+		if (!haveSelection() || !m_selectedEntities[0]->isA(CC_TYPES::POINT_CLOUD))	{
+			QMessageBox::critical(this, "Error", "please select point clouds");
+			return;
+		}
+		doActionLabelConnectedComponents();
+		return;
+	}
+
 	DataBaseHObject* baseObj = getCurrentMainDatabase();
 	if (!baseObj) { ccLog::Error(QString::fromLocal8Bit("请先载入工程!")); return; }
 
@@ -15848,7 +16330,7 @@ void MainWindow::doActionBuildingSegmentationBatch()
 	QMessageBox *messageBox = new QMessageBox(this);
 	messageBox->setIcon(QMessageBox::Question);
 	messageBox->setWindowTitle(QString::fromLocal8Bit("结果自动返回"));
-	messageBox->setText(QString::fromLocal8Bit("是否等待界面返回分割结果?"));
+	messageBox->setText(QString::fromLocal8Bit("运算时间可能较长,是否等待界面返回分割结果?\n别等.. :("));
 	messageBox->addButton(QString::fromLocal8Bit("否"), QMessageBox::RejectRole);
 	messageBox->addButton(QString::fromLocal8Bit("是"), QMessageBox::AcceptRole);
 	bool waitForResult = (messageBox->exec() == QDialog::Accepted);
@@ -15893,7 +16375,7 @@ void MainWindow::doActionPointClassEditor()
 	if (!m_gsTool)
 	{
 		m_gsTool = new ccGraphicalSegmentationTool(this);
-		connect(m_gsTool, &ccOverlayDialog::processFinished, this, &MainWindow::deactivateSegmentationMode);
+		connect(m_gsTool, &ccOverlayDialog::processFinished, this, &MainWindow::deactivatePointClassEditor);
 
 		registerOverlayDialog(m_gsTool, Qt::TopRightCorner);
 	}
@@ -15920,17 +16402,348 @@ void MainWindow::doActionPointClassEditor()
 	disableAllBut(win);
 
 	if (!m_gsTool->start())
-		deactivateSegmentationMode(false);
+		deactivatePointClassEditor(false);
 	else
 		updateOverlayDialogsPlacement();
 }
 
-void MainWindow::deactivatePointClassEditor(bool)
+void MainWindow::deactivatePointClassEditor(bool state)
 {
+	bool deleteHiddenParts = false;
+
+	//shall we apply segmentation?
+	if (state)
+	{
+		ccHObject* firstResult = nullptr;
+
+		deleteHiddenParts = m_gsTool->deleteHiddenParts();
+
+		//aditional vertices of which visibility array should be manually reset
+		std::unordered_set<ccGenericPointCloud*> verticesToReset;
+
+		QSet<ccHObject*>& segmentedEntities = m_gsTool->entities();
+		for (QSet<ccHObject*>::iterator p = segmentedEntities.begin(); p != segmentedEntities.end(); )
+		{
+			ccHObject* entity = (*p);
+
+			if (entity->isKindOf(CC_TYPES::POINT_CLOUD) || entity->isKindOf(CC_TYPES::MESH))
+			{
+				//first, do the things that must absolutely be done BEFORE removing the entity from DB (even temporarily)
+				//bool lockedVertices;
+				ccPointCloud* cloud = ccHObjectCaster::ToPointCloud(entity/*,&lockedVertices*/);
+				assert(cloud);
+				if (cloud)
+				{
+					//assert(!lockedVertices); //in some cases we accept to segment meshes with locked vertices!
+
+					//specific case: labels (do this before temporarily removing 'entity' from DB!)
+					ccHObject::Container labels;
+					if (m_ccRoot)
+					{
+						m_ccRoot->getRootEntity()->filterChildren(labels, true, CC_TYPES::LABEL_2D);
+					}
+					if (m_buildingRoot)
+					{
+						m_buildingRoot->getRootEntity()->filterChildren(labels, true, CC_TYPES::LABEL_2D);
+					}
+					if (m_imageRoot)
+					{
+						m_imageRoot->getRootEntity()->filterChildren(labels, true, CC_TYPES::LABEL_2D);
+					}
+					for (ccHObject::Container::iterator it = labels.begin(); it != labels.end(); ++it)
+					{
+						if ((*it)->isA(CC_TYPES::LABEL_2D)) //Warning: cc2DViewportLabel is also a kind of 'CC_TYPES::LABEL_2D'!
+						{
+							//we must search for all dependent labels and remove them!!!
+							//TODO: couldn't we be more clever and update the label instead?
+							cc2DLabel* label = static_cast<cc2DLabel*>(*it);
+							bool removeLabel = false;
+							for (unsigned i = 0; i < label->size(); ++i)
+							{
+								if (label->getPickedPoint(i).entity() == entity)
+								{
+									removeLabel = true;
+									break;
+								}
+							}
+
+							if (removeLabel && label->getParent())
+							{
+								ccLog::Warning(QString("[Segmentation] Label %1 depends on cloud %2 and will be removed").arg(label->getName(), cloud->getName()));
+								ccHObject* labelParent = label->getParent();
+								ccHObjectContext objContext = removeObjectTemporarilyFromDBTree(labelParent);
+								labelParent->removeChild(label);
+								label = nullptr;
+								putObjectBackIntoDBTree(labelParent, objContext);
+							}
+						}
+					} //for each label
+				} // if (cloud)
+
+				//we temporarily detach the entity, as it may undergo
+				//"severe" modifications (octree deletion, etc.) --> see ccPointCloud::createNewCloudFromVisibilitySelection
+				ccHObjectContext objContext = removeObjectTemporarilyFromDBTree(entity);
+
+				//apply segmentation
+				ccHObject* segmentationResult = nullptr;
+				bool deleteOriginalEntity = deleteHiddenParts;
+				if (entity->isKindOf(CC_TYPES::POINT_CLOUD))
+				{
+					ccGenericPointCloud* genCloud = ccHObjectCaster::ToGenericPointCloud(entity);
+					ccGenericPointCloud* segmentedCloud = genCloud->createNewCloudFromVisibilitySelection(!deleteHiddenParts);
+					if (segmentedCloud && segmentedCloud->size() == 0)
+					{
+						delete segmentationResult;
+						segmentationResult = nullptr;
+					}
+					else
+					{
+						segmentationResult = segmentedCloud;
+					}
+
+					deleteOriginalEntity |= (genCloud->size() == 0);
+				}
+				else if (entity->isKindOf(CC_TYPES::MESH)/*|| entity->isA(CC_TYPES::PRIMITIVE)*/) //TODO
+				{
+					if (entity->isA(CC_TYPES::MESH))
+					{
+						segmentationResult = ccHObjectCaster::ToMesh(entity)->createNewMeshFromSelection(!deleteHiddenParts);
+					}
+					else if (entity->isA(CC_TYPES::SUB_MESH))
+					{
+						segmentationResult = ccHObjectCaster::ToSubMesh(entity)->createNewSubMeshFromSelection(!deleteHiddenParts);
+					}
+
+					deleteOriginalEntity |= (ccHObjectCaster::ToGenericMesh(entity)->size() == 0);
+				}
+
+				if (segmentationResult)
+				{
+					assert(cloud);
+					if (cloud)
+					{
+						//another specific case: sensors (on clouds)
+						for (unsigned i = 0; i < entity->getChildrenNumber(); ++i)
+						{
+							ccHObject* child = entity->getChild(i);
+							assert(child);
+							if (child && child->isKindOf(CC_TYPES::SENSOR))
+							{
+								if (child->isA(CC_TYPES::GBL_SENSOR))
+								{
+									ccGBLSensor* sensor = ccHObjectCaster::ToGBLSensor(entity->getChild(i));
+									//remove the associated depth buffer of the original sensor (derpecated)
+									sensor->clearDepthBuffer();
+									if (deleteOriginalEntity)
+									{
+										//either transfer
+										entity->transferChild(sensor, *segmentationResult);
+									}
+									else
+									{
+										//or copy
+										segmentationResult->addChild(new ccGBLSensor(*sensor));
+									}
+								}
+								else if (child->isA(CC_TYPES::CAMERA_SENSOR))
+								{
+									ccCameraSensor* sensor = ccHObjectCaster::ToCameraSensor(entity->getChild(i));
+									if (deleteOriginalEntity)
+									{
+										//either transfer
+										entity->transferChild(sensor, *segmentationResult);
+									}
+									else
+									{
+										//or copy
+										segmentationResult->addChild(new ccCameraSensor(*sensor));
+									}
+								}
+								else
+								{
+									//unhandled sensor?!
+									assert(false);
+								}
+							}
+						} //for each child
+					}
+					StPrimGroup* prim_group = nullptr;
+					//we must take care of the remaining part
+					if (!deleteHiddenParts)
+					{
+						//no need to put back the entity in DB if we delete it afterwards!
+						if (!deleteOriginalEntity)
+						{
+							//! XYLIU
+							switch (m_gsTool->getSegmentMode())
+							{
+							case ccGraphicalSegmentationTool::SEGMENT_GENERAL:
+								entity->setName(entity->getName() + QString(".remaining"));
+								break;
+							case ccGraphicalSegmentationTool::SEGMENT_PLANE_CREATE:
+							{
+								int biggest = GetMaxNumberExcludeChildPrefix(objContext.parent, BDDB_PLANESEG_PREFIX);
+								segmentationResult->setName(BDDB_PLANESEG_PREFIX + QString::number(biggest + 1));
+								ccPointCloud* segment_cloud = ccHObjectCaster::ToPointCloud(segmentationResult);
+								if (segment_cloud) {
+									segment_cloud->setRGBColor(ccColor::Generator::Random());
+									ccHObject* new_plane = FitPlaneAndAddChild(segment_cloud);
+									if (new_plane) {
+										new_plane->setDisplay_recursive(getActiveGLWindow());
+										SetGlobalShiftAndScale(new_plane);
+										addToDB(new_plane, entity->getDBSourceType());
+									}
+								}
+								break;
+							}
+							case ccGraphicalSegmentationTool::SEGMENT_PLANE_SPLIT:
+							{
+								//! get primitive group
+								StBuilding* cur_building = GetParentBuilding(objContext.parent);
+								if (!cur_building) { break; }
+								BDBaseHObject* baseObj = GetRootBDBase(cur_building);
+								if (!baseObj) { break; }
+								prim_group = baseObj->GetPrimitiveGroup(cur_building->getName());
+								if (!prim_group) { break; }
+
+								int biggest = GetMaxNumberExcludeChildPrefix(prim_group, BDDB_PLANESEG_PREFIX);
+								segmentationResult->setName(BDDB_PLANESEG_PREFIX + QString::number(biggest + 1));
+								ccPointCloud* segment_cloud = ccHObjectCaster::ToPointCloud(segmentationResult);
+								if (segment_cloud) {
+									segment_cloud->setRGBColor(ccColor::Generator::Random());
+									ccHObject* new_plane = FitPlaneAndAddChild(segment_cloud);
+									if (new_plane) {
+										new_plane->setDisplay_recursive(getActiveGLWindow());
+										SetGlobalShiftAndScale(new_plane);
+										addToDB(new_plane, entity->getDBSourceType());
+									}
+								}
+								break;
+							}
+							default:
+								break;
+							}
+							putObjectBackIntoDBTree(entity, objContext);
+						}
+					}
+					else
+					{
+						//keep original name(s)
+						segmentationResult->setName(entity->getName());
+						//! XYLIU
+						if (m_gsTool->getSegmentMode() == ccGraphicalSegmentationTool::SEGMENT_PLANE_CREATE) {
+							ccPointCloud* segment_cloud = ccHObjectCaster::ToPointCloud(segmentationResult);
+							if (segment_cloud) {
+								segment_cloud->setRGBColor(segment_cloud->hasColors() ? segment_cloud->getPointColor(0) : ccColor::Generator::Random());
+								ccHObject* new_plane = FitPlaneAndAddChild(segment_cloud);
+								if (new_plane) addToDB(new_plane, segment_cloud->getDBSourceType(), false, false);
+							}
+						}
+						if (entity->isKindOf(CC_TYPES::MESH) && segmentationResult->isKindOf(CC_TYPES::MESH))
+						{
+							ccGenericMesh* meshEntity = ccHObjectCaster::ToGenericMesh(entity);
+							ccHObjectCaster::ToGenericMesh(segmentationResult)->getAssociatedCloud()->setName(meshEntity->getAssociatedCloud()->getName());
+
+							//specific case: if the sub mesh is deleted afterwards (see below)
+							//then its associated vertices won't be 'reset' by the segmentation tool!
+							if (deleteHiddenParts && meshEntity->isA(CC_TYPES::SUB_MESH))
+							{
+								verticesToReset.insert(meshEntity->getAssociatedCloud());
+							}
+						}
+						assert(deleteOriginalEntity);
+						//deleteOriginalEntity = true;
+					}
+
+					if (prim_group) // XYLIU
+					{
+						objContext.parent = prim_group;
+					}
+					else if (segmentationResult->isA(CC_TYPES::SUB_MESH))
+					{
+						//for sub-meshes, we have no choice but to use its parent mesh!
+						objContext.parent = static_cast<ccSubMesh*>(segmentationResult)->getAssociatedMesh();
+					}
+					else
+					{
+						//otherwise we look for first non-mesh or non-cloud parent
+						while (objContext.parent && (objContext.parent->isKindOf(CC_TYPES::MESH) || objContext.parent->isKindOf(CC_TYPES::POINT_CLOUD)))
+						{
+							objContext.parent = objContext.parent->getParent();
+						}
+					}
+
+					if (objContext.parent)
+					{
+						objContext.parent->addChild(segmentationResult); //FiXME: objContext.parentFlags?
+					}
+
+					segmentationResult->setDisplay_recursive(getActiveGLWindow());
+					segmentationResult->prepareDisplayForRefresh_recursive();
+					SetGlobalShiftAndScale(segmentationResult);
+
+					addToDB(segmentationResult, entity->getDBSourceType(), false, false);
+
+					if (!firstResult)
+					{
+						firstResult = segmentationResult;
+					}
+				}
+				else if (!deleteOriginalEntity)
+				{
+					//ccConsole::Error("An error occurred! (not enough memory?)");
+					putObjectBackIntoDBTree(entity, objContext);
+				}
+
+				if (deleteOriginalEntity)
+				{
+					p = segmentedEntities.erase(p);
+
+					delete entity;
+					entity = nullptr;
+				}
+				else
+				{
+					++p;
+				}
+			}
+		}
+
+		//specific actions
+		{
+			for (ccGenericPointCloud *cloud : verticesToReset)
+			{
+				cloud->resetVisibilityArray();
+			}
+		}
+
+		if (firstResult) {
+			setSelectedInDB(firstResult, true);
+		}
+	}
+
+	if (m_gsTool)
+	{
+		m_gsTool->removeAllEntities(!deleteHiddenParts);
+	}
+
+	//we enable all GL windows
+	enableAll();
+
+	freezeUI(false);
+
+	updateUI();
+
+	ccGLWindow* win = getActiveGLWindow();
+	if (win)
+	{
+		win->redraw();
+	}
 }
 
 void MainWindow::doActionBuildingSegmentEditor()
 {
+	QMessageBox::information(this, "warning", "this tool is not finished yet, crash maybe...");
 	ccGLWindow* win = getActiveGLWindow();
 	if (!win)
 		return;
@@ -16014,7 +16827,7 @@ void MainWindow::deactivateBuildingSegmentEditor(bool state)
 
 void MainWindow::doAactionSettingsGroundFiltering()
 {
-	if (!m_pbdrSettingBDSegDlg) { m_pbdrSettingBDSegDlg = new bdrSettingBDSegDlg(this); }
+	if (!m_pbdrSettingGrdFilterDlg) { m_pbdrSettingGrdFilterDlg = new bdrSettingGrdFilterDlg(this); }
 	m_pbdrSettingGrdFilterDlg->setModal(false);
 	if (m_pbdrSettingGrdFilterDlg->isHidden()) {
 		m_pbdrSettingGrdFilterDlg->show();
@@ -16026,6 +16839,7 @@ void MainWindow::doAactionSettingsGroundFiltering()
 
 void MainWindow::doActionSettingsClassification()
 {
+	QMessageBox::information(this, "Info", "nothing to config...under construction");
 }
 
 void MainWindow::doActionSettingsBuildingSeg()
@@ -16050,6 +16864,9 @@ void MainWindow::doActionScheduleProjectID()
 			base->m_blkData->projHdr().projectID = getint;
 		}
 	}
+	else {
+		QMessageBox::warning(this, "Warning", "please load a project");
+	}
 }
 
 void MainWindow::doActionScheduleGCServer()
@@ -16066,10 +16883,40 @@ void MainWindow::doActionScheduleGCNode()
 
 void MainWindow::doActionClearEmptyItems()
 {
-// 	if (!haveSelection()) {
-// 		return;
-// 	}
-// 	ccHObject* sel = m_selectedEntities.front();
+	
+	if (!haveSelection()) {
+ 		return;
+ 	}
+ 	ccHObject* sel = m_selectedEntities.front();
+	ccHObject::Container blocks;
+	sel->filterChildren(blocks, true, CC_TYPES::ST_BLOCK, true);
+	for (ccHObject* blk : blocks) {
+		StBlock* blkObj = ccHObjectCaster::ToStBlock(blk); if (!blkObj) continue;
+
+		ccPlane* plane = blkObj->getMainPlane();
+		if (!plane) {
+			continue;
+		}
+		ccFacet* bot = blkObj->getBottomFacet();
+		std::vector<CCVector3> prof = bot->getContour()->getPoints(false);
+		plane->setProfile(prof);
+	}
+
+	ccHObject::Container fps;
+	sel->filterChildren(fps, true, CC_TYPES::ST_FOOTPRINT, true);
+	for (ccHObject* fp : fps) {
+		StFootPrint* fpObj = ccHObjectCaster::ToStFootPrint(fp); if (!fp) continue;
+
+		std::vector<CCVector3> contour = fpObj->getPoints(false);
+		stocker::Contour2d pts;
+		for (CCVector3 p : contour)	{
+			pts.push_back({ p.x, p.y });
+		}
+		if (!stocker::IsCounterClockWise(pts)) {
+			fpObj->reverseVertexOrder();
+		}
+	}
+
 // 
 // 	ccHObject::Container children;
 // 	sel->filterChildren(children, true);

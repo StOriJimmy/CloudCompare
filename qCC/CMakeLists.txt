@@ -79,6 +79,11 @@ else()
 	target_link_contrib( ${PROJECT_NAME} ${CLOUDCOMPARE_DEST_FOLDER} )
 endif()
 
+if (OPTION_BBRELEASE)
+	add_definitions(-DBBRELEASE)
+	#set_property( TARGET ${PROJECT_NAME} APPEND PROPERTY COMPILE_DEFINITIONS BBRELEASE )
+endif()
+
 # 3dConnexion devices support
 if ( ${OPTION_SUPPORT_3DCONNEXION_DEVICES} )
 	target_link_3DXWARE( ${PROJECT_NAME} )

@@ -77,11 +77,27 @@ ccPointCloud * AddPointsAsPlane(std::vector<T> points, QString name, ccColor::Rg
 
 ccPointCloud* AddSegmentsAsPlane(stocker::Polyline3d lines, QString lines_prefix, ccColor::Rgb col, ccHObject* _exist_cloud = nullptr);
 
-ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, int min_pts, double distance_epsilon, double seed_raius, double growing_radius, double merge_threshold = -1, double split_threshold = -1);
-ccHObject* PlaneSegmentationRansac(ccHObject* entity, int min_pts, double distance_epsilon, double seed_raius, double normal_threshold, double ransac_probability, double merge_threshold = -1, double split_threshold = -1, ccPointCloud* todo_cloud = nullptr);
-ccHObject * PlaneSegmentationATPS(ccHObject * entity, ccPointCloud * todo_cloud, bool* iter_times = nullptr,
+ccPolyline * AddPolygonAsPolyline(stocker::Contour3d points, QString name, ccColor::Rgb col, bool close);
+
+ccPolyline * AddPolygonAsPolyline(stocker::Polyline3d polygon, QString name, ccColor::Rgb col, bool close);
+
+StPrimGroup * LoadPlaneParaAsPrimtiveGroup(ccPointCloud * entity_cloud, ccPointCloud * todo_cloud);
+
+ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, bool overwrite,
+	int min_pts, double distance_epsilon, double seed_raius, double growing_radius,
+	double merge_threshold = -1, double split_threshold = -1);
+
+ccHObject* PlaneSegmentationRansac(ccHObject* entity, bool overwrite, ccPointCloud* todo_cloud,
+	int min_pts, double distance_epsilon, double seed_raius, double normal_threshold, double ransac_probability,
+	double merge_threshold = -1, double split_threshold = -1);
+
+ccHObject * PlaneSegmentationATPS(ccHObject * entity, bool overwrite, ccPointCloud * todo_cloud, 
+	bool* iter_times = nullptr,
 	int* kappa_t = nullptr, double* delta_t = nullptr, double* tau_t = nullptr, 
 	double* gamma_t = nullptr, double* epsilon_t = nullptr, double* theta_t = nullptr);
+
+//! mode = 0, area, mode = 1, perimeter of convex hull, 
+void CalculatePlaneQuality(ccHObject::Container primObjs, int mode);
 
 void RetrieveUnassignedPoints(ccHObject * original_cloud, ccHObject * prim_group, ccPointCloud * todo_point);
 void RetrieveAssignedPoints(ccPointCloud * todo_cloud, ccPointCloud * plane_cloud, double distance_threshold);
@@ -97,9 +113,9 @@ ccHObject* PlaneFrameLineGrow(ccHObject* planeObj, double alpha, double intersec
 
 bool FastPlanarTextureMapping(ccHObject * planeObj);
 
-bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices = nullptr);
+bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices = nullptr, double refine_length = 3);
 
-ccHObject * ConstrainedMesh(ccHObject * planeObj);
+ccHObject * ConstrainedMesh(ccHObject * planeObj, int rare_pts = -1);
 
 ccHObject::Container GenerateFootPrints_PP(ccHObject * prim_group, double ground);
 
@@ -109,7 +125,11 @@ ccHObject * LoD1FromFootPrint(ccHObject * buildingObj);
 
 ccHObject * LoD2FromFootPrint(ccHObject * entity);
 
-bool PackFootprints(ccHObject * buildingObj, int method);
+ccHObject::Container PackPolygons(ccHObject::Container polygonEntites, int sample);
+
+bool PackFootprints_PPP(ccHObject * buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio);
+
+bool PackFootprints_PPRepair(ccHObject * buildingObj);
 
 //! settings.x - xybias, y - zbias, z - minPts
 void GetPlanesInsideFootPrint(ccHObject * footprint, ccHObject * prim_group, CCVector3 settings, bool bVertical, bool clearExisting);
