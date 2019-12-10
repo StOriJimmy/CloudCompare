@@ -2374,15 +2374,17 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 		std::vector<std::vector<Contour3d>> layers_planes_points;
 		std::vector<stocker::Contour3d> footprints_points;
 		IndexVector footprints_original_index;
+		
 		for (size_t i = 0; i < footprints.size(); ++i) {
 			StFootPrint* ftObj = ccHObjectCaster::ToStFootPrint(footprints[i]);
 			QStringList plane_names = ftObj->getPlaneNames();
 			std::vector<Contour3d> planes_points;
 			for (auto & pl_name : plane_names) {
 				ccPlane* pl_entity = prim_group_obj->getPlaneByName(pl_name); if (!pl_entity) continue;
-				if (isVertical(pl_entity, 15)) continue;
-				ccPointCloud* plane_cloud = GetPlaneCloud(pl_entity); if (!plane_cloud) continue;
-				planes_points.push_back(GetPointsFromCloud3d(plane_cloud));
+				if (!isVertical(pl_entity, 15)) {
+					ccPointCloud* plane_cloud = GetPlaneCloud(pl_entity); if (!plane_cloud) continue;
+					planes_points.push_back(GetPointsFromCloud3d(plane_cloud));
+				}
 			}
 			layers_planes_points.push_back(planes_points);
 
@@ -2395,6 +2397,21 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 			footprints_points.push_back(ft_pts);
 			footprints_original_index.push_back(i);
 		}
+
+		std::vector<stocker::Seg2d> facade_projected;
+		ccHObject::Container all_planes = prim_group_obj->getValidPlanes();
+		for (ccHObject* planeEnt : all_planes) {
+			ccPlane* planeObj = ccHObjectCaster::ToPlane(planeEnt); if (!planeObj) continue;
+			if (isVertical(planeObj, 15)) {
+				std::vector<CCVector3> profile = planeObj->getProfile();
+				stocker::Contour2d profile_pts_proj;
+				for (auto pt : profile) { profile_pts_proj.push_back(stocker::Vec2d(pt.x, pt.y)); }
+				stocker::Seg2d seg;
+				double seg_q = stocker::FitSegment2d(profile_pts_proj, seg);
+				if (_finite(seg_q)) facade_projected.push_back(seg);
+			}
+		}
+
 		std::vector<stocker::Contour3d> footprints_points_pp;
 		IndexVector footprints_pp_index;
 		{
@@ -2428,6 +2445,12 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 
 			//TODO: should give outlines rather than polygons
 			poly_partition.setPolygon(polygons, polygons_points);
+
+			stocker::SimpleSaveToPly("d:/projected.ply", Contour3d(), ToPolyline3d(facade_projected));
+			stocker::Polyline2d facade_clustered = stocker::ClusterSegments(facade_projected, 1, 0.1);
+			stocker::SimpleSaveToPly("d:/clustered.ply", Contour3d(), ToPolyline3d(facade_clustered));
+			poly_partition.setFacades(facade_clustered);
+
 			if (!poly_partition.runBP()) {
 				return false;
 			}
