@@ -127,6 +127,9 @@ ccHObject * LoD2FromFootPrint(ccHObject * entity);
 
 ccHObject::Container PackPolygons(ccHObject::Container polygonEntites, int sample);
 
+bool PackPlaneFrames(ccHObject * buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio,
+	double ints_thre, double cluster_hori, double cluster_verti);
+
 bool PackFootprints_PPP(ccHObject * buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio);
 
 bool PackFootprints_PPRepair(ccHObject * buildingObj);
