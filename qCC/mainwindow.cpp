@@ -275,11 +275,11 @@ MainWindow::MainWindow()
 	m_UI->actionFullScreen->setShortcut( QKeySequence( Qt::CTRL + Qt::META + Qt::Key_F ) );
 #endif
 
-#ifdef BBRelease
+#ifdef BBRELEASE
 	m_UI->menuHelp->menuAction()->setVisible(false);
 	m_UI->menu3DViews->menuAction()->setVisible(false);
 	m_UI->menuTools->menuAction()->setVisible(false);
-#endif // BBRelease
+#endif // BBRELEASE
 
 	// Set up dynamic menus
 	m_UI->menuFile->insertMenu(m_UI->actionSave, m_recentFiles->menu());
@@ -647,9 +647,9 @@ void MainWindow::initPlugins( )
 	// Set up dynamic menus
 	m_UI->menubar->insertMenu( m_UI->menu3DViews->menuAction(), m_pluginUIManager->pluginMenu() );
 	m_UI->menuDisplay->insertMenu( m_UI->menuActiveScalarField->menuAction(), m_pluginUIManager->shaderAndFilterMenu() );
-#ifdef BBRelease
+#ifdef BBRELEASE
 	m_pluginUIManager->pluginMenu()->menuAction()->setVisible(false);
-#endif // BBRelease
+#endif // BBRELEASE
 
 // 	m_UI->menuToolbars->addAction( m_pluginUIManager->actionShowMainPluginToolbar() );
 // 	m_UI->menuToolbars->addAction( m_pluginUIManager->actionShowGLFilterToolbar() );
@@ -13459,18 +13459,18 @@ void MainWindow::doActionBDPrimPlaneFrame()
 	QString used_method = QInputDialog::getItem(this, "Boundary extraction", "method", methods, 0, false, &ok);
 	if (!ok) return;
 
+	double linegrow_alpha(0.5), linegrow_intersection(1), linegrow_minpts(10);
+	if (used_method == "linegrow") {		
+		ccAskThreeDoubleValuesDlg paraDlg("alpha", "intersection", "minpts", 0, 1.0e12, linegrow_alpha, linegrow_intersection, linegrow_minpts, 6, "line grow", this);
+		if (!paraDlg.exec()) {
+			return;
+		}
+	}
+
 	ccHObject *entity = getSelectedEntities().front();
 
 	BDBaseHObject* baseObj = GetRootBDBase(entity);
 	if (!baseObj) {
-
-		double sample = 3;
-		if (used_method == "linegrow") {
-			bool ok = true;
-			sample = QInputDialog::getDouble(this, "Input Param", "point line distance", 3, 0.0, 999999.0, 1, &ok);
-			if (!ok) return;
-		} 
-
 		ccHObject::Container polygons = GetEnabledObjFromGroup(entity, CC_TYPES::POLY_LINE, true, true);
 
 		for (ccHObject* polygon : polygons)	{
@@ -13481,7 +13481,7 @@ void MainWindow::doActionBDPrimPlaneFrame()
 				contours.push_back(plane_unit.convex_hull_prj);
 			}
 			else if (used_method == "linegrow")	{
-				stocker::PolygonGeneralizationLineGrow_Contour(stocker::ToContour(poly, 3), contours, 0, 0, sample);
+				stocker::PolygonGeneralizationLineGrow_Contour(stocker::ToContour(poly, 3), contours, 0, false, linegrow_intersection);
 			}
 
 			if (contours.empty()) continue;
@@ -13506,12 +13506,7 @@ void MainWindow::doActionBDPrimPlaneFrame()
 	for (auto & planeObj : plane_container) {
 		try	{
 			if (used_method == "linegrow") {
-				double alpha(0.5), intersection(1), minpts(10);
-				ccAskThreeDoubleValuesDlg paraDlg("alpha", "intersection", "minpts", 0, 1.0e12, alpha, intersection, minpts, 6, "line grow", this);
-				if (!paraDlg.exec()) {
-					return;
-				}
-				ccHObject* frame = PlaneFrameLineGrow(planeObj, alpha, intersection, minpts);
+				ccHObject* frame = PlaneFrameLineGrow(planeObj, linegrow_alpha, linegrow_intersection, linegrow_minpts);
 				if (frame) { SetGlobalShiftAndScale(frame); addToDB(frame, planeObj->getDBSourceType(), false, false); }
 			}
 			else if (used_method == "optimization") {
@@ -13532,8 +13527,8 @@ void MainWindow::doActionBDPrimPlaneFrame()
 				if (frame) { SetGlobalShiftAndScale(frame); addToDB(frame, planeObj->getDBSourceType(), false, false); }
 			}
 		}
-		catch (const std::runtime_error& e)	{
-			dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
+		catch (...)	{
+			ProgEnd
 			return;
 		}
 		ProgStepBreak
@@ -14646,9 +14641,88 @@ bool g_ppp_caphole = true;
 void MainWindow::doActionBDFootPrintPack()
 {
 	if (!haveSelection()) return;
-	ccHObject* entity = getSelectedEntities().front();
-	BDBaseHObject* baseObj = GetRootBDBase(entity);
-	if (!baseObj) {
+	ccHObject* entity = getSelectedEntities().front(); if (!entity) return;
+
+	QStringList methods;
+	methods.append("planeframe");
+	methods.append("footprint");
+	methods.append("polyline");
+	bool ok;
+	QString pack_type = QInputDialog::getItem(this, "planar polygon partition", "type", methods, 0, false, &ok);
+	if (!ok) return;
+
+	QString used_method = "optimization";
+	if (used_method == "optimization") {
+		ccAskThreeDoubleValuesDlg setDlg("max iter", "ptsnum ratio(0-1)", "data ratio(0-1)", 0, 100, g_ppp_maxiter, g_ppp_ptsnumratio, g_ppp_data_ratio, 4, "pack footprints", this);
+		setDlg.showCheckbox("cap hole", g_ppp_caphole, "run cap hole?");
+
+		if (setDlg.buttonBox->button(QDialogButtonBox::Ok))
+			setDlg.buttonBox->button(QDialogButtonBox::Ok)->setFocus();
+		if (!setDlg.exec())
+			return;
+
+		g_ppp_maxiter = static_cast<int>(setDlg.doubleSpinBox1->value());
+		g_ppp_ptsnumratio = setDlg.doubleSpinBox2->value();
+		g_ppp_data_ratio = setDlg.doubleSpinBox3->value();
+		g_ppp_caphole = setDlg.getCheckboxState();
+	}
+	else if (used_method == "pprepair") {
+	}
+
+	if (pack_type == "planeframe") {
+		ccHObject::Container bds = GetBuildingEntitiesBySelected(entity);
+		if (bds.empty()) { return; }
+		ProgStartNorm("polygon partition", bds.size());
+		for (ccHObject* bd_entity : bds) {
+			bool ret(false);
+			try {
+				ret = PackPlaneFrames(bd_entity, 
+					g_ppp_maxiter, g_ppp_caphole, g_ppp_ptsnumratio, g_ppp_data_ratio,
+					1, 1, 0.1);
+			}
+			catch (const std::exception& e) {
+				STOCKER_ERROR_ASSERT(e.what());
+				ProgStepBreak
+			}
+			catch (...) {
+				ProgStepBreak
+			}
+			if (ret) {
+				addToDB(bd_entity, bd_entity->getDBSourceType());
+			}
+			ProgStepBreak
+		}
+		ProgEnd
+	}
+	else if (pack_type == "footprint") {
+		ccHObject::Container bds = GetBuildingEntitiesBySelected(entity);
+		if (bds.empty()) { return; }
+
+		ProgStartNorm("polygon partition", bds.size());
+		try {
+			for (ccHObject* bd_entity : bds) {
+				bool ret = false;
+				if (used_method == "optimization") {
+					ret = PackFootprints_PPP(bd_entity, g_ppp_maxiter, g_ppp_caphole, g_ppp_ptsnumratio, g_ppp_data_ratio);
+				}
+				else if (used_method == "pprepair") {
+					ret = PackFootprints_PPRepair(bd_entity);
+				}
+
+				if (ret) {
+					addToDB(bd_entity, bd_entity->getDBSourceType());
+				}
+
+				ProgStepBreak
+			}
+		}
+		catch (const std::exception& e) {
+			dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
+			return;
+		}
+		ProgEnd
+	}
+	else if (pack_type == "polyline") {
 		bool ok = true;
 		int sample = QInputDialog::getInt(this, "Parameters", "Please input sampling distance", 100, 0, 999999, 1, &ok);
 		if (!ok) return;
@@ -14666,62 +14740,15 @@ void MainWindow::doActionBDFootPrintPack()
 		addToDB(new_group, entity->getDBSourceType());
 
 		ProgEnd
-		return;
 	}
-
-	ccHObject::Container bds = GetBuildingEntitiesBySelected(entity);
-	if (bds.empty()) {
-		return;
-	}
-
-	QStringList methods;
-	methods.append("optimization");
-	methods.append("pprepair");
 	
-	bool ok;
-	QString used_method = QInputDialog::getItem(this, "Pack Footprint", "method", methods, 0, false, &ok);
-	if (!ok) return;
 
-	if (used_method == "optimization") {
-		ccAskThreeDoubleValuesDlg setDlg("max iter", "ptsnum ratio(0-1)", "data ratio(0-1)", 0, 100, g_ppp_maxiter, g_ppp_ptsnumratio, g_ppp_data_ratio, 4, "pack footprints", this);
-		setDlg.showCheckbox("cap hole", g_ppp_caphole, "run cap hole?");
-		
-		if (setDlg.buttonBox->button(QDialogButtonBox::Ok))
-			setDlg.buttonBox->button(QDialogButtonBox::Ok)->setFocus();
-		if (!setDlg.exec())
-			return;
-
-		g_ppp_maxiter = static_cast<int>(setDlg.doubleSpinBox1->value());
-		g_ppp_ptsnumratio = setDlg.doubleSpinBox2->value();
-		g_ppp_data_ratio = setDlg.doubleSpinBox3->value();
-		g_ppp_caphole = setDlg.getCheckboxState();
-	}
-	else if (used_method == "pprepair") {
-	}
-
-	ProgStartNorm("polygon partition", bds.size());
-	try	{
-		for (ccHObject* bd_entity : bds) {
-			bool ret = false;
-			if (used_method == "optimization") {
-				ret = PackFootprints_PPP(bd_entity, g_ppp_maxiter, g_ppp_caphole, g_ppp_ptsnumratio, g_ppp_data_ratio);
-			}
-			else if (used_method == "pprepair")	{
-				ret = PackFootprints_PPRepair(bd_entity);
-			}
-
-			if (ret) {
-				addToDB(bd_entity, bd_entity->getDBSourceType());
-			}
-
-			ProgStepBreak
-		}		
-	}
-	catch (const std::exception& e)	{
-		dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
-		return;
-	}
-	ProgEnd
+// 	QStringList methods;
+// 	methods.append("optimization");
+// 	methods.append("pprepair");
+// 	bool ok;
+//	QString used_method = QInputDialog::getItem(this, "Pack Footprint", "method", methods, 0, false, &ok);
+// 	if (!ok) return;
 
 	refreshAll();
 	UpdateUI();
