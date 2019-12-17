@@ -2371,7 +2371,7 @@ bool PackPlaneFrames(ccHObject* buildingObj, int max_iter, bool cap_hole, double
 		horizontal_planes = GetNonVerticalPlaneClouds(prim_group_obj, 15, &vertical_planes);
 
 		//! generate intersection lines
-		stocker::PlaneData plane_units;
+		//stocker::PlaneData plane_units;
 		std::vector<stocker::Contour3d> planes_points;
 		std::vector<stocker::Polyline3d> planes_frames;
 		IndexVector planes_original_index;
@@ -2395,27 +2395,29 @@ bool PackPlaneFrames(ccHObject* buildingObj, int max_iter, bool cap_hole, double
 			if (outline_points.size() < 3) continue;
 			
 			planes_frames.push_back(MakeLoopPolylinefromContour(outline_points));
-			plane_units.push_back(FormPlaneUnit(cur_plane_points, plane_entity->getName().toStdString(), true));
+			//plane_units.push_back(FormPlaneUnit(cur_plane_points, plane_entity->getName().toStdString(), true));
 			planes_points.push_back(cur_plane_points);
 			planes_original_index.push_back(i);
 		}
 
-		stocker::Polyline3d intersections;
-		for (size_t i = 0; i < plane_units.size() - 1; i++)	{
-			for (size_t j = i + 1; j < plane_units.size(); j++) {
-				stocker::Seg3d ints_seg;
-				if (stocker::IntersectionPlanePlaneStrict(plane_units[i], plane_units[j], ints_seg, ints_thre)) {
-					intersections.push_back(ints_seg);
-				}
-			}
-		}
-		stocker::SimpleSaveToPly("d:/ints_original.ply",Contour3d(), intersections);
-		intersections = ClusterSegments(intersections, cluster_hori, cluster_verti);
-		stocker::SimpleSaveToPly("d:/ints_clustered.ply", Contour3d(), intersections);
+// 		stocker::Polyline3d intersections;
+// 		for (size_t i = 0; i < plane_units.size() - 1; i++)	{
+// 			for (size_t j = i + 1; j < plane_units.size(); j++) {
+// 				stocker::Seg3d ints_seg;
+// 				if (stocker::IntersectionPlanePlaneStrict(plane_units[i], plane_units[j], ints_seg, ints_thre)) {
+// 					intersections.push_back(ints_seg);
+// 				}
+// 			}
+// 		}
+// 		stocker::SimpleSaveToPly("d:/ints_original.ply",Contour3d(), intersections);
+		//Polyline2d ints_2d = ToPolyline2d(intersections);
+		//facade_projected.insert(facade_projected.end(), ints_2d.begin(), ints_2d.end());
+		//intersections = ClusterSegments(intersections, cluster_hori, cluster_verti);
+		//stocker::SimpleSaveToPly("d:/ints_clustered.ply", Contour3d(), intersections);
 
 		std::vector<stocker::Seg2d> facade_projected;
 		for (ccHObject* planeEnt : vertical_planes) {
-			ccPlane* planeObj = ccHObjectCaster::ToPlane(planeEnt); if (!planeObj) continue;
+			ccPlane* planeObj = GetPlaneFromPlaneOrCloud(planeEnt); if (!planeObj) continue;
 			std::vector<CCVector3> profile = planeObj->getProfile();
 			stocker::Contour2d profile_pts_proj;
 			for (auto pt : profile) { profile_pts_proj.push_back(stocker::Vec2d(pt.x, pt.y)); }
@@ -2424,9 +2426,8 @@ bool PackPlaneFrames(ccHObject* buildingObj, int max_iter, bool cap_hole, double
 			if (_finite(seg_q)) facade_projected.push_back(seg);
 		}
 
-		stocker::SimpleSaveToPly("d:/facade_projected.ply", Contour3d(), ToPolyline3d(facade_projected));
+		
 		facade_projected = stocker::ClusterSegments(facade_projected, cluster_hori, cluster_verti);
-		stocker::SimpleSaveToPly("d:/facade_clustered.ply", Contour3d(), ToPolyline3d(facade_projected));
 
 		std::vector<stocker::Contour3d> result_planes_frames;
 		IndexVector result_planes_index;
@@ -2448,7 +2449,7 @@ bool PackPlaneFrames(ccHObject* buildingObj, int max_iter, bool cap_hole, double
 
 			//TODO: should give outlines rather than polygons
 			poly_partition.setPolygon(planes_frames, planes_points);
-			
+
 			poly_partition.setFacades(facade_projected);
 
 			if (!poly_partition.runBP()) {

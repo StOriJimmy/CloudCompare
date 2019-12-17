@@ -275,11 +275,11 @@ MainWindow::MainWindow()
 	m_UI->actionFullScreen->setShortcut( QKeySequence( Qt::CTRL + Qt::META + Qt::Key_F ) );
 #endif
 
-#ifdef BBRelease
+#ifdef BBRELEASE
 	m_UI->menuHelp->menuAction()->setVisible(false);
 	m_UI->menu3DViews->menuAction()->setVisible(false);
 	m_UI->menuTools->menuAction()->setVisible(false);
-#endif // BBRelease
+#endif // BBRELEASE
 
 	// Set up dynamic menus
 	m_UI->menuFile->insertMenu(m_UI->actionSave, m_recentFiles->menu());
@@ -647,9 +647,9 @@ void MainWindow::initPlugins( )
 	// Set up dynamic menus
 	m_UI->menubar->insertMenu( m_UI->menu3DViews->menuAction(), m_pluginUIManager->pluginMenu() );
 	m_UI->menuDisplay->insertMenu( m_UI->menuActiveScalarField->menuAction(), m_pluginUIManager->shaderAndFilterMenu() );
-#ifdef BBRelease
+#ifdef BBRELEASE
 	m_pluginUIManager->pluginMenu()->menuAction()->setVisible(false);
-#endif // BBRelease
+#endif // BBRELEASE
 
 // 	m_UI->menuToolbars->addAction( m_pluginUIManager->actionShowMainPluginToolbar() );
 // 	m_UI->menuToolbars->addAction( m_pluginUIManager->actionShowGLFilterToolbar() );
