@@ -1145,6 +1145,8 @@ CC_FILE_ERROR BinFilter::LoadFileV2(QFile& in, ccHObject& container, int flags)
 	{
 		//transfer children to container
 		root->transferChildren(container, true);
+		container.setMetaData(root->metaData(), true);
+
 		delete root;
 		root = nullptr;
 	}
