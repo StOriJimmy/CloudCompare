@@ -113,7 +113,11 @@ ccHObject* PlaneFrameLineGrow(ccHObject* planeObj, double alpha, double intersec
 
 bool FastPlanarTextureMapping(ccHObject * planeObj);
 
-bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices = nullptr, double refine_length = 3);
+bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices = nullptr,
+	double refine_length = 3, double sampling_grid = 0.5f, int max_view = 3);
+
+bool TextureMappingPlanes(ccHObject::Container primObjs, stocker::IndexVector* task_indices = nullptr, 
+	double refine_length = 3, double sampling_grid = -1.0f, int max_view = 3);
 
 ccHObject * ConstrainedMesh(ccHObject * planeObj, int rare_pts = -1);
 
@@ -132,6 +136,9 @@ bool PackPlaneFrames(ccHObject * buildingObj, int max_iter, bool cap_hole, doubl
 
 bool PackFootprints_PPP(ccHObject * buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio);
 
+ccHObject* LoD2FromFootPrint_PPP(ccHObject * entity, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio,
+	double ints_thre, double cluster_hori, double cluster_verti);
+
 bool PackFootprints_PPRepair(ccHObject * buildingObj);
 
 //! settings.x - xybias, y - zbias, z - minPts
@@ -142,6 +149,8 @@ ccHObject::Container LoadMeshAsBlock(QString filename);
 StBuilding * GetParentBuilding(ccHObject * obj);
 
 ccPointCloud * GetPlaneCloud(ccHObject * planeObj);
+
+std::vector<stocker::Outline3d> GetPlanarOutlines(ccHObject * entity, QString prefix);
 
 bool SetGlobalShiftAndScale(ccHObject * obj);
 

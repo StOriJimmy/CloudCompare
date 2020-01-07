@@ -126,6 +126,20 @@ inline char *GetFileDirectory(const char* filename) {
 #undef IS_SEP  
 }
 
+inline std::vector<std::string> _splitString(char* str, const char* seps)
+{
+	std::vector<std::string> sub_strs;
+	char* token = strtok(str, seps);
+	while (token) {
+		std::string sub(token);
+		sub = sub.substr(0, sub.find_last_of("\t\r\n"));
+		sub_strs.push_back(sub);
+		token = strtok(NULL, seps);
+	}
+	return sub_strs;
+}
+
+
 //#include <ShObjIdl.h>
 //#include <ShlGuid.h>
 //inline bool GetShortcutFile(LPCTSTR shortcutpath, TCHAR* objectpath){

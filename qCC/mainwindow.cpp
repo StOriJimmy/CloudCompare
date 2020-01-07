@@ -12447,6 +12447,24 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 	}
 	//! prepare buildings now
 	if (bd_grp) {
+		bool has_global_shift = bd_grp->hasMetaData("global_shift");
+		bool has_global_scale = bd_grp->hasMetaData("global_scale");
+		if (has_global_shift) {
+			QString str = bd_grp->getMetaData("global_shift").toString();
+			char char_str[256]; sprintf(char_str, "%s", str.toStdString().c_str());
+			QStringList vecs = _splitStringQ(char_str, ";");
+			has_global_shift = vecs.size() == 3;
+			for (size_t i = 0; i < 3; i++) {
+				if (has_global_shift)
+					bd_grp->global_shift[i] = vecs[i].toDouble(&has_global_shift);
+				else break;
+			}
+		}
+		if (!has_global_shift) has_global_scale = false;
+		if (has_global_scale) {
+			bd_grp->global_scale = bd_grp->getMetaData("global_scale").toDouble(&has_global_scale);
+		}
+
 		bd_grp->m_options = options;
 		bd_grp->build_data = build_data;
 		bd_grp->image_data = image_data;
@@ -12455,7 +12473,6 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 			bd_grp->setPath(QString::fromStdString(options.prj_file.root_dir));
 		}
 
-		bool first_cloud = false;
 		for (size_t i = 0; i < bd_grp->getChildrenNumber(); i++) {
 			StBuilding* bdObj = ccHObjectCaster::ToStBuilding(bd_grp->getChild(i));
 			if (!bdObj) continue;
@@ -12513,13 +12530,23 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 // 					bd_grp->block_prj.m_builder.InsertImageBuild(img.c_str(), sp_build->data.GetName());
 // 				}
 			}
-
-			if (!first_cloud) {
+			
+			if (!has_global_shift || !has_global_scale) {
 				ccPointCloud* cloud = bd_grp->GetOriginPointCloud(bdObj->getName(), false);
 				if (cloud) {
 					bd_grp->global_shift = stocker::parse_xyz(cloud->getGlobalShift());
 					bd_grp->global_scale = cloud->getGlobalScale();
-					first_cloud = true;
+					has_global_shift = true;
+					has_global_scale = true;
+					QVariantMap var_map;
+					QString global_shift_str;
+					global_shift_str.append(QString::number(bd_grp->global_shift.X())); global_shift_str.append(";");
+					global_shift_str.append(QString::number(bd_grp->global_shift.Y())); global_shift_str.append(";");
+					global_shift_str.append(QString::number(bd_grp->global_shift.Z())); global_shift_str.append(";");
+
+					var_map.insert("global_shift", QVariant(global_shift_str));
+					var_map.insert("global_scale", QVariant(bd_grp->global_scale));
+					bd_grp->setMetaData(var_map, true);
 				}
 			}
 		}
@@ -14481,11 +14508,18 @@ void MainWindow::doActionBDPolyFitFacetFilter()
 
 void MainWindow::doActionBDPolyFitSettings()
 {
-	if (!m_pbdrpfDlg) m_pbdrpfDlg = new bdrPolyFitDlg(this);
-	m_pbdrpfDlg->setModal(false);
-	m_pbdrpfDlg->setWindowModality(Qt::NonModal);
-	m_pbdrpfDlg->setWindowFlags(Qt::WindowStaysOnTopHint);
-	m_pbdrpfDlg->show();
+	if (!m_pbdrpfDlg) {
+		m_pbdrpfDlg = new bdrPolyFitDlg();
+		m_pbdrpfDlg->setModal(false);
+		m_pbdrpfDlg->setWindowModality(Qt::NonModal);
+		m_pbdrpfDlg->setWindowFlags(Qt::WindowStaysOnTopHint);
+	}
+	if (m_pbdrpfDlg->isHidden()) {
+		m_pbdrpfDlg->show();
+	}
+	else {
+		m_pbdrpfDlg->hide();
+	}
 }
 
 #include "builderlod2/lod2parser.h"
@@ -14892,10 +14926,28 @@ void MainWindow::doActionBDLoD2Generation()
 	if (!haveSelection()) return;
 	
 	if (!m_pbdrSettingLoD2Dlg) {
-		m_pbdrSettingLoD2Dlg = new bdrSettingLoD2Dlg(this);
-		if (!m_pbdrSettingLoD2Dlg->exec()) {
+		m_pbdrSettingLoD2Dlg = new bdrSettingLoD2Dlg();
+		m_pbdrSettingLoD2Dlg->setModal(false);
+		m_pbdrSettingLoD2Dlg->setWindowModality(Qt::NonModal);
+		m_pbdrSettingLoD2Dlg->setWindowFlags(Qt::WindowStaysOnTopHint);
+	}
+	if (!m_pbdrSettingLoD2Dlg->exec()) {
+		return;
+	}
+
+	if (m_pbdrSettingLoD2Dlg->PolygonPartitionGroupBox->isChecked()) {
+		ccAskThreeDoubleValuesDlg setDlg("max iter", "ptsnum ratio(0-1)", "data ratio(0-1)", 0, 100, g_ppp_maxiter, g_ppp_ptsnumratio, g_ppp_data_ratio, 4, "pack polygons", this);
+		setDlg.showCheckbox("cap hole", g_ppp_caphole, "run cap hole?");
+
+		if (setDlg.buttonBox->button(QDialogButtonBox::Ok))
+			setDlg.buttonBox->button(QDialogButtonBox::Ok)->setFocus();
+		if (!setDlg.exec())
 			return;
-		}
+
+		g_ppp_maxiter = static_cast<int>(setDlg.doubleSpinBox1->value());
+		g_ppp_ptsnumratio = setDlg.doubleSpinBox2->value();
+		g_ppp_data_ratio = setDlg.doubleSpinBox3->value();
+		g_ppp_caphole = setDlg.getCheckboxState();
 	}
 
 // 	m_pbdrSettingLoD2Dlg->setModal(false);
@@ -15006,12 +15058,21 @@ void MainWindow::doActionBDLoD2Generation()
 				}
 				if (m_pbdrSettingLoD2Dlg->PolygonPartitionGroupBox->isChecked()) {
 					//TODO: 
+					//PackFootprints_PPP(bd_entity)
 				}
 			}
 		}
 		
 		try {
-			ccHObject* bd_model_obj = LoD2FromFootPrint(bd_entity);
+			ccHObject* bd_model_obj = nullptr;
+			if (m_pbdrSettingLoD2Dlg->PolygonPartitionGroupBox->isChecked()) {
+				bd_model_obj = LoD2FromFootPrint_PPP(bd_entity, g_ppp_maxiter, g_ppp_caphole, g_ppp_ptsnumratio, g_ppp_data_ratio,
+					1, 1, 0.1);
+			}
+			else {
+				bd_model_obj = LoD2FromFootPrint(bd_entity);
+			}
+			
 			if (bd_model_obj) {
 				SetGlobalShiftAndScale(bd_model_obj);
 				bd_model_obj->setDisplay_recursive(bd_entity->getDisplay());
@@ -15021,7 +15082,6 @@ void MainWindow::doActionBDLoD2Generation()
 		catch (const std::exception& e) {
 			std::cout << "[BDRecon] cannot build lod2 model - ";
 			std::cout << e.what() << std::endl;
-			throw(std::runtime_error(e.what()));
 			STOCKER_ERROR_ASSERT(e.what());
 			ProgStepBreak
 			continue;
@@ -15040,87 +15100,14 @@ void MainWindow::doActionBDLoD2Generation()
 	ProgEnd
 	refreshAll();
 	UpdateUI();
-
-#if 0 //deprecated
-	stocker::BuilderLOD2 builder_3d4em(true);
-
-	/// select polyline for footprint
-	{
-		ccHObject::Container _container;
-		m_ccRoot->getRootEntity()->filterChildren(_container, true, CC_TYPES::POLY_LINE, true);
-		if (!_container.empty()) {
-			ccPolyline* contour_polygon = nullptr;
-			int selectedIndex = 0;
-			//ask the user to choose a polyline
-			selectedIndex = ccItemSelectionDlg::SelectEntity(_container, selectedIndex, this, "please select the contour polygon");
-			if (selectedIndex >= 0 && selectedIndex < _container.size()) {
-				contour_polygon = ccHObjectCaster::ToPolyline(_container[selectedIndex]);
-			}
-			if (contour_polygon) {
-				std::vector<CCVector3> contour_points = contour_polygon->getPoints(false);
-				std::vector<stocker::Contour3d> bd_contour_points_;
-				stocker::Contour3d bd_contour_points;
-				if (m_pbdrSettingLoD2Dlg->GroundHeightMode() == 2) {
-					double user_defined_ground_height = m_pbdrSettingLoD2Dlg->UserDefinedGroundHeight();
-					for (auto & pt : contour_points) {
-						bd_contour_points.push_back(stocker::Vec3d(pt.x, pt.y, user_defined_ground_height));
-					}
-				}
-				else {
-					for (auto & pt : contour_points) {
-						bd_contour_points.push_back(stocker::Vec3d(pt.x, pt.y, pt.z));
-					}
-				}
-				bd_contour_points_.push_back(bd_contour_points);
-				builder_3d4em.SetFootPrint(bd_contour_points_);
-			}
-		}
-	}
-
-	if (m_pbdrSettingLoD2Dlg->GroundHeightMode() == 2) {
-		builder_3d4em.SetGroundHeight(m_pbdrSettingLoD2Dlg->UserDefinedGroundHeight());
-	}
-
-	std::string output_path = m_pbdrSettingLoD2Dlg->OutputFilePathLineEdit->text().toStdString();
-	std::string ini_path = m_pbdrSettingLoD2Dlg->ConfigureFilePathLineEdit->text().toStdString();
-	builder_3d4em.SetOutputPath(output_path.c_str());
-	builder_3d4em.SetConfigurationPath(ini_path.c_str());
-
-	QDir workingDir_old = QCoreApplication::applicationDirPath();
-	QDir workingDir_current = GetFileDirectory(output_path.c_str());
-	if (!workingDir_current.exists())
-		if (!workingDir_current.mkpath(workingDir_current.absolutePath()))
-			return;
-
-	QDir::setCurrent(workingDir_current.absolutePath());
-
-	if (!m_pbdrSettingLoD2Dlg->PointcloudFilePathLineEdit->text().isEmpty()) {
-		// load from file
-		std::string point_path = m_pbdrSettingLoD2Dlg->PointcloudFilePathLineEdit->text().toStdString();
-
-		builder_3d4em.SetBuildingPoints(point_path.c_str());
-	}
-
-	if (!builder_3d4em.PlaneSegmentation(false)) return;
-	if (!builder_3d4em.BuildingReconstruction()) return;
-
-	if (!QFile::exists(QString(output_path.c_str()))) return;
-
-	QStringList files_add_to_db{ QString(output_path.c_str()) };
-	addToDB(files_add_to_db);
-
-	dispToConsole("[BDRecon] Building Reconstruction LOD2 finished!", ccMainAppInterface::STD_CONSOLE_MESSAGE);
-
-	//! restore the working directory
-	QDir::setCurrent(workingDir_old.absolutePath());
-#endif	
 }
 
 void MainWindow::doActionSettingsLoD2()
 {
 	if (!m_pbdrSettingLoD2Dlg) {
-		m_pbdrSettingLoD2Dlg = new bdrSettingLoD2Dlg(this);
+		m_pbdrSettingLoD2Dlg = new bdrSettingLoD2Dlg();
 		m_pbdrSettingLoD2Dlg->setModal(false);
+		m_pbdrSettingLoD2Dlg->setWindowModality(Qt::NonModal);
 		m_pbdrSettingLoD2Dlg->setWindowFlags(Qt::WindowStaysOnTopHint);
 	}
 	if (m_pbdrSettingLoD2Dlg->isHidden()) {
@@ -15132,12 +15119,22 @@ void MainWindow::doActionSettingsLoD2()
 }
 
 double g_refineLength = 3.0f;
+double g_samplingGrid = 0.5f;
+int g_max_tex_view = 3;
 void MainWindow::doActionBDTextureMapping()
 {
 	if (!haveSelection()) return;
 	ccHObject* entity = getSelectedEntities().front();
 
-	{
+	QStringList texmap_oprations;
+	texmap_oprations.append("models");
+	texmap_oprations.append("planes");
+	texmap_oprations.append("single-plane");
+	bool ok;
+	QString texmap_type = QInputDialog::getItem(this, "texture mapping operation", "Type", texmap_oprations, 0, false, &ok);
+	if (!ok) return;
+
+	if (texmap_type == "single-plane") {
 		ccPlane* planeObj = GetPlaneFromPlaneOrCloud(entity);
 		if (planeObj) {
 			try {
@@ -15153,34 +15150,69 @@ void MainWindow::doActionBDTextureMapping()
 			}
 			return;
 		}
+		return;
 	}
 	
 	////////////////////////////////////////////////////////////////////////// 
 
-	ccAskThreeDoubleValuesDlg setDlg("refine length", "temp", "temp", -1.0e12, 1.0e12, g_refineLength, 1, 30, 4, "Texture mapping configuration", this);
-	//setDlg.showCheckbox("temp", true, "Get vertical planes?");
-	if (setDlg.buttonBox->button(QDialogButtonBox::Ok))
-		setDlg.buttonBox->button(QDialogButtonBox::Ok)->setFocus();
-	if (!setDlg.exec())
-		return;
-	g_refineLength = setDlg.doubleSpinBox1->value();
-	//s_settings.y = setDlg.doubleSpinBox2->value();
-	//s_settings.z = setDlg.doubleSpinBox3->value();
-	//bool bVertical = setDlg.getCheckboxState();
+	else {
+		ccAskThreeDoubleValuesDlg setDlg("refine length", "sampling grid", "max view", -1.0e12, 1.0e12, g_refineLength, g_samplingGrid, g_max_tex_view, 4, "Texture mapping configuration", this);
+		//setDlg.showCheckbox("temp", true, "Get vertical planes?");
+		if (setDlg.buttonBox->button(QDialogButtonBox::Ok))
+			setDlg.buttonBox->button(QDialogButtonBox::Ok)->setFocus();
+		if (!setDlg.exec())
+			return;
+		g_refineLength = setDlg.doubleSpinBox1->value();
+		g_samplingGrid = setDlg.doubleSpinBox2->value();
+		g_max_tex_view = setDlg.doubleSpinBox3->value();
 
+		//////////////////////////////////////////////////////////////////////////
 
-	ProgStart("polygon partition")
-	try
-	{
-		ccHObject::Container bds = GetBuildingEntitiesBySelected(entity);
-		TextureMappingBuildings(bds, nullptr, g_refineLength);
+		if (texmap_type == "models") 
+		{
+			ProgStart("Texture mapping")
+			try {
+				ccHObject::Container bds = GetBuildingEntitiesBySelected(entity);
+				TextureMappingBuildings(bds, nullptr, g_refineLength, g_samplingGrid, g_max_tex_view);
+			}
+			catch (const std::exception& e)	{
+				dispToConsole(QString::fromStdString(e.what()), ERR_CONSOLE_MESSAGE);
+				ProgEnd
+			}
+			catch (...)	{
+				ProgEnd
+			}
+			ProgEnd
+
+			return;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+
+		else if (texmap_type == "planes")
+		{
+			//! plane dilation
+			double dilation_distance = -1;
+
+			//! 
+
+			ProgStart("Texture mapping")
+			try {
+				ccHObject::Container planes = GetPlaneEntitiesBySelected(entity);
+				TextureMappingPlanes(planes, nullptr, g_refineLength, g_samplingGrid, g_max_tex_view);
+			}
+			catch (const std::exception& e) {
+				dispToConsole(QString::fromStdString(e.what()), ERR_CONSOLE_MESSAGE);
+				ProgEnd
+			}
+			catch (...) {
+				ProgEnd
+			}
+			ProgEnd
+
+			return;
+		}
 	}
-	catch (const std::exception& e)
-	{
-		dispToConsole(QString::fromStdString(e.what()), ERR_CONSOLE_MESSAGE);
-		ProgEnd
-	}
-	ProgEnd
 }
 
 void MainWindow::doActionBDConstrainedMesh()
@@ -15769,19 +15801,6 @@ void MainWindow::doActionImportData()
 	addFilesToDatabase(selectedFiles, import_pool, false, false);
 }
 
-inline QStringList _splitString(char* str, const char* seps)
-{
-	QStringList sub_strs;
-	char* token = strtok(str, seps);
-	while (token) {
-		std::string sub(token);
-		sub = sub.substr(0, sub.find_last_of("\t\r\n"));
-		sub_strs << QString::fromStdString(sub);
-		token = strtok(NULL, seps);
-	}
-	return sub_strs;
-}
-
 QStringList g_nameFilters;
 void MainWindow::doActionImportFolder()
 {
@@ -15831,7 +15850,7 @@ void MainWindow::doActionImportFolder()
 	}
 	char char_name_filters[1024];
 	sprintf(char_name_filters, "%s", text.toStdString().c_str());
-	g_nameFilters = _splitString(char_name_filters, ";");
+	g_nameFilters = _splitStringQ(char_name_filters, ";");
 	if (g_nameFilters.isEmpty()) {
 		return;
 	}
