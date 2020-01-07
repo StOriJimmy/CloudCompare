@@ -814,6 +814,7 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vecto
 		if (primGroup) {
 			primGroup->removeAllChildren();
 			group->transferChildren(*primGroup);
+			primGroup->setMetaData(group->metaData());
 			delete group;
 			group = primGroup;
 			project_loaded = true;

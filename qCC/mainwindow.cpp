@@ -2118,6 +2118,7 @@ void MainWindow::addToDBAuto(const QStringList& filenames)
 			for (ccHObject* imobj : loaded) {
 
 				BDImageBaseHObject* imgPrj = new BDImageBaseHObject(GetBaseName(imobj->getName()));
+				imgPrj->setMetaData(imobj->metaData());
 				imobj->transferChildren(*imgPrj);
 				addToDB_Image(imgPrj, false, false, false, true);
 				removeFromDB(imobj);
@@ -12379,6 +12380,7 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 		if (newGroup) {
 			bd_grp = new BDBaseHObject(prj_name);
 			bd_grp->setName(prj_name);
+			bd_grp->setMetaData(newGroup->metaData());
 			newGroup->transferChildren(*bd_grp);
 
 			delete newGroup;
@@ -15575,6 +15577,7 @@ void MainWindow::doActionOpenDatabase()
 	load_database = new DataBaseHObject(*newGroup);
 	load_database->setName(QFileInfo(database_name).completeBaseName());
 	load_database->setPath(QFileInfo(database_name).absoluteFilePath());
+	load_database->setMetaData(newGroup->metaData());
 	newGroup->transferChildren(*load_database);
 	
 	addToDB_Main(load_database);
