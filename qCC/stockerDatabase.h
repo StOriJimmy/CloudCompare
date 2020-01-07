@@ -211,6 +211,8 @@ StHObject* getChildGroupByName(StHObject* group, QString name, bool auto_create 
 
 StHObject * findChildByName(StHObject * parent, bool recursive, QString filter, bool strict, CC_CLASS_ENUM type_filter = CC_TYPES::OBJECT, bool auto_create = false, ccGenericGLDisplay * inDisplay = 0);
 
+int GetNumberExcludePrefix(StHObject * obj, QString prefix);
+
 inline QString BuildingNameByNumber(int number) {
 	char name[256];
 	sprintf(name, "%s%08d", BDDB_BUILDING_PREFIX, number);
@@ -225,4 +227,16 @@ bool StCreatDir(QString dir);
 // return new result files, if force success, will return all the existing files whatever the files are successfully moved or not
 QStringList moveFilesToDir(QStringList list, QString dir, bool remove_old, QStringList* failed_files = nullptr, bool force_success = false);
 
+inline QStringList _splitStringQ(char* str, const char* seps)
+{
+	QStringList sub_strs;
+	char* token = strtok(str, seps);
+	while (token) {
+		std::string sub(token);
+		sub = sub.substr(0, sub.find_last_of("\t\r\n"));
+		sub_strs << QString::fromStdString(sub);
+		token = strtok(NULL, seps);
+	}
+	return sub_strs;
+}
 #endif
