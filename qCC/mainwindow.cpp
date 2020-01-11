@@ -14937,20 +14937,20 @@ void MainWindow::doActionBDLoD2Generation()
 		return;
 	}
 
-	if (m_pbdrSettingLoD2Dlg->PolygonPartitionGroupBox->isChecked()) {
-		ccAskThreeDoubleValuesDlg setDlg("max iter", "ptsnum ratio(0-1)", "data ratio(0-1)", 0, 100, g_ppp_maxiter, g_ppp_ptsnumratio, g_ppp_data_ratio, 4, "pack polygons", this);
-		setDlg.showCheckbox("cap hole", g_ppp_caphole, "run cap hole?");
-
-		if (setDlg.buttonBox->button(QDialogButtonBox::Ok))
-			setDlg.buttonBox->button(QDialogButtonBox::Ok)->setFocus();
-		if (!setDlg.exec())
-			return;
-
-		g_ppp_maxiter = static_cast<int>(setDlg.doubleSpinBox1->value());
-		g_ppp_ptsnumratio = setDlg.doubleSpinBox2->value();
-		g_ppp_data_ratio = setDlg.doubleSpinBox3->value();
-		g_ppp_caphole = setDlg.getCheckboxState();
-	}
+// 	if (m_pbdrSettingLoD2Dlg->PolygonPartitionGroupBox->isChecked()) {
+// 		ccAskThreeDoubleValuesDlg setDlg("max iter", "ptsnum ratio(0-1)", "data ratio(0-1)", 0, 100, g_ppp_maxiter, g_ppp_ptsnumratio, g_ppp_data_ratio, 4, "pack polygons", this);
+// 		setDlg.showCheckbox("cap hole", g_ppp_caphole, "run cap hole?");
+// 
+// 		if (setDlg.buttonBox->button(QDialogButtonBox::Ok))
+// 			setDlg.buttonBox->button(QDialogButtonBox::Ok)->setFocus();
+// 		if (!setDlg.exec())
+// 			return;
+// 
+// 		g_ppp_maxiter = static_cast<int>(setDlg.doubleSpinBox1->value());
+// 		g_ppp_ptsnumratio = setDlg.doubleSpinBox2->value();
+// 		g_ppp_data_ratio = setDlg.doubleSpinBox3->value();
+// 		g_ppp_caphole = setDlg.getCheckboxState();
+// 	}
 
 // 	m_pbdrSettingLoD2Dlg->setModal(false);
 // 	m_pbdrSettingLoD2Dlg->setWindowModality(Qt::NonModal);
@@ -15058,7 +15058,7 @@ void MainWindow::doActionBDLoD2Generation()
 				{
 					continue;
 				}
-				if (m_pbdrSettingLoD2Dlg->PolygonPartitionGroupBox->isChecked()) {
+				if (m_pbdrSettingLoD2Dlg->footprintPolygonPartitionGroupBox->isChecked()) {
 					//TODO: 
 					//PackFootprints_PPP(bd_entity)
 				}
@@ -15067,9 +15067,14 @@ void MainWindow::doActionBDLoD2Generation()
 		
 		try {
 			ccHObject* bd_model_obj = nullptr;
-			if (m_pbdrSettingLoD2Dlg->PolygonPartitionGroupBox->isChecked()) {
-				bd_model_obj = LoD2FromFootPrint_PPP(bd_entity, g_ppp_maxiter, g_ppp_caphole, g_ppp_ptsnumratio, g_ppp_data_ratio,
-					1, 1, 0.1);
+			if (m_pbdrSettingLoD2Dlg->roofCDTRadioButton->isChecked()) {
+				bd_model_obj = LoD2FromFootPrint_PPP(bd_entity,
+					m_pbdrSettingLoD2Dlg->cdtMaxIterCheckBox->isChecked() ? m_pbdrSettingLoD2Dlg->cdtMaxIterSpinBox->value() : -1,
+					m_pbdrSettingLoD2Dlg->cdtHoleFillingCheckBox->isChecked(),
+					m_pbdrSettingLoD2Dlg->cdtDataPtsRatioDoubleSpinBox->value(),
+					m_pbdrSettingLoD2Dlg->cdtDataRatioDoubleSpinBox->value(),
+					m_pbdrSettingLoD2Dlg->cdtHOffsetDoubleSpinBox->value(),
+					0.2, 0.1);
 			}
 			else {
 				bd_model_obj = LoD2FromFootPrint(bd_entity);
