@@ -2014,9 +2014,11 @@ ccHObject::Container GenerateFootPrints(ccHObject* prim_group, double ground)
 		return foot_print_objs;
 	}
 
+	MainWindow* win = MainWindow::TheInstance();
+	if (!win) return foot_print_objs;
+
 	for (ccHObject* prim : primObjs) {
-		MainWindow* win = MainWindow::TheInstance();
-		if (win) win->removeFromDB(prim);
+		win->removeFromDB(prim);
 // 		QString del_name = "del-" + prim->getName();
 // 		prim->setName(del_name);
 // 		prim->setEnabled(false);
@@ -2836,6 +2838,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity, int max_iter, bool cap_hole,
 	for (ccHObject* fpEntity : footprints) {
 		StFootPrint* ftObj = ccHObjectCaster::ToStFootPrint(fpEntity);
 		if (!ftObj) { continue; }
+		std::cout << "LoD2 - " << ftObj->getName().toStdString() << std::endl;
 
 		double ground_height = ftObj->getBottom();
 
@@ -2934,7 +2937,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity, int max_iter, bool cap_hole,
 				planes_frames_2d.push_back(ToPolyline2d(pl_frm));
 			}
 			stocker::Polyline2d facade_valid = stocker::collectCloseSegmentsAroundPolygons(planes_frames_2d, facade_projected, 1);
-			poly_partition.setFacades(facade_projected);
+			poly_partition.setFacades(facade_valid);
 
 			if (!poly_partition.runBP()) {
 				return false;
