@@ -2927,7 +2927,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity, int max_iter, bool cap_hole,
 			poly_partition.m_data_pts_ratio = ptsnum_ratio;
 			poly_partition.m_data_ratio = data_ratio;
 
-			poly_partition.setPolygon(planes_frames, planes_points, true);
+			poly_partition.setPolygon(planes_frames, planes_points, true, true);
 
 			std::vector<stocker::Polygon2d> planes_frames_2d;
 			for (auto pl_frm : planes_frames) {
