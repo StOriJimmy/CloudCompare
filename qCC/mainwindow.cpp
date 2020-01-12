@@ -14744,7 +14744,7 @@ void MainWindow::doActionBDFootPrintPack()
 			for (ccHObject* bd_entity : bds) {
 				bool ret = false;
 				if (used_method == "optimization") {
-					ret = PackFootprints_PPP(bd_entity, g_ppp_maxiter, g_ppp_caphole, g_ppp_ptsnumratio, g_ppp_data_ratio);
+					ret = PackFootprints_PPP(bd_entity, g_ppp_maxiter, g_ppp_caphole, g_ppp_ptsnumratio, g_ppp_data_ratio, 3);
 				}
 				else if (used_method == "pprepair") {
 					ret = PackFootprints_PPRepair(bd_entity);
@@ -15060,7 +15060,12 @@ void MainWindow::doActionBDLoD2Generation()
 				}
 				if (m_pbdrSettingLoD2Dlg->footprintPolygonPartitionGroupBox->isChecked()) {
 					//TODO: 
-					//PackFootprints_PPP(bd_entity)
+					if (!PackFootprints_PPP(bd_entity,
+						-1, true,
+						m_pbdrSettingLoD2Dlg->fpDataPtsRatioDoubleSpinBox->value(),
+						m_pbdrSettingLoD2Dlg->fpDataRatioDoubleSpinBox->value(),
+						m_pbdrSettingLoD2Dlg->fpSmoothSharpSpinBox->value()))
+						continue;
 				}
 			}
 		}

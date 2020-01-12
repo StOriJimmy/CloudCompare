@@ -134,7 +134,7 @@ ccHObject::Container PackPolygons(ccHObject::Container polygonEntites, int sampl
 bool PackPlaneFrames(ccHObject * buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio,
 	double ints_thre, double cluster_hori, double cluster_verti);
 
-bool PackFootprints_PPP(ccHObject * buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio);
+bool PackFootprints_PPP(ccHObject * buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio, double sharp_weight);
 
 ccHObject* LoD2FromFootPrint_PPP(ccHObject * entity, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio,
 	double ints_thre, double cluster_hori, double cluster_verti);

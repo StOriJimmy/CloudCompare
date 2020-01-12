@@ -2648,7 +2648,7 @@ bool PackPlaneFrames(ccHObject* buildingObj, int max_iter, bool cap_hole, double
 	return true;
 }
 
-bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio)
+bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio, double sharp_weight)
 {
 	try {
 		BDBaseHObject* baseObj = GetRootBDBase(buildingObj); if (!baseObj) return false;
@@ -2734,6 +2734,7 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 			poly_partition.m_run_cap_hole = cap_hole;
 			poly_partition.m_data_pts_ratio = ptsnum_ratio;
 			poly_partition.m_data_ratio = data_ratio;
+			poly_partition.m_smooth_ints_radio = sharp_weight;
 
 			//TODO: should give outlines rather than polygons
 			poly_partition.setPolygon(polygons, polygons_points, true, false);
