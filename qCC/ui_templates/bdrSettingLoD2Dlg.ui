@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>448</width>
+    <width>450</width>
     <height>625</height>
    </rect>
   </property>
@@ -226,7 +226,7 @@
          <double>0.200000000000000</double>
         </property>
         <property name="value">
-         <double>1.000000000000000</double>
+         <double>0.800000000000000</double>
         </property>
        </widget>
       </item>
@@ -357,9 +357,12 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox_3">
+    <widget class="QGroupBox" name="roofTopologyGroupBox">
      <property name="title">
       <string>Roof Topology</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
      </property>
      <layout class="QGridLayout" name="gridLayout">
       <item row="0" column="0">
@@ -443,7 +446,10 @@
             </sizepolicy>
            </property>
            <property name="minimum">
-            <number>0</number>
+            <number>-1</number>
+           </property>
+           <property name="maximum">
+            <number>999999999</number>
            </property>
            <property name="value">
             <number>3</number>

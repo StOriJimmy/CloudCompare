@@ -13540,7 +13540,7 @@ void MainWindow::doActionBDPrimPlaneFrame()
 	for (auto & planeObj : plane_container) {
 		try	{
 			if (used_method == "linegrow") {
-				ccHObject* frame = PlaneFrameLineGrow(planeObj, linegrow_alpha, linegrow_intersection, linegrow_minpts);
+				ccHObject* frame = PlaneFrameLineGrow(planeObj, linegrow_alpha, linegrow_intersection, linegrow_minpts, 2, false);
 				if (frame) { SetGlobalShiftAndScale(frame); addToDB(frame, planeObj->getDBSourceType(), false, false); }
 			}
 			else if (used_method == "optimization") {
@@ -14562,7 +14562,7 @@ void MainWindow::doActionBDFootPrintAuto()
 
 		try {
 			stocker::BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
-			ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit.ground_height);
+			ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit.ground_height, 0.8, 0.8, 2);
 			for (ccHObject* ft : footprints) {
 				if (ft && ft->isA(CC_TYPES::ST_FOOTPRINT)) {
 					SetGlobalShiftAndScale(ft);
@@ -15038,7 +15038,10 @@ void MainWindow::doActionBDLoD2Generation()
 
 					try {
 						stocker::BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
-						ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit.ground_height);
+						ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit.ground_height, 
+							m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
+							m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
+							m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value());
 						for (ccHObject* ft : footprints) {
 							if (ft && ft->isA(CC_TYPES::ST_FOOTPRINT)) {
 								SetGlobalShiftAndScale(ft);
@@ -15070,6 +15073,11 @@ void MainWindow::doActionBDLoD2Generation()
 			}
 		}
 		
+		if (!m_pbdrSettingLoD2Dlg->roofTopologyGroupBox->isChecked()) {
+			ProgStepBreak
+			continue; 
+		}
+
 		try {
 			ccHObject* bd_model_obj = nullptr;
 			if (m_pbdrSettingLoD2Dlg->roofCDTRadioButton->isChecked()) {
@@ -15079,6 +15087,11 @@ void MainWindow::doActionBDLoD2Generation()
 					m_pbdrSettingLoD2Dlg->cdtDataPtsRatioDoubleSpinBox->value(),
 					m_pbdrSettingLoD2Dlg->cdtDataRatioDoubleSpinBox->value(),
 					m_pbdrSettingLoD2Dlg->cdtHOffsetDoubleSpinBox->value(),
+
+					m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
+					m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value(),
+					m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
+
 					0.2, 0.1);
 			}
 			else {
