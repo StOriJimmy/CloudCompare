@@ -4918,7 +4918,7 @@ void ccGLWindow::processPickingResult(	const PickingParameters& params,
 										int pickedItemIndex,
 										const CCVector3* nearestPoint/*=nullptr*/,
 										const CCVector3d* nearestPointBC/*=nullptr*/,
-										const std::unordered_set<int>* selectedIDs/*=nullptr*/)
+										const std::unordered_set<GLuint>* selectedIDs/*=nullptr*/)
 {
 	//standard "entity" picking
 	if (params.mode == ENTITY_PICKING)
@@ -5139,9 +5139,10 @@ void ccGLWindow::startOpenGLPicking(const PickingParameters& params)
 	}
 
 	//process hits
-	std::unordered_set<int> selectedIDs;
+	std::unordered_set<GLuint> selectedIDs;
 	int pickedItemIndex = -1;
-	int selectedID = -1;
+	GLuint selectedID = 0; //= -1;	// now it cannot be -1
+	bool selected_valid = false;
 	try
 	{
 		GLuint minMinDepth = (~0);
@@ -5166,9 +5167,11 @@ void ccGLWindow::startOpenGLPicking(const PickingParameters& params)
 				else
 				{
 					//if there are multiple hits, we keep only the nearest
-					if (selectedID < 0 || minDepth < minMinDepth)
+					if (/*selectedID < 0*/!selected_valid || minDepth < minMinDepth)
 					{
 						selectedID = currentID;
+						selected_valid = true;
+
 						pickedItemIndex = (n > 1 ? _selectBuf[4] : -1);
 						minMinDepth = minDepth;
 					}
@@ -5180,7 +5183,7 @@ void ccGLWindow::startOpenGLPicking(const PickingParameters& params)
 
 		//standard output is made through the 'selectedIDs' set
 		if (params.mode != ENTITY_RECT_PICKING
-			&&	selectedID != -1)
+			&& selected_valid/*selectedID != -1*/)
 		{
 			selectedIDs.insert(selectedID);
 		}
@@ -5192,7 +5195,7 @@ void ccGLWindow::startOpenGLPicking(const PickingParameters& params)
 	}
 
 	ccHObject* pickedEntity = nullptr;
-	if (selectedID >= 0)
+	if (selected_valid/*selectedID >= 0*/)
 	{
 		if (params.pickInSceneDB && !m_globalDBRoot.empty())
 		{

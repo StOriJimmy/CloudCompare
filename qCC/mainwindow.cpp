@@ -10635,7 +10635,7 @@ ccGLWindow* MainWindow::new3DView(bool allowEntitySelection)
 // 			m_imageRoot->selectEntity(entity);
 		});
 
-		connect(view3D, &ccGLWindow::entitiesSelectionChanged, this, [=](std::unordered_set<int> entities) {
+		connect(view3D, &ccGLWindow::entitiesSelectionChanged, this, [=](std::unordered_set<GLuint> entities) {
 			m_ccRoot->selectEntities(entities);
 			m_buildingRoot->selectEntities(entities);
 			m_imageRoot->selectEntities(entities);

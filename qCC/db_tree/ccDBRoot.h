@@ -126,7 +126,7 @@ public:
 	void removeElements(ccHObject::Container& objects);
 
 	//! Finds an element in DB
-	ccHObject* find(int uniqueID) const;
+	ccHObject* find(unsigned uniqueID) const;
 
 	//! Returns the number of selected entities in DB tree (optionally with a given type)
 	int countSelectedEntities(CC_CLASS_ENUM filter = CC_TYPES::OBJECT);
@@ -180,7 +180,7 @@ public:
 	//! Selects multiple entities at once (shortcut to the other version)
 	/** \param entIDs list of the IDs of the entities to select
 	**/
-	void selectEntities(std::unordered_set<int> entIDs);
+	void selectEntities(std::unordered_set<GLuint> entIDs);
 
 	//! Selects multiple entities at once
 	/** \param entities set of the entities to 'select'
