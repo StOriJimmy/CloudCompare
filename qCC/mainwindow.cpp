@@ -1947,7 +1947,7 @@ std::vector<ccHObject*> MainWindow::loadFiles(const QStringList & filenames, int
 	FileIOFilter::LoadParameters parameters;
 	{
 		parameters.alwaysDisplayLoadDialog = (loadMode == -1);
-		parameters.shiftHandlingMode = ccGlobalShiftManager::DIALOG_IF_NECESSARY;
+		parameters.shiftHandlingMode = (loadMode == -1) ? ccGlobalShiftManager::NO_DIALOG_AUTO_SHIFT : ccGlobalShiftManager::DIALOG_IF_NECESSARY;
 		parameters.coordinatesShift = &loadCoordinatesShift;
 		parameters.coordinatesScale = &loadCoordinatesScale;
 		parameters.coordinatesShiftEnabled = &loadCoordinatesTransEnabled;
@@ -12416,13 +12416,21 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 	options.with_image = stocker::LoadBundleFiles(options.prj_file.image_list, options.prj_file.sfm_out, image_data);
 
 	std::vector<stocker::BuildUnit> build_data;
-	if (!stocker::LoadBuildingListFile(build_data, options.prj_file.building_list)) {
-		return nullptr;
-	}
+	bool has_building_list = stocker::LoadBuildingListFile(build_data, options.prj_file.building_list);
 
 	if (!bd_grp) {
 
 		QStringList names; QStringList files;
+
+		bool has_origin_cloud = false;
+		{
+			QFileInfo point_path(options.prj_file.point_cloud.c_str());
+			if (point_path.exists()) {
+				files.append(point_path.absoluteFilePath());
+				has_origin_cloud = true;
+			}
+		}
+
 		for (auto & bd : build_data) {
 			QString building_name = bd.GetName().Str().c_str(); names.append(building_name);
 			QFileInfo point_path(bd.file_path.ori_points.c_str()); files.append(point_path.absoluteFilePath());
@@ -12430,12 +12438,18 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 		}
 		std::cout << "loading " << files.size() << " files" << std::endl;
 		ccHObject::Container loaded = loadFiles(files, -1);
-		std::cout << files.size() << " files loaded" << std::endl;
+		std::cout << loaded.size() << " files loaded" << std::endl;
 		
 		bd_grp = new BDBaseHObject(prj_name);
 		for (size_t i = 0; i < loaded.size(); ++i) {
 			ccHObject* newGroup = loaded[i];
 			if (!newGroup) continue;
+
+			if (has_origin_cloud && (i == 0)) {
+				newGroup->setName(prj_name + BDDB_ORIGIN_CLOUD_SUFFIX);
+				bd_grp->addChild(newGroup);
+				continue;
+			}
 
 			QString building_name = names[i];
 			StBuilding* building = new StBuilding(building_name);
@@ -12445,6 +12459,7 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 
 			bd_grp->addChild(building);
 		}
+
 // 		if (loaded.size() == names.size()) {
 // 			bd_grp = new BDBaseHObject(prj_name);
 // 			for (size_t i = 0; i < names.size(); i++) {
@@ -12911,7 +12926,7 @@ void MainWindow::doActionBDImagesLoad()
 		delete newGroup;
 		newGroup = nullptr;
 	}
-		
+	m_UI->toggleImageView3DToolButton->setChecked(true);
 	refreshAll();
 }
 
@@ -12936,8 +12951,11 @@ void MainWindow::doActionBDImagesToggle3DView()
 				sensor->drawImage(false);
 				sensor->drawFrustumPlanes(false);
 			}
+
+			sensor->redrawDisplay();
 		}
 	}
+	refreshAll();
 }
 
 // for point cloud (.original by default)
@@ -15426,14 +15444,14 @@ void MainWindow::doActionShowBestImage()
 			continue;
 		}
 
-		//! sort by projection area
-		CCVector2 objO_img, objU_img, objV_img;
-		if (!csObj->fromGlobalCoordToImageCoord(obj_o, objO_img) ||
-			!csObj->fromGlobalCoordToImageCoord(obj_u, objU_img) ||
-			!csObj->fromGlobalCoordToImageCoord(obj_v, objV_img)) {
-			continue;	//! skip temporarily
-		}
-		
+			//! sort by projection area
+			CCVector2 objO_img, objU_img, objV_img;
+			if (!csObj->fromGlobalCoordToImageCoord(obj_o, objO_img) ||
+				!csObj->fromGlobalCoordToImageCoord(obj_u, objU_img) ||
+				!csObj->fromGlobalCoordToImageCoord(obj_v, objV_img)) {
+				continue;	//! skip temporarily
+			}
+
 		float double_area = (objU_img - objO_img).cross(objV_img - objO_img);
 		visible_area.back().second = double_area;
 	}

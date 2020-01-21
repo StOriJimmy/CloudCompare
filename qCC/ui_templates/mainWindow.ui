@@ -1403,6 +1403,9 @@ QTreeView::branch:open:has-children:has-siblings  {
            </property>
            <item>
             <widget class="QToolButton" name="newBuildProjToolButton">
+             <property name="toolTip">
+              <string>新建建模工程</string>
+             </property>
              <property name="text">
               <string>...</string>
              </property>
@@ -1420,6 +1423,9 @@ QTreeView::branch:open:has-children:has-siblings  {
            </item>
            <item>
             <widget class="QToolButton" name="openBuildProjToolButton">
+             <property name="toolTip">
+              <string>打开建模工程</string>
+             </property>
              <property name="text">
               <string>...</string>
              </property>
@@ -1437,6 +1443,9 @@ QTreeView::branch:open:has-children:has-siblings  {
            </item>
            <item>
             <widget class="QToolButton" name="saveBuildProjToolButton">
+             <property name="toolTip">
+              <string>保存建模工程</string>
+             </property>
              <property name="text">
               <string>...</string>
              </property>
@@ -1546,7 +1555,7 @@ QTreeView::branch:open:has-children:has-siblings  {
            <item>
             <widget class="QToolButton" name="openImageProjToolButton">
              <property name="toolTip">
-              <string>打开影像集</string>
+              <string>载入影像</string>
              </property>
              <property name="text">
               <string>...</string>
@@ -1565,6 +1574,9 @@ QTreeView::branch:open:has-children:has-siblings  {
            </item>
            <item>
             <widget class="QToolButton" name="toggleImageView3DToolButton">
+             <property name="toolTip">
+              <string>开/关影像三维显示</string>
+             </property>
              <property name="text">
               <string>...</string>
              </property>
