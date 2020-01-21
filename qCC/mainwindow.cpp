@@ -1947,7 +1947,7 @@ std::vector<ccHObject*> MainWindow::loadFiles(const QStringList & filenames, int
 	FileIOFilter::LoadParameters parameters;
 	{
 		parameters.alwaysDisplayLoadDialog = (loadMode == -1);
-		parameters.shiftHandlingMode = (loadMode == -1) ? ccGlobalShiftManager::NO_DIALOG_AUTO_SHIFT : ccGlobalShiftManager::DIALOG_IF_NECESSARY;
+		parameters.shiftHandlingMode = (loadMode == 1) ? ccGlobalShiftManager::NO_DIALOG_AUTO_SHIFT : ccGlobalShiftManager::DIALOG_IF_NECESSARY;
 		parameters.coordinatesShift = &loadCoordinatesShift;
 		parameters.coordinatesScale = &loadCoordinatesScale;
 		parameters.coordinatesShiftEnabled = &loadCoordinatesTransEnabled;
@@ -12437,7 +12437,7 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 			std::cout << "file: " << point_path.absoluteFilePath().toStdString() << std::endl;
 		}
 		std::cout << "loading " << files.size() << " files" << std::endl;
-		ccHObject::Container loaded = loadFiles(files, -1);
+		ccHObject::Container loaded = loadFiles(files, 1);
 		std::cout << loaded.size() << " files loaded" << std::endl;
 		
 		bd_grp = new BDBaseHObject(prj_name);
@@ -12567,9 +12567,12 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 // 					bd_grp->block_prj.m_builder.InsertImageBuild(img.c_str(), sp_build->data.GetName());
 // 				}
 			}
-			
-			if (!has_global_shift || !has_global_scale) {
-				ccPointCloud* cloud = bd_grp->GetOriginPointCloud(bdObj->getName(), false);
+		}
+		if (!has_global_shift || !has_global_scale) {
+			ccHObject::Container point_clouds;
+			bd_grp->filterChildren(point_clouds, true, CC_TYPES::POINT_CLOUD, true);
+			if (!point_clouds.empty()) {
+				ccPointCloud* cloud = ccHObjectCaster::ToPointCloud(point_clouds.front());
 				if (cloud) {
 					bd_grp->global_shift = stocker::parse_xyz(cloud->getGlobalShift());
 					bd_grp->global_scale = cloud->getGlobalScale();
@@ -15443,16 +15446,22 @@ void MainWindow::doActionShowBestImage()
 		if (obj_angle < 0.0f || cam_angle < 0.0f) {
 			continue;
 		}
+		CCVector2 objO_img, objU_img, objV_img;
+		if (!csObj->fromGlobalCoordToImageCoord(obj_o, objO_img) ||
+			!csObj->fromGlobalCoordToImageCoord(obj_u, objU_img) ||
+			!csObj->fromGlobalCoordToImageCoord(obj_v, objV_img)) {
+			continue;	//! skip temporarily
+		}
 
+		float double_area = 10000;
+		if (0) {
 			//! sort by projection area
-			CCVector2 objO_img, objU_img, objV_img;
-			if (!csObj->fromGlobalCoordToImageCoord(obj_o, objO_img) ||
-				!csObj->fromGlobalCoordToImageCoord(obj_u, objU_img) ||
-				!csObj->fromGlobalCoordToImageCoord(obj_v, objV_img)) {
-				continue;	//! skip temporarily
-			}
-
-		float double_area = (objU_img - objO_img).cross(objV_img - objO_img);
+			double_area = (objU_img - objO_img).cross(objV_img - objO_img);
+		}
+		else {
+			double_area = (obj_angle + cam_angle);
+		}
+		
 		visible_area.back().second = double_area;
 	}
 	if (visible_area.empty()) {
@@ -15491,6 +15500,11 @@ void MainWindow::doActionShowSelectedImage()
 			box_2d.add(b_2d);
 		}
 		if (!box_2d.isValid()) { m_pbdrImshow->ZoomFit(); return; }
+
+		if (box_2d.getDiagNorm() > m_pbdrImshow->getImage()->getW() / 2) {
+			CCVector3 hackDiag = CCVector3(1, 1, 0)*m_pbdrImshow->getImage()->getW()*0.6;
+			box_2d = ccBBox(box_2d.getCenter() - hackDiag, box_2d.getCenter() + hackDiag);
+		}
 
 		CCVector3d up_2d = m_pbdrImagePanel->getImageViewUpDir();
 		m_pbdrImshow->update2DDisplayZoom(box_2d, up_2d);
