@@ -91,7 +91,7 @@
     <file>images/ccClone.png</file>
     <file>images/ccCloudCloudDistance.png</file>
     <file>images/ccCloudMeshDistance.png</file>
-	<file>images/ccCloudPrimitiveDistance.png</file>
+    <file>images/ccCloudPrimitiveDistance.png</file>
     <file>images/ccComputeStat.png</file>
     <file>images/ccDeleteSF.png</file>
     <file>images/ccFilterByValue.png</file>
@@ -169,6 +169,8 @@
     <file>images/stocker/intersect.png</file>
     <file>images/stocker/lod2.png</file>
     <file>images/stocker/lod3.png</file>
+    <file>images/stocker/viewoff.png</file>
+    <file>images/stocker/viewon.png</file>
     <file>images/stocker/makeplane.png</file>
     <file>images/stocker/merge.png</file>
     <file>images/stocker/outline.png</file>
