@@ -446,11 +446,16 @@ MainWindow::MainWindow()
 	m_UI->vboxLayout1->setContentsMargins(0, 0, 0, 0);
 	m_UI->vboxLayout1->setSpacing(0);
 	m_UI->vboxLayout2->setContentsMargins(0, 0, 0, 0);
-	m_UI->vboxLayout3->setContentsMargins(0, 0, 0, 0);
-	m_UI->vboxLayout4->setContentsMargins(0, 0, 0, 0);
+	
 	m_UI->verticalLayout->setContentsMargins(0, 0, 0, 0); 
 	m_UI->verticalLayout_2->setContentsMargins(0, 0, 0, 0);	
 	m_UI->verticalLayout_3->setContentsMargins(0, 0, 0, 0);
+	m_UI->verticalLayout_4->setContentsMargins(0, 0, 0, 0);
+	m_UI->verticalLayout_5->setContentsMargins(0, 0, 0, 0);
+	m_UI->verticalLayout_5->setSpacing(0);
+	m_UI->verticalLayout_6->setContentsMargins(0, 0, 0, 0);
+	m_UI->verticalLayout_6->setSpacing(0);
+	
 
 	//////////////////////////////////////////////////////////////////////////
 	// TODO: status bar
@@ -1038,9 +1043,6 @@ void MainWindow::connectActions()
 
 	//////////////////////////////////////////////////////////////////////////
 	//Building Reconstruction
-	connect(m_UI->actionBDProjectLoad,				&QAction::triggered, this, &MainWindow::doActionBDProjectLoad);
-	connect(m_UI->actionBDProjectSave,				&QAction::triggered, this, &MainWindow::doActionBDProjectSave);
-	connect(m_UI->actionBDImagesLoad,				&QAction::triggered, this, &MainWindow::doActionBDImagesLoad);
 	
 	connect(m_UI->actionBDPlaneSegmentation,		&QAction::triggered, this, &MainWindow::doActionBDPlaneSegmentation);
 	connect(m_UI->actionBDPrimPlaneQuality,			&QAction::triggered, this, &MainWindow::doActionBDPrimPlaneQuality);
@@ -1100,6 +1102,12 @@ void MainWindow::connectActions()
 	connect(m_UI->NewDatabaseToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionCreateDatabase);
 	connect(m_UI->OpenDatabaseToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionOpenDatabase);
 	connect(m_UI->SaveDatabaseToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionSaveDatabase);
+
+	connect(m_UI->newBuildProjToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionBDProjectCreate);
+
+	connect(m_UI->actionBDProjectLoad,				&QAction::triggered, this, &MainWindow::doActionBDProjectLoad);
+	connect(m_UI->actionBDProjectSave,				&QAction::triggered, this, &MainWindow::doActionBDProjectSave);
+	connect(m_UI->actionBDImagesLoad,				&QAction::triggered, this, &MainWindow::doActionBDImagesLoad);
 	
 	connect(m_UI->actionImportFile,					&QAction::triggered, this, &MainWindow::doActionImportData);
 	connect(m_UI->actionImportFolder,				&QAction::triggered, this, &MainWindow::doActionImportFolder);
@@ -2677,6 +2685,13 @@ void MainWindow::updateUIWithSelection()
 
 	enableUIItems(selInfo);
 	updateViewStateWithSelection();
+
+	if (selInfo.selCount > 1) {
+		QMainWindow::statusBar()->showMessage(QString("Selected %1 items").arg(selInfo.selCount));
+	}
+	else {
+		QMainWindow::statusBar()->showMessage(QString(""), 200);
+	}
 }
 
 void MainWindow::updateViewStateWithSelection()
@@ -12556,6 +12571,11 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 	}
 	
 	return bd_grp;
+}
+
+void MainWindow::doActionBDProjectCreate()
+{
+
 }
 
 void MainWindow::doActionBDProjectLoad()

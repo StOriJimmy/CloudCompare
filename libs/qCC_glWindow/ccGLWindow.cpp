@@ -408,7 +408,12 @@ ccGLWindow::ccGLWindow(	QSurfaceFormat* format/*=0*/,
 	}
 #endif
 	//GL window title
-	setWindowTitle(QString("3D View %1").arg(m_uniqueID));
+	if (m_uniqueID == 1) {
+		setWindowTitle(QString("3D"));
+	}
+	else {
+		setWindowTitle(QString("3D View %1").arg(m_uniqueID));
+	}
 
  	m_moveCursor = new QCursor(QPixmap(":/CC/Stocker/images/stocker/cursorMove.png"));
 	m_removeCursor = new QCursor(QPixmap(":/CC/Stocker/images/stocker/cursorRemove.png"));

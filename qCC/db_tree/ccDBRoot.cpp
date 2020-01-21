@@ -135,11 +135,11 @@ private:
 		
 		const int	cloudIndex = mIconList.count();
 		mIconList.append( { QIcon(QStringLiteral(":/CC/Stocker/images/stocker/pickpts.png")),
-							QIcon(QStringLiteral(":/CC/images/dbCloudSymbolLocked.png")) } );
+							QIcon(QStringLiteral(":/CC/Stocker/images/stocker/pickpts_lock.png")) } );//:/CC/images/dbCloudSymbolLocked.png
 		
 		const int	geomIndex = mIconList.count();
-		mIconList.append( { QIcon(QStringLiteral(":/CC/images/dbMiscGeomSymbol.png")),
-							QIcon(QStringLiteral(":/CC/images/dbMiscGeomSymbolLocked.png")) } );
+		mIconList.append( { QIcon(QStringLiteral(":/CC/Stocker/images/stocker/block.png")),		//:/CC/images/dbMiscGeomSymbol.png
+							QIcon(QStringLiteral(":/CC/Stocker/images/stocker/block_lock.png")) } );	//:/CC/images/dbMiscGeomSymbolLocked.png
 		
 		const int	meshIndex = mIconList.count();
 		mIconList.append( { QIcon(QStringLiteral(":/CC/images/dbMeshSymbol.png")),

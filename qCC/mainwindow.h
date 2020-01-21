@@ -544,6 +544,7 @@ private slots:
 	//////////////////////////////////////////////////////////////////////////
 	//! Building Reconstruction
 	/// Load Project
+	void doActionBDProjectCreate();
 	void doActionBDProjectLoad();
 	void doActionBDProjectSave();
 	void doActionBDImagesLoad();
