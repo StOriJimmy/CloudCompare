@@ -547,7 +547,11 @@ private slots:
 	void doActionBDProjectCreate();
 	void doActionBDProjectLoad();
 	void doActionBDProjectSave();
+
+	/// image project
 	void doActionBDImagesLoad();
+	void doActionBDImagesToggle3DView();
+
 	/// Plane Segmentation
 	void doActionBDPlaneSegmentation();
 	void doActionBDPrimPlaneQuality();

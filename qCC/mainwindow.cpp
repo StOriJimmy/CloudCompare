@@ -1104,10 +1104,15 @@ void MainWindow::connectActions()
 	connect(m_UI->SaveDatabaseToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionSaveDatabase);
 
 	connect(m_UI->newBuildProjToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionBDProjectCreate);
+	connect(m_UI->openBuildProjToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionBDProjectLoad);
+	connect(m_UI->saveBuildProjToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionBDProjectSave);
 
 	connect(m_UI->actionBDProjectLoad,				&QAction::triggered, this, &MainWindow::doActionBDProjectLoad);
 	connect(m_UI->actionBDProjectSave,				&QAction::triggered, this, &MainWindow::doActionBDProjectSave);
+
+	connect(m_UI->openImageProjToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionBDImagesLoad);
 	connect(m_UI->actionBDImagesLoad,				&QAction::triggered, this, &MainWindow::doActionBDImagesLoad);
+	connect(m_UI->toggleImageView3DToolButton,		&QAbstractButton::clicked, this, &MainWindow::doActionBDImagesToggle3DView);
 	
 	connect(m_UI->actionImportFile,					&QAction::triggered, this, &MainWindow::doActionImportData);
 	connect(m_UI->actionImportFolder,				&QAction::triggered, this, &MainWindow::doActionImportFolder);
@@ -12908,6 +12913,31 @@ void MainWindow::doActionBDImagesLoad()
 	}
 		
 	refreshAll();
+}
+
+void MainWindow::doActionBDImagesToggle3DView()
+{
+	ccHObject::Container camera_groups = GetEnabledObjFromGroup(m_imageRoot->getRootEntity(), CC_TYPES::ST_PROJECT);
+	if (camera_groups.empty()) {
+		m_UI->toggleImageView3DToolButton->setChecked(!m_UI->toggleImageView3DToolButton->isChecked());
+		return;
+	}
+	bool checked = m_UI->toggleImageView3DToolButton->isChecked();
+	for (ccHObject* cam_group : camera_groups) {
+		for (size_t i = 0; i < cam_group->getChildrenNumber(); i++) {
+			ccCameraSensor* sensor = ccHObjectCaster::ToCameraSensor(cam_group->getChild(i));
+			if (!sensor) continue;
+			
+			sensor->drawFrustum(checked);
+			sensor->drawNearPlane(checked);
+
+			if (!checked) {
+				sensor->drawBaseAxis(false);
+				sensor->drawImage(false);
+				sensor->drawFrustumPlanes(false);
+			}
+		}
+	}
 }
 
 // for point cloud (.original by default)
