@@ -202,7 +202,7 @@ public:
 	void removeFromDB(ccHObject* obj, bool autoDelete = true) override;
 	void setSelectedInDB(ccHObject* obj, bool selected) override;	
 	void dispToConsole(QString message, ConsoleMessageLevel level = STD_CONSOLE_MESSAGE) override;
-	void dispToStatus(QString message, int time);
+	void dispToStatus(QString message, int time = 0);
 	void forceConsoleDisplay() override;
 	ccHObject* dbRootObject(CC_TYPES::DB_SOURCE rt) override;
 	ccHObject* dbRootObject() override;

@@ -729,17 +729,17 @@ void bdrLabelAnnotationPanel::pauseLabelingMode(bool state)
 		allowStateChange(true);
 		m_associatedWin->setInteractionMode(ccGLWindow::TRANSFORM_CAMERA());
 		m_associatedWin->setPickingMode(ccGLWindow::DEFAULT_PICKING);
-		MainWindow::TheInstance()->dispToStatus(QString("paused, press space to continue labeling"), 2000);
+		MainWindow::TheInstance()->dispToStatus(QString("paused, press space to continue labeling"));
 	}
 	else {
 		m_state = STARTED;
 		allowStateChange(false);
 		m_associatedWin->setInteractionMode(ccGLWindow::INTERACT_SHIFT_PAN | ccGLWindow::INTERACT_SEND_ALL_SIGNALS);
 		if (m_selection_mode == SELECT_2D) {
-			MainWindow::TheInstance()->dispToStatus(QString("labeling (2D), left click to add contour points, right click to close"), 3000);
+			MainWindow::TheInstance()->dispToStatus(QString("labeling (2D), left click to add contour points, right click to close"));
 		}
 		else if (m_selection_mode == SELECT_3D) {
-			MainWindow::TheInstance()->dispToStatus(QString("labeling (3D), left click to add contour points, right click to close"), 3000);
+			MainWindow::TheInstance()->dispToStatus(QString("labeling (3D), left click to add contour points, right click to close"));
 		}
 	}
 
@@ -757,7 +757,73 @@ void bdrLabelAnnotationPanel::filterClassification()
 
 void bdrLabelAnnotationPanel::setLabel()
 {
+	if (!m_associatedWin)
+		return;
 
+	if (!m_segmentationPoly)
+	{
+		ccLog::Error("No polyline defined!");
+		return;
+	}
+
+	if (!m_segmentationPoly->isClosed())
+	{
+		ccLog::Error("Define and/or close the segmentation polygon first! (right click to close)");
+		return;
+	}
+
+	//viewing parameters
+	ccGLCameraParameters camera;
+	m_associatedWin->getGLCameraParameters(camera);
+	const double half_w = camera.viewport[2] / 2.0;
+	const double half_h = camera.viewport[3] / 2.0;
+
+	int label_index = m_UI->typeComboBox->currentIndex();
+	
+	//for each selected entity
+	for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
+	{
+		ccPointCloud* cloud = ccHObjectCaster::ToPointCloud(*p);
+		if (!cloud) continue;
+		assert(cloud);
+
+// 		ccGenericPointCloud::VisibilityTableType& visibilityArray = cloud->getTheVisibilityArray();
+// 		assert(!visibilityArray.empty());
+
+		unsigned cloudSize = cloud->size();
+
+		//we project each point and we check if it falls inside the segmentation polyline
+#if defined(_OPENMP)
+#pragma omp parallel for
+#endif
+		for (int i = 0; i < static_cast<int>(cloudSize); ++i)
+		{
+
+			//if (visibilityArray[i] == POINT_VISIBLE)
+			{
+				const CCVector3* P3D = cloud->getPoint(i);
+
+				CCVector3d Q2D;
+				bool pointInFrustrum = camera.project(*P3D, Q2D, true);
+
+				CCVector2 P2D(static_cast<PointCoordinateType>(Q2D.x - half_w),
+					static_cast<PointCoordinateType>(Q2D.y - half_h));
+
+				bool pointInside = pointInFrustrum && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
+
+				//visibilityArray[i] = (keepPointsInside != pointInside ? POINT_HIDDEN : POINT_VISIBLE);
+
+				if (pointInside) {
+					cloud->setPointScalarValue(i, label_index);
+				}
+
+			}
+		}
+	}
+
+	m_somethingHasChanged = true;
+	m_UI->razButton->setEnabled(true);
+	pauseLabelingMode(true);
 }
 
 void bdrLabelAnnotationPanel::createEntity()
@@ -777,9 +843,9 @@ void bdrLabelAnnotationPanel::createEntity()
 		return;
 	}
 
-	if (!m_destination) {
-		return;
-	}
+// 	if (!m_destination) {
+// 		return;
+// 	}
 
 	//viewing parameters
 	ccGLCameraParameters camera;
@@ -796,9 +862,15 @@ void bdrLabelAnnotationPanel::createEntity()
 //		ccGenericPointCloud::VisibilityTableType& visibilityArray = cloud->getTheVisibilityArray();
 
 		unsigned cloudSize = cloud->size();
+		ccHObject* destination = nullptr;
+		if (m_destination) destination = m_destination;
+		else {
+			destination = GetRootBDBase(*p);
+		}
+		if (!destination) continue;
 
 		//! create a new point cloud
-		int number = GetMaxNumberExcludeChildPrefix(m_destination, BDDB_BUILDING_PREFIX);
+		int number = GetMaxNumberExcludeChildPrefix(destination, BDDB_BUILDING_PREFIX);
 		ccPointCloud* new_building = new ccPointCloud(BuildingNameByNumber(number + 1));
 		new_building->setGlobalScale(cloud->getGlobalScale());
 		new_building->setGlobalShift(cloud->getGlobalShift());
@@ -826,12 +898,23 @@ void bdrLabelAnnotationPanel::createEntity()
 
 			new_building->addPoint(*P3D);
 		}
+		if (new_building->getPointSize() > 15) {
+			ccHObject* new_building_folder = new ccHObject(new_building->getName() + BDDB_ORIGIN_CLOUD_SUFFIX);
+			new_building->setRGBColor(ccColor::Generator::Random());
+			new_building->showColors(true);
+			new_building_folder->addChild(new_building);
 
-		new_building->setDisplay(m_destination->getDisplay());
-		new_building->setRGBColor(ccColor::Generator::Random());
-		new_building->showColors(true);
-		m_destination->addChild(new_building);
-		MainWindow::TheInstance()->addToDB(new_building, m_destination->getDBSourceType());
+			StBuilding* new_building_obj = new StBuilding(new_building->getName());			
+			new_building_obj->addChild(new_building_folder);
+			new_building_obj->setDisplay_recursive(destination->getDisplay());
+			new_building_obj->setDBSourceType_recursive(destination->getDBSourceType());
+
+			destination->addChild(new_building);
+			MainWindow::TheInstance()->addToDB(new_building, destination->getDBSourceType());
+		}
+		else {
+			continue;
+		}
 
 		m_somethingHasChanged = true;
 	}
