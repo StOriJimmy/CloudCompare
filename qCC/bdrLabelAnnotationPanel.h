@@ -72,7 +72,7 @@ public:
 		SEGMENT_GENERAL,
 		SEGMENT_PLANE_CREATE,
 		SEGMENT_PLANE_SPLIT,
-		SEGMENT_CLASS_EDIT,
+		SEGMENT_LABELING,
 		SEGMENT_BUILD_EIDT,
 	};
 	void setSegmentMode(SegmentMode mode);
@@ -87,27 +87,37 @@ protected slots:
 	void segmentIn();
 	void segmentOut();
 	void segment(bool);
-	void reset();
-	void apply();
-	void applyAndDelete();
-	void cancel();
+	
 	void addPointToPolyline(int x, int y);
 	void closePolyLine(int x=0, int y=0); //arguments for compatibility with ccGlWindow::rightButtonClicked signal
 	void closeRectangle();
 	void updatePolyLine(int x, int y, Qt::MouseButtons buttons);
-	void pauseSegmentationMode(bool);
-	void doSetPolylineSelection();
-	void doSetRectangularSelection();
+
+	void settings();
+
+	void pauseLabelingMode(bool);
+	void filterClassification();
+
+	void setLabel();
+	void createEntity();
+
+	void reset();
+	void exit();
+
+	void doSet2DSelection();
+	void doSet3DSelection();
+
+	void onLasLabelChanged(int);
 
 	//! To capture overridden shortcuts (pause button, etc.)
 	void onShortcutTriggered(int);
 
-	void createBuilding();
-
 protected:
 
 	//! Whether to allow or not to exort the current segmentation polyline
-	void allowPolylineExport(bool state);
+	void allowExecutePolyline(bool state);
+
+	void allowStateChange(bool state);
 
 	//! Set of entities to be segmented
 	QSet<ccHObject*> m_toSegment;
@@ -137,6 +147,12 @@ protected:
 	ccPointCloud* m_polyVertices;
 
 	//! Selection mode
+	enum SelectionMode
+	{
+		SELECT_3D,
+		SELECT_2D,
+	};
+	SelectionMode m_selection_mode;
 	bool m_rectangularSelection;
 
 	//! Whether to delete hidden parts after segmentation

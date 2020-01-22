@@ -53,6 +53,42 @@ enum importDataType
 	IMPORT_TYPE_END,
 };
 
+// https://desktop.arcgis.com/zh-cn/arcmap/10.3/manage-data/las-dataset/lidar-point-classification.htm
+namespace LAS_LABEL {
+	enum LABEL_TYPE
+	{
+		Unused,
+		Unassigned,
+		Ground,
+		LowVegetation,
+		MedianVegetation,
+		HighVegetation,
+		Building,
+		Noise,
+		ModelKey,
+		Water,
+		Rail,
+		RoadSurface,
+		Overlap,
+		WireGuard,
+		WireConductor,
+		TransmissionTower,
+		WireConnector,
+		BridgeDeck,
+		HighNoise,
+		LABEL_END,
+	};
+	enum LABEL_SIMPLE
+	{
+
+	};
+	static const char* g_strLabelName[] = { 
+		"none","unassigned","ground","low vegetation","median vegetation","high vegetation",
+		"building","noise","modelKey","water","rail","road surface",
+		"overlap","wire-guard","wire-conductor","transmission tower","wire-connector","bridge deck",
+		"high noise"};
+}
+
 Q_DECLARE_METATYPE(BlockDB::blkDataInfo*)
 Q_DECLARE_METATYPE(BlockDB::blkCameraInfo)
 

@@ -38,8 +38,6 @@ class QPushButton;
 class QProgressBar;
 class QLabel;
 class QSpinBox;
-class QVBoxLayout;
-class QFrame;
 
 class cc3DMouseManager;
 class ccCameraParamEditDlg;
@@ -80,6 +78,7 @@ class bdrSettingBDSegDlg;
 class bdrSettingGrdFilterDlg;
 
 class bdrProjectDlg;
+class bdrLabelAnnotationPanel;
 
 class PolyFitObj;
 
@@ -203,6 +202,7 @@ public:
 	void removeFromDB(ccHObject* obj, bool autoDelete = true) override;
 	void setSelectedInDB(ccHObject* obj, bool selected) override;	
 	void dispToConsole(QString message, ConsoleMessageLevel level = STD_CONSOLE_MESSAGE) override;
+	void dispToStatus(QString message, int time);
 	void forceConsoleDisplay() override;
 	ccHObject* dbRootObject(CC_TYPES::DB_SOURCE rt) override;
 	ccHObject* dbRootObject() override;
@@ -830,9 +830,6 @@ private:
 	/***        MDI AREA        ***/
 	/******************************/
 
-	QVBoxLayout* m_central_verticalLayout;
-	QFrame* m_central_frame;
-	QVBoxLayout* m_central_frame_verticalLayout;
 	QMdiArea* m_mdiArea;
 
 	//! CloudCompare MDI area overlay dialogs
@@ -911,6 +908,7 @@ private:
 	bdrSettingGrdFilterDlg* m_pbdrSettingGrdFilterDlg;
 
 	bdrProjectDlg* m_pbdrPrjDlg;
+	bdrLabelAnnotationPanel* m_pbdrLAPanel;
 
 	PolyFitObj* polyfit_obj;
 	int m_GCSvr_prj_id;

@@ -42,70 +42,81 @@ bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
 	, m_rectangularSelection(false)
 	, m_deleteHiddenParts(false)
 	, m_destination(nullptr)
+	, m_segment_mode(SEGMENT_LABELING)
 {
-	// Set QDialog background as transparent (DGM: doesn't work over an OpenGL context)
-	//setAttribute(Qt::WA_NoSystemBackground);
-
 	m_UI->setupUi(this);
 
-// 	connect(inButton,							&QToolButton::clicked,		this,	&bdrLabelAnnotationPanel::segmentIn);
-// 	connect(outButton,							&QToolButton::clicked,		this,	&bdrLabelAnnotationPanel::segmentOut);
-// 	connect(razButton,							&QToolButton::clicked,		this,	&bdrLabelAnnotationPanel::reset);
-// 	connect(validButton,						&QToolButton::clicked,		this,	&bdrLabelAnnotationPanel::apply);
-// 	connect(validAndDeleteButton,				&QToolButton::clicked,		this,	&bdrLabelAnnotationPanel::applyAndDelete);
-// 	connect(cancelButton,						&QToolButton::clicked,		this,	&bdrLabelAnnotationPanel::cancel);
-// 	connect(pauseButton,						&QToolButton::toggled,		this,	&bdrLabelAnnotationPanel::pauseSegmentationMode);
-// 
-// 	//selection modes
-// 	connect(actionSetPolylineSelection,			&QAction::triggered,	this,	&bdrLabelAnnotationPanel::doSetPolylineSelection);
-// 	connect(actionSetRectangularSelection,		&QAction::triggered,	this,	&bdrLabelAnnotationPanel::doSetRectangularSelection);
-// 	//import/export options
+	connect(m_UI->settingToolButton,			&QToolButton::clicked, this, &bdrLabelAnnotationPanel::settings);
+	connect(m_UI->pauseButton,					&QToolButton::toggled, this, &bdrLabelAnnotationPanel::pauseLabelingMode);
+	connect(m_UI->filterToolButton,				&QToolButton::clicked, this, &bdrLabelAnnotationPanel::filterClassification);
+	connect(m_UI->setLabelToolButton,			&QToolButton::clicked, this, &bdrLabelAnnotationPanel::setLabel);
+	connect(m_UI->createEntityToolButton,		&QToolButton::clicked, this, &bdrLabelAnnotationPanel::createEntity);
+	connect(m_UI->razButton,					&QToolButton::clicked, this, &bdrLabelAnnotationPanel::reset);
+	connect(m_UI->exitButton,					&QToolButton::clicked, this, &bdrLabelAnnotationPanel::exit);
+
+ 	//selection modes
+ 	connect(m_UI->action2DSelection,			&QAction::triggered,	this, &bdrLabelAnnotationPanel::doSet2DSelection);
+ 	connect(m_UI->action3DSelection,			&QAction::triggered,	this, &bdrLabelAnnotationPanel::doSet3DSelection);
+ 	//import/export options
 // 	connect(actionUseExistingPolyline,			&QAction::triggered,	this,	&bdrLabelAnnotationPanel::doActionUseExistingPolyline);
 // 	connect(actionExportSegmentationPolyline,	&QAction::triggered,	this,	&bdrLabelAnnotationPanel::doExportSegmentationPolyline);
-// 
-// 	connect(createBuildingToolButton,			SIGNAL(clicked()),		this,	SLOT(createBuilding()));
-// 
-// 	//add shortcuts
-// 	addOverridenShortcut(Qt::Key_Space);  //space bar for the "pause" button
-// 	addOverridenShortcut(Qt::Key_Escape); //escape key for the "cancel" button
-// 	addOverridenShortcut(Qt::Key_Return); //return key for the "apply" button
-// 	addOverridenShortcut(Qt::Key_Delete); //delete key for the "apply and delete" button
-// 	addOverridenShortcut(Qt::Key_Tab);    //tab key to switch between rectangular and polygonal selection modes
-// 	addOverridenShortcut(Qt::Key_I);      //'I' key for the "segment in" button
-// 	addOverridenShortcut(Qt::Key_O);      //'O' key for the "segment out" button
-// 	connect(this, &ccOverlayDialog::shortcutTriggered, this, &bdrLabelAnnotationPanel::onShortcutTriggered);
-// 
-// 	QMenu* selectionModeMenu = new QMenu(this);
-// 	selectionModeMenu->addAction(actionSetPolylineSelection);
-// 	selectionModeMenu->addAction(actionSetRectangularSelection);
-// 	selectionModelButton->setDefaultAction(actionSetPolylineSelection);
-// 	selectionModelButton->setMenu(selectionModeMenu);
-// 
+
+	for (size_t i = 0; i < LAS_LABEL::LABEL_END; ++i) {
+		m_UI->typeComboBox->addItem(LAS_LABEL::g_strLabelName[i]);
+	}
+	m_UI->typeComboBox->setCurrentIndex(LAS_LABEL::Building);	
+	connect(m_UI->typeComboBox,					SIGNAL(currentIndexChanged(int)), this, SLOT(onLasLabelChanged(int)));
+ 
+ 	//add shortcuts
+ 	addOverridenShortcut(Qt::Key_Space);  //space bar for the "pause" button
+ 	addOverridenShortcut(Qt::Key_Escape); //escape key for the "cancel" button
+ 	addOverridenShortcut(Qt::Key_Return); //return key for the "apply" button
+ 	addOverridenShortcut(Qt::Key_Delete); //delete key for the "apply and delete" button
+ 	addOverridenShortcut(Qt::Key_Tab);    //tab key to switch between rectangular and polygonal selection modes
+ 	addOverridenShortcut(Qt::Key_C);      //'C' key for the "segment in" button
+ 	addOverridenShortcut(Qt::Key_S);      //'S' key for the "segment out" button
+ 	connect(this,								&ccOverlayDialog::shortcutTriggered, this, &bdrLabelAnnotationPanel::onShortcutTriggered);
+
+ 	QMenu* selectionModeMenu = new QMenu(this);
+ 	selectionModeMenu->addAction(m_UI->action2DSelection);
+ 	selectionModeMenu->addAction(m_UI->action3DSelection);
+	m_UI->selectionModeButton->setDefaultAction(m_UI->action3DSelection);
+	m_UI->selectionModeButton->setMenu(selectionModeMenu);
+ 
 // 	QMenu* importExportMenu = new QMenu(this);
 // 	importExportMenu->addAction(actionUseExistingPolyline);
 // 	importExportMenu->addAction(actionExportSegmentationPolyline);
 // 	loadSaveToolButton->setMenu(importExportMenu);
 // 
-// 	m_polyVertices = new ccPointCloud("vertices");
-// 	m_segmentationPoly = new ccPolyline(m_polyVertices);
-// 	m_segmentationPoly->setForeground(true);
-// 	m_segmentationPoly->setColor(ccColor::green);
-// 	m_segmentationPoly->showColors(true);
-// 	m_segmentationPoly->set2DMode(true);
-// 	allowPolylineExport(false);
+ 	m_polyVertices = new ccPointCloud("vertices");
+ 	m_segmentationPoly = new ccPolyline(m_polyVertices);
+ 	m_segmentationPoly->setForeground(true);
+ 	m_segmentationPoly->setColor(ccColor::green);
+ 	m_segmentationPoly->showColors(true);
+ 	m_segmentationPoly->set2DMode(true);
+ 	allowExecutePolyline(false);
+
+	m_selection_mode = SELECT_3D;
 }
 
-void bdrLabelAnnotationPanel::allowPolylineExport(bool state)
+void bdrLabelAnnotationPanel::allowExecutePolyline(bool state)
 {
-// 	if (state)
-// 	{
-// 		actionExportSegmentationPolyline->setEnabled(true);
-// 	}
-// 	else
-// 	{
-// 		loadSaveToolButton->setDefaultAction(actionUseExistingPolyline);
-// 		actionExportSegmentationPolyline->setEnabled(false);
-// 	}
+	m_UI->createEntityToolButton->setEnabled(state);
+	m_UI->setLabelToolButton->setEnabled(state);
+
+ 	if (state) {
+ 	}
+ 	else {
+		
+ 	}
+}
+
+void bdrLabelAnnotationPanel::allowStateChange(bool state)
+{
+	m_UI->selectionModeButton->setEnabled(state);
+	m_UI->typeComboBox->setEnabled(state);
+	m_UI->filterToolButton->setEnabled(state);
+	m_UI->exitButton->setEnabled(state);
 }
 
 bdrLabelAnnotationPanel::~bdrLabelAnnotationPanel()
@@ -142,14 +153,14 @@ void bdrLabelAnnotationPanel::onShortcutTriggered(int key)
 		//validAndDeleteButton->click();
 		return;
 	case Qt::Key_Escape:
-		//cancelButton->click();
+		m_UI->exitButton->click();
 		return;
 
 	case Qt::Key_Tab:
-		if (m_rectangularSelection)
-			doSetPolylineSelection();
-		else
-			doSetRectangularSelection();
+		if (m_selection_mode == SELECT_2D)
+			doSet3DSelection();
+		else if (m_selection_mode == SELECT_3D)
+			doSet2DSelection();
 		return;
 
 	default:
@@ -200,19 +211,31 @@ bool bdrLabelAnnotationPanel::start()
 
 	if (!m_associatedWin)
 	{
-		ccLog::Warning("[Graphical Segmentation Tool] No associated window!");
 		return false;
 	}
 
 	m_segmentationPoly->clear();
 	m_polyVertices->clear();
-	allowPolylineExport(false);
+	allowExecutePolyline(false);
 
 	//the user must not close this window!
 	m_associatedWin->setUnclosable(true);
 	m_associatedWin->addToOwnDB(m_segmentationPoly);
 	m_associatedWin->setPickingMode(ccGLWindow::NO_PICKING);
-	pauseSegmentationMode(false);
+	if (m_selection_mode == SELECT_3D)
+	{
+		m_associatedWin->setPerspectiveState(true, true);
+		m_associatedWin->lockRotationAxis(false, CCVector3d(0, 0, 1));
+
+		m_UI->selectionModeButton->setDefaultAction(m_UI->action3DSelection);
+	}
+	else if (m_selection_mode == SELECT_2D) {
+		m_associatedWin->setPerspectiveState(false, true);
+		m_associatedWin->lockRotationAxis(true, CCVector3d(0, 0, 1));
+		m_associatedWin->setView(CC_TOP_VIEW);
+		m_UI->selectionModeButton->setDefaultAction(m_UI->action2DSelection);
+	}
+	pauseLabelingMode(false);
 
 	m_somethingHasChanged = false;
 
@@ -223,14 +246,16 @@ bool bdrLabelAnnotationPanel::start()
 
 void bdrLabelAnnotationPanel::removeAllEntities(bool unallocateVisibilityArrays)
 {
-	if (unallocateVisibilityArrays)
+	for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
 	{
-		for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
-		{
+		if (m_segment_mode == SEGMENT_LABELING || m_segment_mode == SEGMENT_BUILD_EIDT) {
+			(*p)->setLocked(false);
+		}
+		else if (unallocateVisibilityArrays) {
 			ccHObjectCaster::ToGenericPointCloud(*p)->unallocateVisibilityArray();
 		}
 	}
-
+	
 	m_toSegment.clear();
 }
 
@@ -238,16 +263,10 @@ void bdrLabelAnnotationPanel::stop(bool accepted)
 {
 	assert(m_segmentationPoly);
 
-	if (m_associatedWin)
-	{
-		m_associatedWin->displayNewMessage("Segmentation [OFF]",
-											ccGLWindow::UPPER_CENTER_MESSAGE,
-											false,
-											2,
-											ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
-
+	if (m_associatedWin) {
 		m_associatedWin->setInteractionMode(ccGLWindow::TRANSFORM_CAMERA());
 		m_associatedWin->setPickingMode(ccGLWindow::DEFAULT_PICKING);
+		m_associatedWin->setPerspectiveState(true, true);
 		m_associatedWin->setUnclosable(false);
 		m_associatedWin->removeFromOwnDB(m_segmentationPoly);
 	}
@@ -271,7 +290,7 @@ void bdrLabelAnnotationPanel::reset()
 		m_somethingHasChanged = false;
 	}
 
-// 	razButton->setEnabled(false);
+ 	m_UI->razButton->setEnabled(false);
 // 	validButton->setEnabled(false);
 // 	validAndDeleteButton->setEnabled(false);
 // 	loadSaveToolButton->setDefaultAction(actionUseExistingPolyline);
@@ -297,7 +316,7 @@ bool bdrLabelAnnotationPanel::addEntity(ccHObject* entity)
 			//either the cloud is the child of its parent mesh
 			if (cloud->getParent() && cloud->getParent()->isKindOf(CC_TYPES::MESH) && ccHObjectCaster::ToGenericMesh(cloud->getParent())->getAssociatedCloud() == cloud)
 			{
-				ccLog::Warning(QString("[Graphical Segmentation Tool] Can't segment mesh vertices '%1' directly! Select its parent mesh instead!").arg(entity->getName()));
+				//ccLog::Warning(QString("[Graphical Segmentation Tool] Can't segment mesh vertices '%1' directly! Select its parent mesh instead!").arg(entity->getName()));
 				return false;
 			}
 			//or the parent of its child mesh!
@@ -307,25 +326,40 @@ bool bdrLabelAnnotationPanel::addEntity(ccHObject* entity)
 				for (unsigned i=0; i<meshes.size(); ++i)
 					if (ccHObjectCaster::ToGenericMesh(meshes[i])->getAssociatedCloud() == cloud)
 					{
-						ccLog::Warning(QString("[Graphical Segmentation Tool] Can't segment mesh vertices '%1' directly! Select its child mesh instead!").arg(entity->getName()));
+						//ccLog::Warning(QString("[Graphical Segmentation Tool] Can't segment mesh vertices '%1' directly! Select its child mesh instead!").arg(entity->getName()));
 						return false;
 					}
 			}
 		}
 
-		if (m_segment_mode == SEGMENT_CLASS_EDIT || m_segment_mode == SEGMENT_BUILD_EIDT) {
+		if (m_segment_mode == SEGMENT_LABELING || m_segment_mode == SEGMENT_BUILD_EIDT) {
+			//cloud->hasScalarFields()
+			//cloud->geScalarValueColor()
+			
+			ccPointCloud* cloudObj = ccHObjectCaster::ToPointCloud(cloud);
+			if (cloudObj) {
+				int class_index = cloudObj->getScalarFieldIndexByName("classification");
+				if (class_index < 0) {
+					class_index = cloudObj->addScalarField("classification");
+					if (class_index < 0) return false;
+				}
+				cloudObj->setCurrentDisplayedScalarField(class_index);
+
+				cloud->showColors(false);
+				cloud->showSF(true);
+			}
 		}
 		else {
 			cloud->resetVisibilityArray();
 		}
-		
+		cloud->setLocked(true);
 		m_toSegment.insert(cloud);
 
 		//automatically add cloud's children
 		for (unsigned i=0; i<entity->getChildrenNumber(); ++i)
 			result |= addEntity(entity->getChild(i));
 	}
-	else if (entity->isKindOf(CC_TYPES::MESH))
+	else if (0)//(entity->isKindOf(CC_TYPES::MESH))
 	{
 		if (entity->isKindOf(CC_TYPES::PRIMITIVE))
 		{
@@ -427,7 +461,7 @@ void bdrLabelAnnotationPanel::updatePolyLine(int x, int y, Qt::MouseButtons butt
 			if (!m_segmentationPoly->addPointIndex(0,4))
 			{
 				ccLog::Error("Out of memory!");
-				allowPolylineExport(false);
+				allowExecutePolyline(false);
 				return;
 			}
 			m_segmentationPoly->setClosed(true);
@@ -443,6 +477,10 @@ void bdrLabelAnnotationPanel::updatePolyLine(int x, int y, Qt::MouseButtons butt
 	}
 
 	m_associatedWin->redraw(true, false);
+}
+
+void bdrLabelAnnotationPanel::settings()
+{
 }
 
 void bdrLabelAnnotationPanel::addPointToPolyline(int x, int y)
@@ -485,7 +523,7 @@ void bdrLabelAnnotationPanel::addPointToPolyline(int x, int y)
 		if (!m_polyVertices->reserve(2))
 		{
 			ccLog::Error("Out of memory!");
-			allowPolylineExport(false);
+			allowExecutePolyline(false);
 			return;
 		}
 		//we add the same point twice (the last point will be used for display only)
@@ -495,7 +533,7 @@ void bdrLabelAnnotationPanel::addPointToPolyline(int x, int y)
 		if (!m_segmentationPoly->addPointIndex(0, 2))
 		{
 			ccLog::Error("Out of memory!");
-			allowPolylineExport(false);
+			allowExecutePolyline(false);
 			return;
 		}
 	}
@@ -507,7 +545,7 @@ void bdrLabelAnnotationPanel::addPointToPolyline(int x, int y)
 			if (!m_polyVertices->reserve(vertCount+1))
 			{
 				ccLog::Error("Out of memory!");
-				allowPolylineExport(false);
+				allowExecutePolyline(false);
 				return;
 			}
 
@@ -550,11 +588,11 @@ void bdrLabelAnnotationPanel::closeRectangle()
 			return;
 		m_segmentationPoly->clear();
 		m_polyVertices->clear();
-		allowPolylineExport(false);
+		allowExecutePolyline(false);
 	}
 	else
 	{
-		allowPolylineExport(true);
+		allowExecutePolyline(true);
 	}
 
 	//stop
@@ -569,6 +607,10 @@ void bdrLabelAnnotationPanel::closePolyLine(int, int)
 	//only for polyline in RUNNING mode
 	if ((m_state & POLYLINE) == 0 || (m_state & RUNNING) == 0)
 		return;
+
+	if ((QApplication::keyboardModifiers() & Qt::ShiftModifier)) {
+		return;
+	}
 
 	assert(m_segmentationPoly);
 	unsigned vertCount = m_segmentationPoly->size();
@@ -586,18 +628,12 @@ void bdrLabelAnnotationPanel::closePolyLine(int, int)
 
 	//stop
 	m_state &= (~RUNNING);
-
-	//set the default import/export icon to 'export' mode
-// 	loadSaveToolButton->setDefaultAction(actionExportSegmentationPolyline);
-// 	allowPolylineExport(m_segmentationPoly->size() > 1);
-// 	if (m_segment_mode == SEGMENT_PLANE_CREATE || m_segment_mode == SEGMENT_PLANE_SPLIT) {
-// 		validButton->setEnabled(m_segmentationPoly->size() > 1);
-// 		validAndDeleteButton->setEnabled(m_segmentationPoly->size() > 1);
-// 	}	
-// 	if (m_associatedWin)
-// 	{
-// 		m_associatedWin->redraw(true, false);
-// 	}
+		
+ 	allowExecutePolyline(true);
+ 	if (m_associatedWin)
+ 	{
+ 		m_associatedWin->redraw(true, false);
+ 	}
 }
 
 void bdrLabelAnnotationPanel::segmentIn()
@@ -636,7 +672,8 @@ void bdrLabelAnnotationPanel::segment(bool keepPointsInside)
 	//for each selected entity
 	for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
 	{
-		ccGenericPointCloud* cloud = ccHObjectCaster::ToGenericPointCloud(*p);
+		ccPointCloud* cloud = ccHObjectCaster::ToPointCloud(*p);
+		if (!cloud) continue;
 		assert(cloud);
 
 		ccGenericPointCloud::VisibilityTableType& visibilityArray = cloud->getTheVisibilityArray();
@@ -650,6 +687,7 @@ void bdrLabelAnnotationPanel::segment(bool keepPointsInside)
 #endif
 		for (int i = 0; i < static_cast<int>(cloudSize); ++i)
 		{
+			
 			if (visibilityArray[i] == POINT_VISIBLE)
 			{
 				const CCVector3* P3D = cloud->getPoint(i);
@@ -663,50 +701,45 @@ void bdrLabelAnnotationPanel::segment(bool keepPointsInside)
 				bool pointInside = pointInFrustrum && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
 
 				visibilityArray[i] = (keepPointsInside != pointInside ? POINT_HIDDEN : POINT_VISIBLE);
+
 			}
 		}
 	}
 
 	m_somethingHasChanged = true;
-// 	validButton->setEnabled(true);
-// 	validAndDeleteButton->setEnabled(true);
-// 	razButton->setEnabled(true);
-	pauseSegmentationMode(true);
+ 	m_UI->razButton->setEnabled(true);
+	pauseLabelingMode(true);
 }
 
-void bdrLabelAnnotationPanel::pauseSegmentationMode(bool state)
+void bdrLabelAnnotationPanel::pauseLabelingMode(bool state)
 {
 	assert(m_polyVertices && m_segmentationPoly);
 
 	if (!m_associatedWin)
 		return;
 
-	if (state/*=activate pause mode*/)
-	{
+	if (state/*=activate pause mode*/) {
 		m_state = PAUSED;
 		if (m_polyVertices->size() != 0)
 		{
 			m_segmentationPoly->clear();
 			m_polyVertices->clear();
-			allowPolylineExport(false);
+			allowExecutePolyline(false);
 		}
+		allowStateChange(true);
 		m_associatedWin->setInteractionMode(ccGLWindow::TRANSFORM_CAMERA());
-		m_associatedWin->displayNewMessage("Segmentation [PAUSED]", ccGLWindow::UPPER_CENTER_MESSAGE, false, 3600, ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
-		m_associatedWin->displayNewMessage("Unpause to segment again", ccGLWindow::UPPER_CENTER_MESSAGE, true, 3600, ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
+		m_associatedWin->setPickingMode(ccGLWindow::DEFAULT_PICKING);
+		MainWindow::TheInstance()->dispToStatus(QString("paused, press space to continue labeling"), 2000);
 	}
-	else
-	{
+	else {
 		m_state = STARTED;
-		m_associatedWin->setInteractionMode(ccGLWindow::INTERACT_SEND_ALL_SIGNALS);
-		if (m_rectangularSelection)
-		{
-			m_associatedWin->displayNewMessage("Segmentation [ON] (rectangular selection)", ccGLWindow::UPPER_CENTER_MESSAGE, false, 3600, ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
-			m_associatedWin->displayNewMessage("Left click: set opposite corners", ccGLWindow::UPPER_CENTER_MESSAGE, true, 3600, ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
+		allowStateChange(false);
+		m_associatedWin->setInteractionMode(ccGLWindow::INTERACT_SHIFT_PAN | ccGLWindow::INTERACT_SEND_ALL_SIGNALS);
+		if (m_selection_mode == SELECT_2D) {
+			MainWindow::TheInstance()->dispToStatus(QString("labeling (2D), left click to add contour points, right click to close"), 3000);
 		}
-		else
-		{
-			m_associatedWin->displayNewMessage("Segmentation [ON] (polygonal selection)", ccGLWindow::UPPER_CENTER_MESSAGE, false, 3600, ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
-			m_associatedWin->displayNewMessage("Left click: add contour points / Right click: close", ccGLWindow::UPPER_CENTER_MESSAGE, true, 3600, ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
+		else if (m_selection_mode == SELECT_3D) {
+			MainWindow::TheInstance()->dispToStatus(QString("labeling (3D), left click to add contour points, right click to close"), 3000);
 		}
 	}
 
@@ -718,106 +751,16 @@ void bdrLabelAnnotationPanel::pauseSegmentationMode(bool state)
 	m_associatedWin->redraw(!state);
 }
 
-void bdrLabelAnnotationPanel::doSetPolylineSelection()
+void bdrLabelAnnotationPanel::filterClassification()
 {
-	if (!m_rectangularSelection)
-		return;
-
-	//selectionModelButton->setDefaultAction(actionSetPolylineSelection);
-
-	m_rectangularSelection = false;
-	if (m_state != PAUSED)
-	{
-		pauseSegmentationMode(true);
-		pauseSegmentationMode(false);
-	}
-
-	m_associatedWin->displayNewMessage(QString(),ccGLWindow::UPPER_CENTER_MESSAGE); //clear the area
-	m_associatedWin->displayNewMessage("Segmentation [ON] (rectangular selection)",ccGLWindow::UPPER_CENTER_MESSAGE,false,3600,ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
-	m_associatedWin->displayNewMessage("Right click: set opposite corners",ccGLWindow::UPPER_CENTER_MESSAGE,true,3600,ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
 }
 
-void bdrLabelAnnotationPanel::doSetRectangularSelection()
+void bdrLabelAnnotationPanel::setLabel()
 {
-	if (m_rectangularSelection)
-		return;
 
-	//selectionModelButton->setDefaultAction(actionSetRectangularSelection);
-
-	m_rectangularSelection=true;
-	if (m_state != PAUSED)
-	{
-		pauseSegmentationMode(true);
-		pauseSegmentationMode(false);
-	}
-
-	m_associatedWin->displayNewMessage(QString(),ccGLWindow::UPPER_CENTER_MESSAGE); //clear the area
-	m_associatedWin->displayNewMessage("Segmentation [ON] (rectangular selection)",ccGLWindow::UPPER_CENTER_MESSAGE,false,3600,ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
-	m_associatedWin->displayNewMessage("Right click: set opposite corners",ccGLWindow::UPPER_CENTER_MESSAGE,true,3600,ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
 }
 
-void bdrLabelAnnotationPanel::apply()
-{
-	if (m_segment_mode == SEGMENT_PLANE_CREATE || m_segment_mode == SEGMENT_PLANE_SPLIT) {
-		segmentIn();
-	}
-	m_deleteHiddenParts = false;
-	stop(true);
-}
-
-void bdrLabelAnnotationPanel::applyAndDelete()
-{
-	if (m_segment_mode == SEGMENT_PLANE_CREATE || m_segment_mode == SEGMENT_PLANE_SPLIT) {
-		segmentOut();
-	}
-	m_deleteHiddenParts = true;
-	stop(true);
-}
-
-void bdrLabelAnnotationPanel::cancel()
-{
-	reset();
-	m_deleteHiddenParts = false;
-	stop(false);
-}
-
-void bdrLabelAnnotationPanel::setSegmentMode(SegmentMode mode)
-{
-	m_segment_mode = mode;
-
-// 	switch (mode)
-// 	{
-// 	case bdrLabelAnnotationPanel::SEGMENT_GENERAL:
-// 		inButton->setVisible(true);
-// 		outButton->setVisible(true);
-// 		validAndDeleteButton->setToolTip("Confirm and delete hidden points");
-// 		validButton->setToolTip("Confirm segmentation");
-// 		createBuildingToolButton->setVisible(false);
-// 		break;
-// 	case bdrLabelAnnotationPanel::SEGMENT_PLANE_CREATE:
-// 	case bdrLabelAnnotationPanel::SEGMENT_PLANE_SPLIT:
-// 		inButton->setVisible(false);
-// 		outButton->setVisible(false);
-// 		validAndDeleteButton->setToolTip("Confirm and delete points inside the polygon");
-// 		validButton->setToolTip("Create a new plane by points inside the polygon");
-// 		createBuildingToolButton->setVisible(false);
-// 		break;
-// 	case bdrLabelAnnotationPanel::SEGMENT_CLASS_EDIT:
-// 		inButton->setVisible(false);
-// 		outButton->setVisible(false);
-// 		break;
-// 	case bdrLabelAnnotationPanel::SEGMENT_BUILD_EIDT:
-// 		inButton->setVisible(false);
-// 		outButton->setVisible(false);
-// 		createBuildingToolButton->setVisible(true);
-// 		validAndDeleteButton->setVisible(false);
-// 		break;
-// 	default:
-// 		break;
-// 	}
-}
-
-void bdrLabelAnnotationPanel::createBuilding()
+void bdrLabelAnnotationPanel::createEntity()
 {
 	if (!m_associatedWin)
 		return;
@@ -850,7 +793,7 @@ void bdrLabelAnnotationPanel::createBuilding()
 		ccGenericPointCloud* cloud = ccHObjectCaster::ToGenericPointCloud(*p);
 		assert(cloud);
 
-		ccGenericPointCloud::VisibilityTableType& visibilityArray = cloud->getTheVisibilityArray();
+//		ccGenericPointCloud::VisibilityTableType& visibilityArray = cloud->getTheVisibilityArray();
 
 		unsigned cloudSize = cloud->size();
 
@@ -866,9 +809,9 @@ void bdrLabelAnnotationPanel::createBuilding()
 // #endif
 		for (int i = 0; i < static_cast<int>(cloudSize); ++i)
 		{
-			if (visibilityArray.size() == cloudSize && visibilityArray[i] != POINT_VISIBLE)	{
-				continue;
-			}
+// 			if (visibilityArray.size() == cloudSize && visibilityArray[i] != POINT_VISIBLE) {
+// 				continue;
+// 			}
 			const CCVector3* P3D = cloud->getPoint(i);
 
 			CCVector3d Q2D;
@@ -880,20 +823,108 @@ void bdrLabelAnnotationPanel::createBuilding()
 			bool pointInside = pointInFrustrum && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
 
 			if (!pointInside) { continue; }
-			
+
 			new_building->addPoint(*P3D);
 		}
-				
+
 		new_building->setDisplay(m_destination->getDisplay());
 		new_building->setRGBColor(ccColor::Generator::Random());
 		new_building->showColors(true);
 		m_destination->addChild(new_building);
 		MainWindow::TheInstance()->addToDB(new_building, m_destination->getDBSourceType());
+
+		m_somethingHasChanged = true;
 	}
 
-	m_somethingHasChanged = true;
-// 	validButton->setEnabled(true);
-// 	validAndDeleteButton->setEnabled(true);
-// 	razButton->setEnabled(true);
-	pauseSegmentationMode(true);
+	m_UI->razButton->setEnabled(true);
+	pauseLabelingMode(true);
+}
+
+void bdrLabelAnnotationPanel::exit()
+{
+	if (m_somethingHasChanged) {
+		// TODO: ask for reset
+		if (0) {
+			reset();
+			m_deleteHiddenParts = false;
+			stop(false);
+			return;
+		}
+	}
+	stop(true);
+}
+
+void bdrLabelAnnotationPanel::doSet2DSelection()
+{
+	if (m_selection_mode == SELECT_2D) return;	
+	m_selection_mode = SELECT_2D;
+
+	if (m_state != PAUSED)
+	{
+		pauseLabelingMode(true);
+		pauseLabelingMode(false);
+	}
+
+	m_associatedWin->setPerspectiveState(false, true);
+	m_associatedWin->lockRotationAxis(true, CCVector3d(0, 0, 1));
+	m_associatedWin->setView(CC_TOP_VIEW);
+	m_UI->selectionModeButton->setDefaultAction(m_UI->action2DSelection);
+}
+
+void bdrLabelAnnotationPanel::doSet3DSelection()
+{
+	if (m_selection_mode == SELECT_3D) return;
+	m_selection_mode = SELECT_3D;
+		 
+	if (m_state != PAUSED)
+	{
+		pauseLabelingMode(true);
+		pauseLabelingMode(false);
+	}
+
+	m_associatedWin->setPerspectiveState(true, true);
+	m_associatedWin->lockRotationAxis(false, CCVector3d(0, 0, 1));
+
+	m_UI->selectionModeButton->setDefaultAction(m_UI->action3DSelection);
+}
+
+void bdrLabelAnnotationPanel::onLasLabelChanged(int)
+{
+	//int i = m_UI->typeComboBox->currentIndex();
+}
+
+void bdrLabelAnnotationPanel::setSegmentMode(SegmentMode mode)
+{
+	m_segment_mode = mode;
+
+// 	switch (mode)
+// 	{
+// 	case bdrLabelAnnotationPanel::SEGMENT_GENERAL:
+// 		inButton->setVisible(true);
+// 		outButton->setVisible(true);
+// 		validAndDeleteButton->setToolTip("Confirm and delete hidden points");
+// 		validButton->setToolTip("Confirm segmentation");
+// 		createBuildingToolButton->setVisible(false);
+// 		break;
+// 	case bdrLabelAnnotationPanel::SEGMENT_PLANE_CREATE:
+// 	case bdrLabelAnnotationPanel::SEGMENT_PLANE_SPLIT:
+// 		inButton->setVisible(false);
+// 		outButton->setVisible(false);
+// 		validAndDeleteButton->setToolTip("Confirm and delete points inside the polygon");
+// 		validButton->setToolTip("Create a new plane by points inside the polygon");
+// 		createBuildingToolButton->setVisible(false);
+// 		break;
+// 	case bdrLabelAnnotationPanel::SEGMENT_LABELING:
+// 		inButton->setVisible(false);
+// 		outButton->setVisible(false);
+// 		break;
+// 	case bdrLabelAnnotationPanel::SEGMENT_BUILD_EIDT:
+// 		inButton->setVisible(false);
+// 		outButton->setVisible(false);
+// 		createBuildingToolButton->setVisible(true);
+// 		validAndDeleteButton->setVisible(false);
+// 		break;
+// 	default:
+// 		break;
+// 	}
 }

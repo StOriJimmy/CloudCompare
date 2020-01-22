@@ -1466,7 +1466,7 @@ void bdrSketcher::cancelCurrentPolyline()
 void bdrSketcher::setDefaultInteractionPickingMode()
 {
 	m_associatedWin->setInteractionMode(ccGLWindow::TRANSFORM_CAMERA());
-	m_associatedWin->displayNewMessage(QString(), ccGLWindow::UPPER_CENTER_MESSAGE, false, 0, ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
+	//m_associatedWin->displayNewMessage(QString(), ccGLWindow::UPPER_CENTER_MESSAGE, false, 0, ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
 	m_associatedWin->setPickingMode(ccGLWindow::ENTITY_PICKING); //to be able to select polylines!
 }
 
@@ -1502,8 +1502,8 @@ void bdrSketcher::enableSketcherEditingMode(bool state)
 
 		m_associatedWin->setPickingMode(ccGLWindow::NO_PICKING);
 		m_associatedWin->setInteractionMode(ccGLWindow::INTERACT_SEND_ALL_SIGNALS);
-		m_associatedWin->displayNewMessage("Section edition mode", ccGLWindow::UPPER_CENTER_MESSAGE, false, 3600, ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
-		m_associatedWin->displayNewMessage("Left click: add section points / Right click: stop", ccGLWindow::UPPER_CENTER_MESSAGE, true, 3600, ccGLWindow::MANUAL_SEGMENTATION_MESSAGE);
+
+		MainWindow::TheInstance()->dispToStatus(QString("start sketch, left click to add contour points, right click to stop"), 3000);
 	}
 
 	//update mini-GUI

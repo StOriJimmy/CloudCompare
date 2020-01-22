@@ -123,6 +123,7 @@
 #include "bdrSettingGrdFilterDlg.h"
 #include "bdrProjectDlg.h"
 #include "bdrPlaneQualityDlg.h"
+#include "bdrLabelAnnotationPanel.h"
 
 //other
 #include "ccCropTool.h"
@@ -258,6 +259,7 @@ MainWindow::MainWindow()
 	, m_pbdrSettingGrdFilterDlg(nullptr)
 	, m_pbdrPrjDlg(nullptr)
 	, m_pbdrPlaneQDlg(nullptr)
+	, m_pbdrLAPanel(nullptr)
 {
 	m_UI->setupUi( this );
 
@@ -430,15 +432,6 @@ MainWindow::MainWindow()
 	//MDI Area
 	{	
 		m_mdiArea = new QMdiArea(this);
-
-		m_central_verticalLayout = new QVBoxLayout(m_mdiArea);
-		m_central_verticalLayout->setObjectName(QStringLiteral("central_verticalLayout"));
-
-		m_central_frame = new QFrame(m_mdiArea);
-		m_central_frame_verticalLayout = new QVBoxLayout(m_central_frame);
-
-		m_central_verticalLayout->insertWidget(0, m_central_frame);
-		//m_UI->centralwidget->add
 		setCentralWidget(m_mdiArea);
 		connect(m_mdiArea, &QMdiArea::subWindowActivated, this, &MainWindow::updateMenus);
 		connect(m_mdiArea, &QMdiArea::subWindowActivated, this, &MainWindow::on3DViewActivated);
@@ -3145,6 +3138,11 @@ void MainWindow::dispToConsole(QString message, ConsoleMessageLevel level/*=STD_
 		ccConsole::Error(message);
 		break;
 	}
+}
+
+void MainWindow::dispToStatus(QString message, int time) 
+{
+	QMainWindow::statusBar()->showMessage(message, time);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -12559,7 +12557,6 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 						}
 						if (img_check) {
 							(*sp_build).image_list.push_back(img.GetName().Str());
-							//bd_grp->block_prj.m_builder.InsertImageBuild(img->data.GetName(), (*sp_build).GetName());
 						}
 					}
 				}
@@ -12570,11 +12567,6 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 					return false;
 				}
 
-			}
-			else {
-// 				for (auto & img : (*sp_build).image_list) {
-// 					bd_grp->block_prj.m_builder.InsertImageBuild(img.c_str(), sp_build->data.GetName());
-// 				}
 			}
 		}
 		if (!has_global_shift || !has_global_scale) {
@@ -15990,10 +15982,10 @@ void MainWindow::doActionCreateBuildingProject()
 	ccHObject* select = m_selectedEntities.front();
 	//! get point clouds from selection
 	ccHObject::Container point_clouds = GetEnabledObjFromGroup(select, CC_TYPES::POINT_CLOUD, true, false);
-	if (point_clouds.empty()) {
-		// TODO
-		return;
-	}
+// 	if (point_clouds.empty()) {
+// 		// TODO
+// 		return;
+// 	}
 
 	DataBaseHObject* dataObj = GetRootDataBase(select);
 	QString project_dir;
@@ -16561,37 +16553,38 @@ void MainWindow::doActionPointClassEditor()
 
 	
 
-	if (!m_gsTool)
+	if (!m_pbdrLAPanel)
 	{
-		m_gsTool = new ccGraphicalSegmentationTool(this);
-		connect(m_gsTool, &ccOverlayDialog::processFinished, this, &MainWindow::deactivatePointClassEditor);
-		//m_UI->verticalLayout3DToolBar->addWidget(m_gsTool);
-		m_central_frame_verticalLayout->addWidget(m_gsTool);
-		//registerOverlayDialog(m_gsTool, Qt::TopRightCorner);
-	}
+		m_pbdrLAPanel = new bdrLabelAnnotationPanel(this);
+		connect(m_pbdrLAPanel, &ccOverlayDialog::processFinished, this, &MainWindow::deactivatePointClassEditor);
 
-	m_gsTool->linkWith(win);
+		registerOverlayDialog(m_pbdrLAPanel, Qt::TopLeftCorner);
+	}
+	m_pbdrLAPanel->setSegmentMode(bdrLabelAnnotationPanel::SEGMENT_LABELING);
+	m_pbdrLAPanel->linkWith(win);
 	for (ccHObject *entity : getSelectedEntities())
 	{
-		if (entity->isKindOf(CC_TYPES::POINT_CLOUD) || entity->isKindOf(CC_TYPES::MESH)) {
-			m_gsTool->addEntity(entity);
+		if (entity->isKindOf(CC_TYPES::POINT_CLOUD) /*|| entity->isKindOf(CC_TYPES::MESH)*/) {
+			m_pbdrLAPanel->addEntity(entity);
 		}
 	}
-	m_gsTool->setSegmentMode(ccGraphicalSegmentationTool::SEGMENT_CLASS_EDIT);
+	
 
-	if (m_gsTool->getNumberOfValidEntities() == 0)
+	if (m_pbdrLAPanel->getNumberOfValidEntities() == 0)
 	{
-		ccConsole::Error("No segmentable entity in active window!");
+		ccConsole::Error("No entity to be labeled in active window!");
 		return;
 	}
 
 	freezeUI(true);
+
+	m_UI->DockableDBTree->setDisabled(false);
 	m_UI->toolBarView->setDisabled(false);
 
 	//we disable all other windows
 	disableAllBut(win);
 
-	if (!m_gsTool->start())
+	if (!m_pbdrLAPanel->start())
 		deactivatePointClassEditor(false);
 	else
 		updateOverlayDialogsPlacement();
@@ -16601,320 +16594,9 @@ void MainWindow::deactivatePointClassEditor(bool state)
 {
 	bool deleteHiddenParts = false;
 
-	//shall we apply segmentation?
-	if (state)
+	if (m_pbdrLAPanel)
 	{
-		ccHObject* firstResult = nullptr;
-
-		deleteHiddenParts = m_gsTool->deleteHiddenParts();
-
-		//aditional vertices of which visibility array should be manually reset
-		std::unordered_set<ccGenericPointCloud*> verticesToReset;
-
-		QSet<ccHObject*>& segmentedEntities = m_gsTool->entities();
-		for (QSet<ccHObject*>::iterator p = segmentedEntities.begin(); p != segmentedEntities.end(); )
-		{
-			ccHObject* entity = (*p);
-
-			if (entity->isKindOf(CC_TYPES::POINT_CLOUD) || entity->isKindOf(CC_TYPES::MESH))
-			{
-				//first, do the things that must absolutely be done BEFORE removing the entity from DB (even temporarily)
-				//bool lockedVertices;
-				ccPointCloud* cloud = ccHObjectCaster::ToPointCloud(entity/*,&lockedVertices*/);
-				assert(cloud);
-				if (cloud)
-				{
-					//assert(!lockedVertices); //in some cases we accept to segment meshes with locked vertices!
-
-					//specific case: labels (do this before temporarily removing 'entity' from DB!)
-					ccHObject::Container labels;
-					if (m_ccRoot)
-					{
-						m_ccRoot->getRootEntity()->filterChildren(labels, true, CC_TYPES::LABEL_2D);
-					}
-					if (m_buildingRoot)
-					{
-						m_buildingRoot->getRootEntity()->filterChildren(labels, true, CC_TYPES::LABEL_2D);
-					}
-					if (m_imageRoot)
-					{
-						m_imageRoot->getRootEntity()->filterChildren(labels, true, CC_TYPES::LABEL_2D);
-					}
-					for (ccHObject::Container::iterator it = labels.begin(); it != labels.end(); ++it)
-					{
-						if ((*it)->isA(CC_TYPES::LABEL_2D)) //Warning: cc2DViewportLabel is also a kind of 'CC_TYPES::LABEL_2D'!
-						{
-							//we must search for all dependent labels and remove them!!!
-							//TODO: couldn't we be more clever and update the label instead?
-							cc2DLabel* label = static_cast<cc2DLabel*>(*it);
-							bool removeLabel = false;
-							for (unsigned i = 0; i < label->size(); ++i)
-							{
-								if (label->getPickedPoint(i).entity() == entity)
-								{
-									removeLabel = true;
-									break;
-								}
-							}
-
-							if (removeLabel && label->getParent())
-							{
-								ccLog::Warning(QString("[Segmentation] Label %1 depends on cloud %2 and will be removed").arg(label->getName(), cloud->getName()));
-								ccHObject* labelParent = label->getParent();
-								ccHObjectContext objContext = removeObjectTemporarilyFromDBTree(labelParent);
-								labelParent->removeChild(label);
-								label = nullptr;
-								putObjectBackIntoDBTree(labelParent, objContext);
-							}
-						}
-					} //for each label
-				} // if (cloud)
-
-				//we temporarily detach the entity, as it may undergo
-				//"severe" modifications (octree deletion, etc.) --> see ccPointCloud::createNewCloudFromVisibilitySelection
-				ccHObjectContext objContext = removeObjectTemporarilyFromDBTree(entity);
-
-				//apply segmentation
-				ccHObject* segmentationResult = nullptr;
-				bool deleteOriginalEntity = deleteHiddenParts;
-				if (entity->isKindOf(CC_TYPES::POINT_CLOUD))
-				{
-					ccGenericPointCloud* genCloud = ccHObjectCaster::ToGenericPointCloud(entity);
-					ccGenericPointCloud* segmentedCloud = genCloud->createNewCloudFromVisibilitySelection(!deleteHiddenParts);
-					if (segmentedCloud && segmentedCloud->size() == 0)
-					{
-						delete segmentationResult;
-						segmentationResult = nullptr;
-					}
-					else
-					{
-						segmentationResult = segmentedCloud;
-					}
-
-					deleteOriginalEntity |= (genCloud->size() == 0);
-				}
-				else if (entity->isKindOf(CC_TYPES::MESH)/*|| entity->isA(CC_TYPES::PRIMITIVE)*/) //TODO
-				{
-					if (entity->isA(CC_TYPES::MESH))
-					{
-						segmentationResult = ccHObjectCaster::ToMesh(entity)->createNewMeshFromSelection(!deleteHiddenParts);
-					}
-					else if (entity->isA(CC_TYPES::SUB_MESH))
-					{
-						segmentationResult = ccHObjectCaster::ToSubMesh(entity)->createNewSubMeshFromSelection(!deleteHiddenParts);
-					}
-
-					deleteOriginalEntity |= (ccHObjectCaster::ToGenericMesh(entity)->size() == 0);
-				}
-
-				if (segmentationResult)
-				{
-					assert(cloud);
-					if (cloud)
-					{
-						//another specific case: sensors (on clouds)
-						for (unsigned i = 0; i < entity->getChildrenNumber(); ++i)
-						{
-							ccHObject* child = entity->getChild(i);
-							assert(child);
-							if (child && child->isKindOf(CC_TYPES::SENSOR))
-							{
-								if (child->isA(CC_TYPES::GBL_SENSOR))
-								{
-									ccGBLSensor* sensor = ccHObjectCaster::ToGBLSensor(entity->getChild(i));
-									//remove the associated depth buffer of the original sensor (derpecated)
-									sensor->clearDepthBuffer();
-									if (deleteOriginalEntity)
-									{
-										//either transfer
-										entity->transferChild(sensor, *segmentationResult);
-									}
-									else
-									{
-										//or copy
-										segmentationResult->addChild(new ccGBLSensor(*sensor));
-									}
-								}
-								else if (child->isA(CC_TYPES::CAMERA_SENSOR))
-								{
-									ccCameraSensor* sensor = ccHObjectCaster::ToCameraSensor(entity->getChild(i));
-									if (deleteOriginalEntity)
-									{
-										//either transfer
-										entity->transferChild(sensor, *segmentationResult);
-									}
-									else
-									{
-										//or copy
-										segmentationResult->addChild(new ccCameraSensor(*sensor));
-									}
-								}
-								else
-								{
-									//unhandled sensor?!
-									assert(false);
-								}
-							}
-						} //for each child
-					}
-					StPrimGroup* prim_group = nullptr;
-					//we must take care of the remaining part
-					if (!deleteHiddenParts)
-					{
-						//no need to put back the entity in DB if we delete it afterwards!
-						if (!deleteOriginalEntity)
-						{
-							//! XYLIU
-							switch (m_gsTool->getSegmentMode())
-							{
-							case ccGraphicalSegmentationTool::SEGMENT_GENERAL:
-								entity->setName(entity->getName() + QString(".remaining"));
-								break;
-							case ccGraphicalSegmentationTool::SEGMENT_PLANE_CREATE:
-							{
-								int biggest = GetMaxNumberExcludeChildPrefix(objContext.parent, BDDB_PLANESEG_PREFIX);
-								segmentationResult->setName(BDDB_PLANESEG_PREFIX + QString::number(biggest + 1));
-								ccPointCloud* segment_cloud = ccHObjectCaster::ToPointCloud(segmentationResult);
-								if (segment_cloud) {
-									segment_cloud->setRGBColor(ccColor::Generator::Random());
-									ccHObject* new_plane = FitPlaneAndAddChild(segment_cloud);
-									if (new_plane) {
-										new_plane->setDisplay_recursive(getActiveGLWindow());
-										SetGlobalShiftAndScale(new_plane);
-										addToDB(new_plane, entity->getDBSourceType());
-									}
-								}
-								break;
-							}
-							case ccGraphicalSegmentationTool::SEGMENT_PLANE_SPLIT:
-							{
-								//! get primitive group
-								StBuilding* cur_building = GetParentBuilding(objContext.parent);
-								if (!cur_building) { break; }
-								BDBaseHObject* baseObj = GetRootBDBase(cur_building);
-								if (!baseObj) { break; }
-								prim_group = baseObj->GetPrimitiveGroup(cur_building->getName());
-								if (!prim_group) { break; }
-
-								int biggest = GetMaxNumberExcludeChildPrefix(prim_group, BDDB_PLANESEG_PREFIX);
-								segmentationResult->setName(BDDB_PLANESEG_PREFIX + QString::number(biggest + 1));
-								ccPointCloud* segment_cloud = ccHObjectCaster::ToPointCloud(segmentationResult);
-								if (segment_cloud) {
-									segment_cloud->setRGBColor(ccColor::Generator::Random());
-									ccHObject* new_plane = FitPlaneAndAddChild(segment_cloud);
-									if (new_plane) {
-										new_plane->setDisplay_recursive(getActiveGLWindow());
-										SetGlobalShiftAndScale(new_plane);
-										addToDB(new_plane, entity->getDBSourceType());
-									}
-								}
-								break;
-							}
-							default:
-								break;
-							}
-							putObjectBackIntoDBTree(entity, objContext);
-						}
-					}
-					else
-					{
-						//keep original name(s)
-						segmentationResult->setName(entity->getName());
-						//! XYLIU
-						if (m_gsTool->getSegmentMode() == ccGraphicalSegmentationTool::SEGMENT_PLANE_CREATE) {
-							ccPointCloud* segment_cloud = ccHObjectCaster::ToPointCloud(segmentationResult);
-							if (segment_cloud) {
-								segment_cloud->setRGBColor(segment_cloud->hasColors() ? segment_cloud->getPointColor(0) : ccColor::Generator::Random());
-								ccHObject* new_plane = FitPlaneAndAddChild(segment_cloud);
-								if (new_plane) addToDB(new_plane, segment_cloud->getDBSourceType(), false, false);
-							}
-						}
-						if (entity->isKindOf(CC_TYPES::MESH) && segmentationResult->isKindOf(CC_TYPES::MESH))
-						{
-							ccGenericMesh* meshEntity = ccHObjectCaster::ToGenericMesh(entity);
-							ccHObjectCaster::ToGenericMesh(segmentationResult)->getAssociatedCloud()->setName(meshEntity->getAssociatedCloud()->getName());
-
-							//specific case: if the sub mesh is deleted afterwards (see below)
-							//then its associated vertices won't be 'reset' by the segmentation tool!
-							if (deleteHiddenParts && meshEntity->isA(CC_TYPES::SUB_MESH))
-							{
-								verticesToReset.insert(meshEntity->getAssociatedCloud());
-							}
-						}
-						assert(deleteOriginalEntity);
-						//deleteOriginalEntity = true;
-					}
-
-					if (prim_group) // XYLIU
-					{
-						objContext.parent = prim_group;
-					}
-					else if (segmentationResult->isA(CC_TYPES::SUB_MESH))
-					{
-						//for sub-meshes, we have no choice but to use its parent mesh!
-						objContext.parent = static_cast<ccSubMesh*>(segmentationResult)->getAssociatedMesh();
-					}
-					else
-					{
-						//otherwise we look for first non-mesh or non-cloud parent
-						while (objContext.parent && (objContext.parent->isKindOf(CC_TYPES::MESH) || objContext.parent->isKindOf(CC_TYPES::POINT_CLOUD)))
-						{
-							objContext.parent = objContext.parent->getParent();
-						}
-					}
-
-					if (objContext.parent)
-					{
-						objContext.parent->addChild(segmentationResult); //FiXME: objContext.parentFlags?
-					}
-
-					segmentationResult->setDisplay_recursive(getActiveGLWindow());
-					segmentationResult->prepareDisplayForRefresh_recursive();
-					SetGlobalShiftAndScale(segmentationResult);
-
-					addToDB(segmentationResult, entity->getDBSourceType(), false, false);
-
-					if (!firstResult)
-					{
-						firstResult = segmentationResult;
-					}
-				}
-				else if (!deleteOriginalEntity)
-				{
-					//ccConsole::Error("An error occurred! (not enough memory?)");
-					putObjectBackIntoDBTree(entity, objContext);
-				}
-
-				if (deleteOriginalEntity)
-				{
-					p = segmentedEntities.erase(p);
-
-					delete entity;
-					entity = nullptr;
-				}
-				else
-				{
-					++p;
-				}
-			}
-		}
-
-		//specific actions
-		{
-			for (ccGenericPointCloud *cloud : verticesToReset)
-			{
-				cloud->resetVisibilityArray();
-			}
-		}
-
-		if (firstResult) {
-			setSelectedInDB(firstResult, true);
-		}
-	}
-
-	if (m_gsTool)
-	{
-		m_gsTool->removeAllEntities(!deleteHiddenParts);
+		m_pbdrLAPanel->removeAllEntities(!deleteHiddenParts);
 	}
 
 	//we enable all GL windows

@@ -5976,12 +5976,7 @@ void ccGLWindow::setPerspectiveState(bool state, bool objectCenteredView)
 			}
 		}
 
-		//display message
-		displayNewMessage(objectCenteredView ? "Centered perspective ON" : "Viewer-based perspective ON",
-			ccGLWindow::LOWER_LEFT_MESSAGE,
-			false,
-			2,
-			PERSPECTIVE_STATE_MESSAGE);
+		//MainWindow::TheInstance()->dispToStatus(objectCenteredView ? "Centered perspective ON" : "Viewer-based perspective ON", 20);
 	}
 	else
 	{
@@ -5994,11 +5989,11 @@ void ccGLWindow::setPerspectiveState(bool state, bool objectCenteredView)
 			setZoom(newZoom);
 		}
 
-		displayNewMessage("Perspective OFF",
-			ccGLWindow::LOWER_LEFT_MESSAGE,
-			false,
-			2,
-			PERSPECTIVE_STATE_MESSAGE);
+// 		displayNewMessage("Perspective OFF",
+// 			ccGLWindow::LOWER_LEFT_MESSAGE,
+// 			false,
+// 			2,
+// 			PERSPECTIVE_STATE_MESSAGE);
 	}
 
 	//if we change form object-based to viewer-based visualization, we must
