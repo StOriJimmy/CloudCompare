@@ -38,6 +38,8 @@ class QPushButton;
 class QProgressBar;
 class QLabel;
 class QSpinBox;
+class QVBoxLayout;
+class QFrame;
 
 class cc3DMouseManager;
 class ccCameraParamEditDlg;
@@ -828,6 +830,9 @@ private:
 	/***        MDI AREA        ***/
 	/******************************/
 
+	QVBoxLayout* m_central_verticalLayout;
+	QFrame* m_central_frame;
+	QVBoxLayout* m_central_frame_verticalLayout;
 	QMdiArea* m_mdiArea;
 
 	//! CloudCompare MDI area overlay dialogs

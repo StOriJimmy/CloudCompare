@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>bdrLabelAnnotationPanel</class>
+ <widget class="QDialog" name="bdrLabelAnnotationPanel">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>429</width>
+    <height>33</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Manual Annotation</string>
+  </property>
+  <layout class="QHBoxLayout">
+   <property name="spacing">
+    <number>2</number>
+   </property>
+   <property name="leftMargin">
+    <number>2</number>
+   </property>
+   <property name="topMargin">
+    <number>2</number>
+   </property>
+   <property name="rightMargin">
+    <number>2</number>
+   </property>
+   <property name="bottomMargin">
+    <number>2</number>
+   </property>
+   <item>
+    <widget class="QToolButton" name="pauseButton">
+     <property name="toolTip">
+      <string>暂停 (Space)</string>
+     </property>
+     <property name="statusTip">
+      <string>Pause labeling</string>
+     </property>
+     <property name="text">
+      <string>pause</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../icones.qrc">
+       <normaloff>:/CC/Stocker/images/stocker/pause.png</normaloff>:/CC/Stocker/images/stocker/pause.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>23</width>
+       <height>23</height>
+      </size>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="filterToolButton">
+     <property name="text">
+      <string>Filter</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../icones.qrc">
+       <normaloff>:/CC/Stocker/images/stocker/filtersolid.png</normaloff>:/CC/Stocker/images/stocker/filtersolid.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>23</width>
+       <height>23</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="selectionModeButton">
+     <property name="toolTip">
+      <string>选择模型</string>
+     </property>
+     <property name="text">
+      <string>3D Selection</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../icones.qrc">
+       <normaloff>:/CC/Stocker/images/stocker/3D.png</normaloff>:/CC/Stocker/images/stocker/3D.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>23</width>
+       <height>23</height>
+      </size>
+     </property>
+     <property name="popupMode">
+      <enum>QToolButton::MenuButtonPopup</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="typeComboBox">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>27</height>
+      </size>
+     </property>
+     <property name="toolTip">
+      <string>类别</string>
+     </property>
+     <property name="editable">
+      <bool>false</bool>
+     </property>
+     <property name="currentText">
+      <string/>
+     </property>
+     <property name="currentIndex">
+      <number>-1</number>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>23</width>
+       <height>23</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="setLabelButton">
+     <property name="toolTip">
+      <string>设置分类标签</string>
+     </property>
+     <property name="statusTip">
+      <string>set label</string>
+     </property>
+     <property name="text">
+      <string>Label</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../icones.qrc">
+       <normaloff>:/CC/Stocker/images/stocker/primitive.png</normaloff>:/CC/Stocker/images/stocker/primitive.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>23</width>
+       <height>23</height>
+      </size>
+     </property>
+     <property name="toolButtonStyle">
+      <enum>Qt::ToolButtonTextBesideIcon</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="createEntityToolButton">
+     <property name="toolTip">
+      <string>创建新的类别实体</string>
+     </property>
+     <property name="statusTip">
+      <string>create a new entity</string>
+     </property>
+     <property name="text">
+      <string>Create</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../icones.qrc">
+       <normaloff>:/CC/Stocker/images/stocker/building.png</normaloff>:/CC/Stocker/images/stocker/building.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>23</width>
+       <height>23</height>
+      </size>
+     </property>
+     <property name="toolButtonStyle">
+      <enum>Qt::ToolButtonTextBesideIcon</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="razButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="toolTip">
+      <string>清除操作</string>
+     </property>
+     <property name="statusTip">
+      <string>Clear segmentation</string>
+     </property>
+     <property name="text">
+      <string>raz</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../icones.qrc">
+       <normaloff>:/CC/images/smallRevert.png</normaloff>:/CC/images/smallRevert.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>23</width>
+       <height>23</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="exitButton">
+     <property name="toolTip">
+      <string>退出 (Esc)</string>
+     </property>
+     <property name="statusTip">
+      <string>exit</string>
+     </property>
+     <property name="text">
+      <string>Exit</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../icones.qrc">
+       <normaloff>:/CC/Stocker/images/stocker/signout.png</normaloff>:/CC/Stocker/images/stocker/signout.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>23</width>
+       <height>23</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="horizontalSpacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+  <action name="action2DrSelection">
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/2D.png</normaloff>:/CC/Stocker/images/stocker/2D.png</iconset>
+   </property>
+   <property name="text">
+    <string>2D selection</string>
+   </property>
+   <property name="toolTip">
+    <string>2维视图选择边界</string>
+   </property>
+  </action>
+  <action name="action3DSelection">
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/3D.png</normaloff>:/CC/Stocker/images/stocker/3D.png</iconset>
+   </property>
+   <property name="text">
+    <string>3D Selection</string>
+   </property>
+   <property name="toolTip">
+    <string>3维视图选择</string>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="../icones.qrc"/>
+ </resources>
+ <connections/>
+</ui>

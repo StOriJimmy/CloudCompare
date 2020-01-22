@@ -428,8 +428,17 @@ MainWindow::MainWindow()
 	switchDatabase(CC_TYPES::DB_MAINDB);
 
 	//MDI Area
-	{
+	{	
 		m_mdiArea = new QMdiArea(this);
+
+		m_central_verticalLayout = new QVBoxLayout(m_mdiArea);
+		m_central_verticalLayout->setObjectName(QStringLiteral("central_verticalLayout"));
+
+		m_central_frame = new QFrame(m_mdiArea);
+		m_central_frame_verticalLayout = new QVBoxLayout(m_central_frame);
+
+		m_central_verticalLayout->insertWidget(0, m_central_frame);
+		//m_UI->centralwidget->add
 		setCentralWidget(m_mdiArea);
 		connect(m_mdiArea, &QMdiArea::subWindowActivated, this, &MainWindow::updateMenus);
 		connect(m_mdiArea, &QMdiArea::subWindowActivated, this, &MainWindow::on3DViewActivated);
@@ -16550,12 +16559,15 @@ void MainWindow::doActionPointClassEditor()
 	if (!haveSelection())
 		return;
 
+	
+
 	if (!m_gsTool)
 	{
 		m_gsTool = new ccGraphicalSegmentationTool(this);
 		connect(m_gsTool, &ccOverlayDialog::processFinished, this, &MainWindow::deactivatePointClassEditor);
-
-		registerOverlayDialog(m_gsTool, Qt::TopRightCorner);
+		//m_UI->verticalLayout3DToolBar->addWidget(m_gsTool);
+		m_central_frame_verticalLayout->addWidget(m_gsTool);
+		//registerOverlayDialog(m_gsTool, Qt::TopRightCorner);
 	}
 
 	m_gsTool->linkWith(win);
