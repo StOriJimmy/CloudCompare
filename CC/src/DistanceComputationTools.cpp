@@ -28,6 +28,8 @@
 #include <ScalarField.h>
 #include <ScalarFieldTools.h>
 #include <SimpleTriangle.h>
+#include <SquareMatrix.h>
+#include <Polyline.h>
 
 //system
 #include <algorithm>
@@ -942,7 +944,7 @@ int DistanceComputationTools::intersectMeshWithOctree(	OctreeAndMeshIntersection
 														+ _pointsPosition[12] + _pointsPosition[13];
 
 											//if all the sub-cube vertices are not on the same side, then the triangle may intersect the cell
-											if (abs(sum) < 8)
+											if (std::abs(sum) < 8)
 											{
 												//we make newCell point on next cell in array (we copy current info by the way)
 												cellsToTest[++cellsToTestCount] = *_newCell;
@@ -1222,7 +1224,7 @@ void cloudMeshDistCellFunc_MT(const DgmOctree::IndexAndCode& desc)
 
 		for (int i = -a; i <= b; ++i)
 		{
-			bool imax = (abs(i) == dist);
+			bool imax = (std::abs(i) == dist);
 			Tuple3i cellPos(startPos.x + i, 0, 0);
 
 			for (int j = -c; j <= d; j++)
@@ -1230,7 +1232,7 @@ void cloudMeshDistCellFunc_MT(const DgmOctree::IndexAndCode& desc)
 				cellPos.y = startPos.y + j;
 
 				//if i or j is 'maximal'
-				if (imax || abs(j) == dist)
+				if (imax || std::abs(j) == dist)
 				{
 					//we must be on the border of the neighborhood
 					for (int k = -e; k <= f; k++)
@@ -1568,7 +1570,7 @@ int DistanceComputationTools::computeCloud2MeshDistanceWithOctree(	OctreeAndMesh
 
 				for (int i = -a; i <= b; i++)
 				{
-					bool imax = (abs(i) == dist);
+					bool imax = (std::abs(i) == dist);
 					Tuple3i cellPos(startPos.x + i, 0, 0);
 
 					for (int j = -c; j <= d; j++)
@@ -1576,7 +1578,7 @@ int DistanceComputationTools::computeCloud2MeshDistanceWithOctree(	OctreeAndMesh
 						cellPos.y = startPos.y + j;
 
 						//if i or j is 'maximal'
-						if (imax || abs(j) == dist)
+						if (imax || std::abs(j) == dist)
 						{
 							//we must be on the border of the neighborhood
 							for (int k = -e; k <= f; k++)
@@ -1927,9 +1929,10 @@ ScalarType DistanceComputationTools::computePoint2TriangleDistance(const CCVecto
 
 	//we do all computations with double precision, otherwise
 	//some triangles with sharp angles will give very poor results.
-	CCVector3d AP(P->x - A->x, P->y - A->y, P->z - A->z);
-	CCVector3d AB(B->x - A->x, B->y - A->y, B->z - A->z);
-	CCVector3d AC(C->x - A->x, C->y - A->y, C->z - A->z);
+	//slight precision improvement by casting to double prior to subtraction
+	CCVector3d AP(static_cast<double>(P->x) - A->x, static_cast<double>(P->y) - A->y, static_cast<double>(P->z) - A->z);
+	CCVector3d AB(static_cast<double>(B->x) - A->x, static_cast<double>(B->y) - A->y, static_cast<double>(B->z) - A->z);
+	CCVector3d AC(static_cast<double>(C->x) - A->x, static_cast<double>(C->y) - A->y, static_cast<double>(C->z) - A->z);
 
     double a00 =  AB.dot(AB);
     double a01 =  AB.dot(AC);
@@ -2148,6 +2151,35 @@ ScalarType DistanceComputationTools::computePoint2PlaneDistance(const CCVector3*
 	assert(std::abs(CCVector3::vnorm(planeEquation) - PC_ONE) <= std::numeric_limits<PointCoordinateType>::epsilon());
 
 	return static_cast<ScalarType>((CCVector3::vdot(P->u, planeEquation) - planeEquation[3])/*/CCVector3::vnorm(planeEquation)*/); //norm == 1.0!
+}
+
+ScalarType DistanceComputationTools::computePoint2LineSegmentDistSquared(const CCVector3* p, const CCVector3* start, const CCVector3* end)
+{
+	CCVector3 line = *end - *start;
+	CCVector3 vec;
+	ScalarType distSq;
+	PointCoordinateType t = line.dot(*p - *start);
+	PointCoordinateType normSq = line.norm2();
+	if (normSq != 0) 
+	{
+		t /= normSq;
+	}
+	if (t < 0)
+	{
+		vec = *p - *start;
+	}
+	else if (t > 1)
+	{
+		vec = *p - *end;
+	}
+	else
+	{
+		CCVector3 pProjectedOnLine = *start + t * line;
+		vec = *p - pProjectedOnLine;
+	}
+
+	distSq = vec.norm2();
+	return distSq;
 }
 
 // This algorithm is a modification of the distance computation between a point and a cone from 
@@ -2461,6 +2493,279 @@ int DistanceComputationTools::computeCloud2PlaneEquation(GenericIndexedCloudPers
 		*rms = sqrt(dSumSq / count);
 	}
 
+	return count;
+}
+
+int DistanceComputationTools::computeCloud2RectangleEquation(GenericIndexedCloudPersist *cloud, PointCoordinateType widthX, PointCoordinateType widthY, const SquareMatrix& rotationTransform, const CCVector3& center, bool signedDist/*=true*/, double* rms/*= nullptr*/) 
+{
+	// p3---------------------p2
+	// ^					  |
+	// |e1					  |
+	// |					  |
+	// |		  e0		  |
+	// p0-------------------->p1
+	//Rect(s,t)=p0 + s*0e + t*e1 
+	//for s,t in {0,1}
+	assert(cloud);
+	if (!cloud)
+	{
+		return -1;
+	}
+	unsigned count = cloud->size();
+	if (count == 0) 
+	{
+		return -2;
+	}
+	if (!cloud->enableScalarField())
+	{
+		return -3;
+	}
+	if (widthX <= 0 || widthY <= 0)
+	{
+		return -4;
+	}
+	
+	CCVector3 widthXVec(widthX, 0, 0);
+	CCVector3 widthYVec(0, widthY, 0);
+	CCVector3 normalVector(0, 0, 1);
+
+	widthXVec = rotationTransform * widthXVec;
+	widthYVec = rotationTransform * widthYVec;
+	normalVector = rotationTransform * normalVector;
+	PointCoordinateType planeDistance = center.dot(normalVector);
+	PointCoordinateType dSumSq = 0;
+	CCVector3 rectangleP0 = center - (widthXVec / 2) - (widthYVec / 2);
+	CCVector3 rectangleP1 = center + (widthXVec / 2) - (widthYVec / 2);
+	CCVector3 rectangleP3 = center - (widthXVec / 2) + (widthYVec / 2);
+	CCVector3 e0 = rectangleP1 - rectangleP0;
+	CCVector3 e1 = rectangleP3 - rectangleP0;
+
+	for (unsigned i = 0; i < count; ++i) 
+	{
+		const CCVector3* pe = cloud->getPoint(i);
+		CCVector3 dist = (*pe - rectangleP0);
+		PointCoordinateType s = e0.dot(dist);
+		if (s > 0) 
+		{
+			PointCoordinateType dot0 = e0.norm2();
+			if (s < dot0)
+			{
+				dist -= (s / dot0)*e0;
+			}
+			else
+			{
+				dist -= e0;
+			}
+		}
+
+		PointCoordinateType t = e1.dot(dist);
+		if (t > 0) 
+		{
+			PointCoordinateType dot1 = e1.norm2();
+			if (t < dot1)
+			{
+				dist -= (t / dot1)*e1;
+			}
+			else
+			{
+				dist -= e1;
+			}
+		}
+		PointCoordinateType d = static_cast<PointCoordinateType>(dist.normd());
+		dSumSq += d * d;
+		if (signedDist && pe->dot(normalVector) - planeDistance < 0)
+		{			
+			d = -d;
+		}
+		cloud->setPointScalarValue(i, static_cast<ScalarType>(d));
+	}
+	if (rms)
+	{
+		*rms = sqrt(dSumSq / count);
+	}
+	return count;
+}
+
+int DistanceComputationTools::computeCloud2BoxEquation(GenericIndexedCloudPersist* cloud, const CCVector3& boxDimensions, const SquareMatrix& rotationTransform, const CCVector3& boxCenter, bool signedDist/*=true*/, double* rms/*= nullptr*/) 
+{
+	assert(cloud);
+	if (!cloud)
+	{
+		return -1;
+	}
+	unsigned count = cloud->size();
+	if (count == 0)
+	{
+		return -2;
+	}
+	if (!cloud->enableScalarField())
+	{
+		return -3;
+	}
+	if (boxDimensions.x <= 0 || boxDimensions.y <= 0 || boxDimensions.z <= 0)
+	{
+		return -4;
+	}
+	// box half lengths hu hv and hw
+	const PointCoordinateType hu = boxDimensions.x / 2;
+	const PointCoordinateType hv = boxDimensions.y / 2;
+	const PointCoordinateType hw = boxDimensions.z / 2;
+	// box coordinates unit vectors u,v, and w
+	CCVector3 u(1, 0, 0);
+	CCVector3 v(0, 1, 0);
+	CCVector3 w(0, 0, 1);
+	u = rotationTransform * u;
+	v = rotationTransform * v;
+	w = rotationTransform * w;
+	PointCoordinateType dSumSq = 0;
+	for (unsigned i = 0; i < count; ++i) 
+	{
+		const CCVector3* p = cloud->getPoint(i);
+		CCVector3 pointCenterDifference = (*p - boxCenter);
+		CCVector3 p_inBoxCoords(pointCenterDifference.dot(u), pointCenterDifference.dot(v), pointCenterDifference.dot(w));
+		bool insideBox = false;
+		if (p_inBoxCoords.x > -hu && p_inBoxCoords.x < hu && p_inBoxCoords.y > -hv && p_inBoxCoords.y < hv && p_inBoxCoords.z > -hw && p_inBoxCoords.z < hw)
+		{
+			insideBox = true;
+		}
+
+		CCVector3 dist(0, 0, 0);
+		if (p_inBoxCoords.x < -hu)
+		{
+			dist.x = -(p_inBoxCoords.x + hu);
+		}
+		else if (p_inBoxCoords.x > hu)
+		{
+			dist.x = p_inBoxCoords.x - hu;
+		}
+		else if (insideBox)
+		{
+			dist.x = std::abs(p_inBoxCoords.x) - hu;
+		}
+
+		if (p_inBoxCoords.y < -hv)
+		{
+			dist.y = -(p_inBoxCoords.y + hv);
+		}
+		else if (p_inBoxCoords.y > hv)
+		{
+			dist.y = p_inBoxCoords.y - hv;
+		}
+		else if (insideBox)
+		{
+			dist.y = std::abs(p_inBoxCoords.y) - hv;
+		}
+
+		if (p_inBoxCoords.z < -hw)
+		{
+			dist.z = -(p_inBoxCoords.z + hw);
+		}
+		else if (p_inBoxCoords.z > hw)
+		{
+			dist.z = p_inBoxCoords.z - hw;
+		}
+		else if (insideBox)
+		{
+			dist.z = std::abs(p_inBoxCoords.z) - hw;
+		}
+
+		if (insideBox)//take min distance inside box
+		{ 
+			if (dist.x >= dist.y && dist.x >= dist.z) 
+			{
+				dist.y = 0;
+				dist.z = 0;
+			}
+			else if (dist.y >= dist.x && dist.y >= dist.z) 
+			{
+				dist.x = 0;
+				dist.z = 0;
+			}
+			else if (dist.z >= dist.x && dist.z >= dist.y) 
+			{
+				dist.x = 0;
+				dist.y = 0;
+			}
+		}
+		PointCoordinateType d = static_cast<PointCoordinateType>(dist.normd());
+		dSumSq += d * d;
+		if (signedDist && insideBox)
+		{
+			d = -d;
+		}
+		cloud->setPointScalarValue(i, static_cast<ScalarType>(d));
+	}
+	if (rms)
+	{
+		*rms = sqrt(dSumSq / count);
+	}
+	return count;
+}
+
+int DistanceComputationTools::computeCloud2PolylineEquation(GenericIndexedCloudPersist* cloud, const Polyline* polyline, double* rms /*= nullptr*/)
+{
+	assert(cloud);
+	if (!cloud)
+	{
+		return -1;
+	}
+	unsigned count = cloud->size();
+	if (count == 0)
+	{
+		return -2;
+	}
+	if (!cloud->enableScalarField())
+	{
+		return -3;
+	}
+	ScalarType d = 0;
+	ScalarType dSumSq = 0;
+	for (unsigned i = 0; i < count; ++i)
+	{
+		ScalarType distSq = NAN_VALUE;
+		const CCVector3* p = cloud->getPoint(i);
+		for (unsigned j = 0; j < polyline->size() - 1; j++)
+		{
+			const CCVector3* start = polyline->getPoint(j);
+			const CCVector3* end = polyline->getPoint(j + 1);
+			PointCoordinateType startXMinusA = start->x - p->x;
+			PointCoordinateType startYMinusB = start->y - p->y;
+			PointCoordinateType startZMinusC = start->z - p->z;
+			PointCoordinateType endXMinusA = end->x - p->x;
+			PointCoordinateType endYMinusB = end->y - p->y;
+			PointCoordinateType endZMinusC = end->z - p->z;
+			PointCoordinateType startXMinusASq = startXMinusA * startXMinusA;
+			PointCoordinateType startYMinusBSq = startYMinusB * startYMinusB;
+			PointCoordinateType startZMinusCSq = startZMinusC * startZMinusC;
+			PointCoordinateType endXMinusASq = endXMinusA * endXMinusA;
+			PointCoordinateType endYMinusBSq = endYMinusB * endYMinusB;
+			PointCoordinateType endZMinusCSq = endZMinusC * endZMinusC;
+
+			//Rejection test
+			if (((startXMinusASq >= distSq) && (endXMinusASq >= distSq) && (startXMinusA * endXMinusA > ZERO_TOLERANCE)) ||
+				((startYMinusBSq >= distSq) && (endYMinusBSq >= distSq) && (startYMinusB * endYMinusB > ZERO_TOLERANCE)) ||
+				((startZMinusCSq >= distSq) && (endZMinusCSq >= distSq) && (startZMinusC * endZMinusC > ZERO_TOLERANCE)))
+			{
+				continue;
+			}
+			if (std::isnan(distSq)) 
+			{
+				distSq = computePoint2LineSegmentDistSquared(p, start, end);
+			}
+			else 
+			{
+				distSq = std::min(distSq, computePoint2LineSegmentDistSquared(p, start, end));
+			}
+		}
+		d = sqrt(distSq);
+		dSumSq += distSq;
+		cloud->setPointScalarValue(i, d);
+	}
+
+	if (rms)
+	{
+		*rms = sqrt(dSumSq / count);
+	}
 	return count;
 }
 

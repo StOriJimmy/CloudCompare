@@ -38,8 +38,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1532</width>
-     <height>21</height>
+     <width>1024</width>
+     <height>31</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -161,6 +161,7 @@
      <addaction name="actionAddConstantSF"/>
      <addaction name="actionAddIdField"/>
      <addaction name="actionExportCoordToSF"/>
+     <addaction name="actionExportNormalToSF"/>
      <addaction name="actionSetSFAsCoord"/>
      <addaction name="actionInterpolateSFs"/>
      <addaction name="actionScalarFieldArithmetic"/>
@@ -208,6 +209,7 @@
      <addaction name="actionInvertNormals"/>
      <addaction name="menuOrientNormals"/>
      <addaction name="menuConvert_to"/>
+     <addaction name="actionExportNormalToSF"/>
      <addaction name="separator"/>
      <addaction name="actionClearNormals"/>
     </widget>
@@ -4255,6 +4257,14 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="statusTip">
     <string>Compute cloud/Primitive distance</string>
+   </property>
+  </action>
+  <action name="actionExportNormalToSF">
+   <property name="text">
+    <string>Export normals to SF(s)</string>
+   </property>
+   <property name="toolTip">
+    <string>Export normals to one or several scalar fields</string>
    </property>
   </action>
   <action name="actionBDImage_Lines">
