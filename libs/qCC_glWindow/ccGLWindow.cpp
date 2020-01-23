@@ -393,6 +393,7 @@ ccGLWindow::ccGLWindow(	QSurfaceFormat* format/*=0*/,
 	, m_lockedRotationAxis(0, 0, 1)
 	, m_drawBBox(true)
 	, m_pointSnapBuffer(5)
+	, m_bboxDisplayType(BBOX_SHOW_ON_SELECT)
 {
 	//start internal timer
 	m_timer.start();

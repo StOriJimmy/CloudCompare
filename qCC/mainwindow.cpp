@@ -13013,14 +13013,15 @@ void MainWindow::doActionBDImagesToggle3DView()
 			ccCameraSensor* sensor = ccHObjectCaster::ToCameraSensor(cam_group->getChild(i));
 			if (!sensor) continue;
 			
-			sensor->drawFrustum(checked);
-			sensor->drawNearPlane(checked);
-
-			if (!checked) {
-				sensor->drawBaseAxis(false);
-				sensor->drawImage(false);
-				sensor->drawFrustumPlanes(false);
-			}
+			sensor->setVisible(checked);
+// 			sensor->drawFrustum(checked);
+// 			sensor->drawNearPlane(checked);
+// 
+// 			if (!checked) {
+// 				sensor->drawBaseAxis(false);
+// 				sensor->drawImage(false);
+// 				sensor->drawFrustumPlanes(false);
+// 			}
 
 			sensor->redrawDisplay();
 		}
