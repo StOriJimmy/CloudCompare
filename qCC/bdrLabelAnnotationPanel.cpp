@@ -251,6 +251,8 @@ void bdrLabelAnnotationPanel::removeAllEntities(bool unallocateVisibilityArrays)
 	for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
 	{
 		if (m_segment_mode == SEGMENT_LABELING || m_segment_mode == SEGMENT_BUILD_EIDT) {
+			ccPointCloud* pc = ccHObjectCaster::ToPointCloud(*p);
+			if (pc) pc->setPointSize(0);
 			(*p)->setLocked(false);
 		}
 		else if (unallocateVisibilityArrays) {
@@ -886,6 +888,7 @@ void bdrLabelAnnotationPanel::createEntity()
 			destination = GetRootBDBase(*p);
 		}
 		if (!destination) continue;
+		m_changed_baseobj.insert(destination);
 
 		//! create a new point cloud
 		

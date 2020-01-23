@@ -12451,8 +12451,9 @@ bool MainWindow::updateBuildingList(BDBaseHObject* baseObj, bool from_file)
 		baseObj->m_options.prj_file.building_list = baseObj->getPath().toStdString() + "buildings/building.txt";
 		prj_changed = true;
 	}
-	std::string building_dir_ = GetFileDirectory(baseObj->m_options.prj_file.building_list.c_str());
-	QString building_dir = QString::fromStdString(building_dir_);
+	char* building_dir_ = GetFileDirectory(baseObj->m_options.prj_file.building_list.c_str());
+	Dos2Unix(building_dir_);
+	QString building_dir = QString::fromLocal8Bit(building_dir_);
 	if (!StCreatDir(building_dir)) {
 		return false;
 	}
@@ -12477,7 +12478,7 @@ bool MainWindow::updateBuildingList(BDBaseHObject* baseObj, bool from_file)
 			removeFromDB(buildObj);
 			continue;
 		}
-		QString this_dir = building_dir + "/" + pc->getName(); if (!StCreatDir(this_dir)) continue;
+		QString this_dir = building_dir + pc->getName(); if (!StCreatDir(this_dir)) continue;
 		QString relative_path = pc->getName() + "/" + pc->getName() + ".ply"; // bd00000000/bd00000000.ply
 		QString absolute_path = building_dir + "/" + relative_path;
 		
@@ -12505,6 +12506,8 @@ bool MainWindow::updateBuildingList(BDBaseHObject* baseObj, bool from_file)
 	stocker::BuildingData building_data;
 	if (!stocker::LoadBuildingListFile(building_data, baseObj->m_options.prj_file.building_list))
 		return false;
+
+	baseObj->build_data = building_data;
 
 	if (!baseObj->updateBuildUnits(false)) {
 		return false;
@@ -16711,7 +16714,13 @@ void MainWindow::deactivatePointClassEditor(bool state)
 
 	if (state) {
 		//TODO: UPDATE BUILDING LIST
+		QSet<ccHObject*> changed = m_pbdrLAPanel->getChangedBaseObj();
+		for (ccHObject* obj : changed) {
+			BDBaseHObject* baseObj = GetRootBDBase(obj);
+			if (baseObj) updateBuildingList(baseObj, false);
+		}
 	}
+	m_pbdrLAPanel->clearChangedBaseObj();
 
 	//we enable all GL windows
 	enableAll();

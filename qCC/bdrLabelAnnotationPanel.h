@@ -17,7 +17,6 @@ class ccPolyline;
 class ccPointCloud;
 class ccGLWindow;
 
-
 namespace Ui
 {
 	class bdrLabelAnnotationPanel;
@@ -66,6 +65,9 @@ public:
 		prior to be removed from the pool.
 	**/
 	void removeAllEntities(bool unallocateVisibilityArrays);
+
+	void clearChangedBaseObj() { m_changed_baseobj.clear(); }
+	QSet<ccHObject*> getChangedBaseObj() { return m_changed_baseobj; }
 
 	enum SegmentMode
 	{
@@ -161,6 +163,8 @@ protected:
 	SegmentMode m_segment_mode;
 
 	ccHObject* m_destination;
+
+	QSet<ccHObject*> m_changed_baseobj;
 };
 
 #endif //BDR_LABEL_ANNOTATION_PANEL_HEADER
