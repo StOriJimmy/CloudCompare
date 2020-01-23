@@ -16,7 +16,6 @@ namespace Ui
 	class bdrImageEditorPanelDlg;
 }
 
-//! Dialog for qRansacSD plugin
 class bdrImageEditorPanel : public QDialog
 {
 	Q_OBJECT

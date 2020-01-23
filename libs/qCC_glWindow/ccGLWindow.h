@@ -716,7 +716,7 @@ signals:
 	//! Signal emitted when an entity is selected in the 3D view
 	void entitySelectionChanged(ccHObject* entity);
 	//! Signal emitted when multiple entities are selected in the 3D view
-	void entitiesSelectionChanged(std::unordered_set<int> entIDs);
+	void entitiesSelectionChanged(std::unordered_set<GLuint> entIDs);
 
 	//! Signal emitted when a point (or a triangle) is picked
 	/** \param entity 'picked' entity
@@ -1002,7 +1002,7 @@ protected:
 								int pickedItemIndex,
 								const CCVector3* nearestPoint = nullptr,
 								const CCVector3d* nearestPointBC = nullptr, //barycentric coordinates
-								const std::unordered_set<int>* selectedIDs = nullptr);
+								const std::unordered_set<GLuint>* selectedIDs = nullptr);
 	
 	//! Updates currently active items list (m_activeItems)
 	/** The items must be currently displayed in this context

@@ -131,31 +131,31 @@ QString ccApplicationBase::versionLongStr( bool includeOS ) const
 	verStr += QStringLiteral( " Stereo" );
 #endif
 
-#if defined(CC_ENV_64)
-	const QString arch( "64-bit" );
-#elif defined(CC_ENV_32)
-	const QString arch( "32-bit" );
-#else
-	const QString arch( "\?\?-bit" );
-#endif
-
-	if ( includeOS )
-	{
-#if defined(CC_WINDOWS)
-		const QString platform( "Windows" );
-#elif defined(CC_MAC_OS)
-		const QString platform( "macOS" );
-#elif defined(CC_LINUX)
-		const QString platform( "Linux" );
-#else
-		const QString platform( "Unknown OS" );
-#endif
-		verStr += QStringLiteral( " [%1 %2]" ).arg( platform, arch );
-	}
-	else
-	{
-		verStr += QStringLiteral( " [%1]" ).arg( arch );
-	}
+// #if defined(CC_ENV_64)
+// 	const QString arch( "64-bit" );
+// #elif defined(CC_ENV_32)
+// 	const QString arch( "32-bit" );
+// #else
+// 	const QString arch( "\?\?-bit" );
+// #endif
+// 
+// 	if ( includeOS )
+// 	{
+// #if defined(CC_WINDOWS)
+// 		const QString platform( "Windows" );
+// #elif defined(CC_MAC_OS)
+// 		const QString platform( "macOS" );
+// #elif defined(CC_LINUX)
+// 		const QString platform( "Linux" );
+// #else
+// 		const QString platform( "Unknown OS" );
+// #endif
+// 		verStr += QStringLiteral( " [%1 %2]" ).arg( platform, arch );
+// 	}
+// 	else
+// 	{
+// 		verStr += QStringLiteral( " [%1]" ).arg( arch );
+// 	}
 
 #ifdef QT_DEBUG
 	verStr += QStringLiteral( " [DEBUG]" );

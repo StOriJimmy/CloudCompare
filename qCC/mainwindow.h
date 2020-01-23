@@ -78,6 +78,7 @@ class bdrSettingBDSegDlg;
 class bdrSettingGrdFilterDlg;
 
 class bdrProjectDlg;
+class bdrLabelAnnotationPanel;
 
 class PolyFitObj;
 
@@ -201,6 +202,7 @@ public:
 	void removeFromDB(ccHObject* obj, bool autoDelete = true) override;
 	void setSelectedInDB(ccHObject* obj, bool selected) override;	
 	void dispToConsole(QString message, ConsoleMessageLevel level = STD_CONSOLE_MESSAGE) override;
+	void dispToStatus(QString message, int time = 0);
 	void forceConsoleDisplay() override;
 	ccHObject* dbRootObject(CC_TYPES::DB_SOURCE rt) override;
 	ccHObject* dbRootObject() override;
@@ -544,9 +546,14 @@ private slots:
 	//////////////////////////////////////////////////////////////////////////
 	//! Building Reconstruction
 	/// Load Project
+	void doActionBDProjectCreate();
 	void doActionBDProjectLoad();
 	void doActionBDProjectSave();
+
+	/// image project
 	void doActionBDImagesLoad();
+	void doActionBDImagesToggle3DView();
+
 	/// Plane Segmentation
 	void doActionBDPlaneSegmentation();
 	void doActionBDPrimPlaneQuality();
@@ -901,6 +908,7 @@ private:
 	bdrSettingGrdFilterDlg* m_pbdrSettingGrdFilterDlg;
 
 	bdrProjectDlg* m_pbdrPrjDlg;
+	bdrLabelAnnotationPanel* m_pbdrLAPanel;
 
 	PolyFitObj* polyfit_obj;
 	int m_GCSvr_prj_id;
