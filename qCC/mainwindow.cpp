@@ -16599,6 +16599,10 @@ void MainWindow::deactivatePointClassEditor(bool state)
 		m_pbdrLAPanel->removeAllEntities(!deleteHiddenParts);
 	}
 
+	if (state) {
+		//TODO: UPDATE BUILDING LIST
+	}
+
 	//we enable all GL windows
 	enableAll();
 

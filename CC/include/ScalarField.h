@@ -80,6 +80,9 @@ public:
 	//! Returns the maximum value
 	inline ScalarType getMax() const { return m_maxVal; }
 
+	inline void setMin(ScalarType m) { m_minVal = m; }
+	inline void setMax(ScalarType m) { m_maxVal = m; }
+
 	//! Fills the array with a particular value
 	inline void fill(ScalarType fillValue = 0) { if (empty()) resize(capacity(), fillValue); else std::fill(begin(), end(), fillValue); }
 
