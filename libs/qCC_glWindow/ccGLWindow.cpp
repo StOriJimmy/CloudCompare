@@ -408,7 +408,12 @@ ccGLWindow::ccGLWindow(	QSurfaceFormat* format/*=0*/,
 	}
 #endif
 	//GL window title
-	setWindowTitle(QString("3D View %1").arg(m_uniqueID));
+	if (m_uniqueID == 1) {
+		setWindowTitle(QString("3D"));
+	}
+	else {
+		setWindowTitle(QString("3D View %1").arg(m_uniqueID));
+	}
 
  	m_moveCursor = new QCursor(QPixmap(":/CC/Stocker/images/stocker/cursorMove.png"));
 	m_removeCursor = new QCursor(QPixmap(":/CC/Stocker/images/stocker/cursorRemove.png"));
@@ -4918,7 +4923,7 @@ void ccGLWindow::processPickingResult(	const PickingParameters& params,
 										int pickedItemIndex,
 										const CCVector3* nearestPoint/*=nullptr*/,
 										const CCVector3d* nearestPointBC/*=nullptr*/,
-										const std::unordered_set<int>* selectedIDs/*=nullptr*/)
+										const std::unordered_set<GLuint>* selectedIDs/*=nullptr*/)
 {
 	//standard "entity" picking
 	if (params.mode == ENTITY_PICKING)
@@ -5139,9 +5144,10 @@ void ccGLWindow::startOpenGLPicking(const PickingParameters& params)
 	}
 
 	//process hits
-	std::unordered_set<int> selectedIDs;
+	std::unordered_set<GLuint> selectedIDs;
 	int pickedItemIndex = -1;
-	int selectedID = -1;
+	GLuint selectedID = 0; //= -1;	// now it cannot be -1
+	bool selected_valid = false;
 	try
 	{
 		GLuint minMinDepth = (~0);
@@ -5166,9 +5172,11 @@ void ccGLWindow::startOpenGLPicking(const PickingParameters& params)
 				else
 				{
 					//if there are multiple hits, we keep only the nearest
-					if (selectedID < 0 || minDepth < minMinDepth)
+					if (/*selectedID < 0*/!selected_valid || minDepth < minMinDepth)
 					{
 						selectedID = currentID;
+						selected_valid = true;
+
 						pickedItemIndex = (n > 1 ? _selectBuf[4] : -1);
 						minMinDepth = minDepth;
 					}
@@ -5180,7 +5188,7 @@ void ccGLWindow::startOpenGLPicking(const PickingParameters& params)
 
 		//standard output is made through the 'selectedIDs' set
 		if (params.mode != ENTITY_RECT_PICKING
-			&&	selectedID != -1)
+			&& selected_valid/*selectedID != -1*/)
 		{
 			selectedIDs.insert(selectedID);
 		}
@@ -5192,7 +5200,7 @@ void ccGLWindow::startOpenGLPicking(const PickingParameters& params)
 	}
 
 	ccHObject* pickedEntity = nullptr;
-	if (selectedID >= 0)
+	if (selected_valid/*selectedID >= 0*/)
 	{
 		if (params.pickInSceneDB && !m_globalDBRoot.empty())
 		{
@@ -5968,12 +5976,7 @@ void ccGLWindow::setPerspectiveState(bool state, bool objectCenteredView)
 			}
 		}
 
-		//display message
-		displayNewMessage(objectCenteredView ? "Centered perspective ON" : "Viewer-based perspective ON",
-			ccGLWindow::LOWER_LEFT_MESSAGE,
-			false,
-			2,
-			PERSPECTIVE_STATE_MESSAGE);
+		//MainWindow::TheInstance()->dispToStatus(objectCenteredView ? "Centered perspective ON" : "Viewer-based perspective ON", 20);
 	}
 	else
 	{
@@ -5986,11 +5989,11 @@ void ccGLWindow::setPerspectiveState(bool state, bool objectCenteredView)
 			setZoom(newZoom);
 		}
 
-		displayNewMessage("Perspective OFF",
-			ccGLWindow::LOWER_LEFT_MESSAGE,
-			false,
-			2,
-			PERSPECTIVE_STATE_MESSAGE);
+// 		displayNewMessage("Perspective OFF",
+// 			ccGLWindow::LOWER_LEFT_MESSAGE,
+// 			false,
+// 			2,
+// 			PERSPECTIVE_STATE_MESSAGE);
 	}
 
 	//if we change form object-based to viewer-based visualization, we must

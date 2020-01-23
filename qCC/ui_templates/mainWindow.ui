@@ -1378,9 +1378,93 @@ QTreeView::branch:open:has-children:has-siblings  {
         <attribute name="title">
          <string>Buildings</string>
         </attribute>
-        <layout class="QVBoxLayout">
+        <layout class="QVBoxLayout" name="verticalLayout_5">
          <item>
-          <layout class="QHBoxLayout" name="buildingsHorizontalLayout"/>
+          <layout class="QHBoxLayout" name="buildingsHorizontalLayout">
+           <property name="spacing">
+            <number>1</number>
+           </property>
+           <item>
+            <widget class="QToolButton" name="newBuildProjToolButton">
+             <property name="toolTip">
+              <string>新建建模工程</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/createdatabase.png</normaloff>:/CC/Stocker/images/stocker/createdatabase.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="openBuildProjToolButton">
+             <property name="toolTip">
+              <string>打开建模工程</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/databaseload.png</normaloff>:/CC/Stocker/images/stocker/databaseload.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="saveBuildProjToolButton">
+             <property name="toolTip">
+              <string>保存建模工程</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/databasesave.png</normaloff>:/CC/Stocker/images/stocker/databasesave.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="Line" name="line_2">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="ccCustomQTreeView" name="dbBuildTreeView">
@@ -1445,9 +1529,76 @@ QTreeView::branch:open:has-children:has-siblings  {
         <attribute name="title">
          <string>Images</string>
         </attribute>
-        <layout class="QVBoxLayout">
+        <layout class="QVBoxLayout" name="verticalLayout_6">
          <item>
-          <layout class="QHBoxLayout" name="imagesHorizontalLayout"/>
+          <layout class="QHBoxLayout" name="imagesHorizontalLayout">
+           <property name="spacing">
+            <number>1</number>
+           </property>
+           <item>
+            <widget class="QToolButton" name="openImageProjToolButton">
+             <property name="toolTip">
+              <string>载入影像</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/databaseload.png</normaloff>:/CC/Stocker/images/stocker/databaseload.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="toggleImageView3DToolButton">
+             <property name="toolTip">
+              <string>开/关影像三维显示</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/viewon.png</normaloff>:/CC/Stocker/images/stocker/viewon.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+             <property name="checkable">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_3">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="Line" name="line_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="ccCustomQTreeView" name="dbImageTreeView">
@@ -1531,8 +1682,6 @@ QTreeView::branch:open:has-children:has-siblings  {
    </attribute>
    <addaction name="actionOpen"/>
    <addaction name="actionSave"/>
-   <addaction name="actionBDProjectLoad"/>
-   <addaction name="actionBDProjectSave"/>
    <addaction name="actionBDImagesLoad"/>
   </widget>
   <widget class="QToolBar" name="toolBarView">
@@ -1936,7 +2085,7 @@ QTreeView::branch:open:has-children:has-siblings  {
           <x>0</x>
           <y>0</y>
           <width>304</width>
-          <height>69</height>
+          <height>75</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -5019,10 +5168,13 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/editor2.png</normaloff>:/CC/Stocker/images/stocker/editor2.png</iconset>
    </property>
    <property name="text">
-    <string>Segmentation Editor</string>
+    <string>Manual Annotation</string>
    </property>
    <property name="iconText">
-    <string>Editor</string>
+    <string>Label</string>
+   </property>
+   <property name="toolTip">
+    <string>Manual Annotation</string>
    </property>
   </action>
   <action name="actionSettingsGroundFiltering">

@@ -109,17 +109,21 @@ ccHObject* CalcPlaneOutlines(ccHObject* planeObj, double alpha);
 void ShrinkPlaneToOutline(ccHObject* planeObj, double alpha, double distance_epsilon);
 void CreateIntersectionPoint(ccHObject * p1, ccHObject * p2);
 ccHObject* PlaneFrameOptimization(ccHObject* planeObj, stocker::FrameOption option);
-ccHObject* PlaneFrameLineGrow(ccHObject* planeObj, double alpha, double intersection, double minpts);
+ccHObject* PlaneFrameLineGrow(ccHObject* planeObj, double alpha, double intersection, double minpts, double min_area, bool skip_small_area);
 
 bool FastPlanarTextureMapping(ccHObject * planeObj);
 
-bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices = nullptr, double refine_length = 3);
+bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices = nullptr,
+	double refine_length = 3, double sampling_grid = 0.5f, int max_view = 3);
+
+bool TextureMappingPlanes(ccHObject::Container primObjs, stocker::IndexVector* task_indices = nullptr, 
+	double refine_length = 3, double sampling_grid = -1.0f, int max_view = 3);
 
 ccHObject * ConstrainedMesh(ccHObject * planeObj, int rare_pts = -1);
 
 ccHObject::Container GenerateFootPrints_PP(ccHObject * prim_group, double ground);
 
-ccHObject::Container GenerateFootPrints(ccHObject * prim_group, double ground);
+ccHObject::Container GenerateFootPrints(ccHObject * prim_group, double ground, double alpha, double max_intersection, double min_area);
 
 ccHObject * LoD1FromFootPrint(ccHObject * buildingObj);
 
@@ -130,7 +134,11 @@ ccHObject::Container PackPolygons(ccHObject::Container polygonEntites, int sampl
 bool PackPlaneFrames(ccHObject * buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio,
 	double ints_thre, double cluster_hori, double cluster_verti);
 
-bool PackFootprints_PPP(ccHObject * buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio);
+bool PackFootprints_PPP(ccHObject * buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio, double sharp_weight);
+
+ccHObject* LoD2FromFootPrint_PPP(ccHObject * entity, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio,
+	double ints_thre, double alpha, double min_area, double max_intersection,
+	double cluster_hori, double cluster_verti);
 
 bool PackFootprints_PPRepair(ccHObject * buildingObj);
 
@@ -142,6 +150,8 @@ ccHObject::Container LoadMeshAsBlock(QString filename);
 StBuilding * GetParentBuilding(ccHObject * obj);
 
 ccPointCloud * GetPlaneCloud(ccHObject * planeObj);
+
+std::vector<stocker::Outline3d> GetPlanarOutlines(ccHObject * entity, QString prefix);
 
 bool SetGlobalShiftAndScale(ccHObject * obj);
 

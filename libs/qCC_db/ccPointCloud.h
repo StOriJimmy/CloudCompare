@@ -774,6 +774,7 @@ public: //other methods
 	std::vector<CCVector3> getTheVisiblePointsHUll(ccGLCameraParameters camParas) const;
 	ccBBox getTheVisiblePointsBBox(ccGLCameraParameters camParas) const;
 
+	void notifyGeometryUpdate() override;
 protected:
 
 	//inherited from ccHObject
@@ -781,7 +782,7 @@ protected:
 	void applyGLTransformation(const ccGLMatrix& trans) override;
 	bool toFile_MeOnly(QFile& out) const override;
 	bool fromFile_MeOnly(QFile& in, short dataVersion, int flags) override;
-	void notifyGeometryUpdate() override;
+	
 
 	//inherited from PointCloud
 	/** \warning Doesn't handle scan grids!

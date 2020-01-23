@@ -27,21 +27,6 @@ BLKDB_NAMESPACE_BEGIN
 
 static std::string g_error_info;
 
-inline std::vector<std::string> _splitString(char* str, const char* seps)
-{
-	std::vector<std::string> sub_strs;
-	char* token = strtok(str, seps);
-	while (token) {
-		std::string sub(token);
-		sub = sub.substr(0, sub.find_last_of("\t\r\n"));
-		sub_strs.push_back(sub);
-		token = strtok(NULL, seps);
-	}
-	return sub_strs;
-}
-
-inline void Dos2Unix(char *strCmd) { size_t len = strlen(strCmd); for (size_t i = 0; i < len; i++) { if (strCmd[i] == '\\') strCmd[i] = '/'; } }
-
 bool blkSceneInfo::setStrSceneInfo(std::string str)
 {
 	char temp[1024]; strcpy(temp, str.c_str());

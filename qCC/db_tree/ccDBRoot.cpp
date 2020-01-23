@@ -135,11 +135,11 @@ private:
 		
 		const int	cloudIndex = mIconList.count();
 		mIconList.append( { QIcon(QStringLiteral(":/CC/Stocker/images/stocker/pickpts.png")),
-							QIcon(QStringLiteral(":/CC/images/dbCloudSymbolLocked.png")) } );
+							QIcon(QStringLiteral(":/CC/Stocker/images/stocker/pickpts_lock.png")) } );//:/CC/images/dbCloudSymbolLocked.png
 		
 		const int	geomIndex = mIconList.count();
-		mIconList.append( { QIcon(QStringLiteral(":/CC/images/dbMiscGeomSymbol.png")),
-							QIcon(QStringLiteral(":/CC/images/dbMiscGeomSymbolLocked.png")) } );
+		mIconList.append( { QIcon(QStringLiteral(":/CC/Stocker/images/stocker/block.png")),		//:/CC/images/dbMiscGeomSymbol.png
+							QIcon(QStringLiteral(":/CC/Stocker/images/stocker/block_lock.png")) } );	//:/CC/images/dbMiscGeomSymbolLocked.png
 		
 		const int	meshIndex = mIconList.count();
 		mIconList.append( { QIcon(QStringLiteral(":/CC/images/dbMeshSymbol.png")),
@@ -1014,7 +1014,7 @@ void ccDBRoot::selectEntity(ccHObject* obj, bool forceAdditiveSelection/*=false*
 	}
 }
 
-void ccDBRoot::selectEntities(std::unordered_set<int> entIDs)
+void ccDBRoot::selectEntities(std::unordered_set<GLuint> entIDs)
 {
 	bool ctrlPushed = (QApplication::keyboardModifiers () & Qt::ControlModifier);
 
@@ -1105,7 +1105,7 @@ void ccDBRoot::selectEntities(const ccHObject::Container& entities, bool increme
 	selectionModel->select(newSelection,incremental ? QItemSelectionModel::Select : QItemSelectionModel::ClearAndSelect);
 }
 
-ccHObject* ccDBRoot::find(int uniqueID) const
+ccHObject* ccDBRoot::find(unsigned uniqueID) const
 {
 	return m_treeRoot->find(uniqueID);
 }

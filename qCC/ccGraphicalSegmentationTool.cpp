@@ -330,7 +330,7 @@ bool ccGraphicalSegmentationTool::addEntity(ccHObject* entity)
 			}
 		}
 
-		if (m_segment_mode == SEGMENT_CLASS_EDIT || m_segment_mode == SEGMENT_BUILD_EIDT) {
+		if (m_segment_mode == SEGMENT_LABELING || m_segment_mode == SEGMENT_BUILD_EIDT) {
 		}
 		else {
 			cloud->resetVisibilityArray();
@@ -1045,7 +1045,7 @@ void ccGraphicalSegmentationTool::setSegmentMode(SegmentMode mode)
 		validButton->setToolTip("Create a new plane by points inside the polygon");
 		createBuildingToolButton->setVisible(false);
 		break;
-	case ccGraphicalSegmentationTool::SEGMENT_CLASS_EDIT:
+	case ccGraphicalSegmentationTool::SEGMENT_LABELING:
 		inButton->setVisible(false);
 		outButton->setVisible(false);
 		break;

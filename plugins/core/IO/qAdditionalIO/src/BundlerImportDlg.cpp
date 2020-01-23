@@ -182,7 +182,7 @@ void BundlerImportDlg::setKeypointsCount(unsigned count)
 {
 	keyPointsCountLabel->setText(QString::number(count));
 	importKeypointsGroupBox->setEnabled(count != 0);
-	importKeypointsGroupBox->setChecked(count != 0);
+	importKeypointsGroupBox->setChecked(false/*count != 0*/);
 	if (count == 0) //can't ortho-rectify without keypoints!
 	{
 		orthoRectifyAsImageCheckBox->setChecked(false);

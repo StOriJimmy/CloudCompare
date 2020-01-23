@@ -8,6 +8,30 @@ author:		xz_zhu
 purpose:	PC_ATPS.dll
 ************************************************************************/
 
+
+
+/*
+   example of useage:
+   -----------------------------------------------------------------------------------------------
+   std::vector<ATPS::SVPoint3d> points;
+   *read the input points into [points]
+
+   ATPS::ATPS_Plane ATPS_plane(kappa_t, delta_t, tau_t, gamma_t, epsilon_t, theta_t, iter_t);
+   
+   double res = 0.0;
+   res = ATPS_plane.get_res(points);
+   ATPS_plane.set_parameters(res);
+
+   std::vector<std::vector<ATPS::SVPoint3d>> planar_points;
+   std::vector<ATPS::SVPoint3d> nonplanar_points;
+   std::vector<std::vector<double>> model_coefficients;
+
+   ATPS_plane.ATPS_PlaneSegmentation(points, planar_points, nonplanar_points, model_coefficients);
+   -----------------------------------------------------------------------------------------------
+*/
+
+
+
 /*!
  * \file PC_ATPS.h
  * \brief plane segmentation dll header file
@@ -94,15 +118,15 @@ public:
 	~ATPS_Plane();
 
 
-	const int get_kappa();
-	const double get_delta();
-	const double get_tau();
-	const double get_gamma();
-	const double get_epsilon();
-	const double get_theta();
-	const int get_iter();
+	int get_kappa() const;
+	double get_delta() const;
+	double get_tau() const;
+	double get_gamma() const;
+	double get_epsilon() const;
+	double get_theta() const;
+	int get_iter() const;
 
-	const double get_res(const std::vector<SVPoint3d> points);
+	double get_res(const std::vector<SVPoint3d> points) const;
 
 
 	void set_parameters(const int kappa_, const double delta_, const double tau_, const double gamma_, const double epsilon_, const double theta_, const int iter_);
@@ -119,10 +143,18 @@ public:
 	bool set_points(const std::string pc_path, std::vector<SVPoint3d>& points);
 
 
+    // segment the input point cloud into planes
 	bool ATPS_PlaneSegmentation(
 		const std::vector<SVPoint3d> points,
 		std::vector<std::vector<SVPoint3d>>& planar_points,
 		std::vector<SVPoint3d>& nonplanar_points, 
+		std::vector<std::vector<double>>& model_coefficients);
+
+    // segment the input point cloud into planar supervoxels
+	bool ATPS_RPSGeneration(
+		const std::vector<SVPoint3d> points, 
+		std::vector<std::vector<SVPoint3d>>& RPS_points, 
+		std::vector<SVPoint3d>& IP_points, 
 		std::vector<std::vector<double>>& model_coefficients);
 
 

@@ -53,6 +53,42 @@ enum importDataType
 	IMPORT_TYPE_END,
 };
 
+// https://desktop.arcgis.com/zh-cn/arcmap/10.3/manage-data/las-dataset/lidar-point-classification.htm
+namespace LAS_LABEL {
+	enum LABEL_TYPE
+	{
+		Unused,
+		Unassigned,
+		Ground,
+		LowVegetation,
+		MedianVegetation,
+		HighVegetation,
+		Building,
+		Noise,
+		ModelKey,
+		Water,
+		Rail,
+		RoadSurface,
+		Overlap,
+		WireGuard,
+		WireConductor,
+		TransmissionTower,
+		WireConnector,
+		BridgeDeck,
+		HighNoise,
+		LABEL_END,
+	};
+	enum LABEL_SIMPLE
+	{
+
+	};
+	static const char* g_strLabelName[] = { 
+		"none","unassigned","ground","low vegetation","median vegetation","high vegetation",
+		"building","noise","modelKey","water","rail","road surface",
+		"overlap","wire-guard","wire-conductor","transmission tower","wire-connector","bridge deck",
+		"high noise"};
+}
+
 Q_DECLARE_METATYPE(BlockDB::blkDataInfo*)
 Q_DECLARE_METATYPE(BlockDB::blkCameraInfo)
 
@@ -211,6 +247,8 @@ StHObject* getChildGroupByName(StHObject* group, QString name, bool auto_create 
 
 StHObject * findChildByName(StHObject * parent, bool recursive, QString filter, bool strict, CC_CLASS_ENUM type_filter = CC_TYPES::OBJECT, bool auto_create = false, ccGenericGLDisplay * inDisplay = 0);
 
+int GetNumberExcludePrefix(StHObject * obj, QString prefix);
+
 inline QString BuildingNameByNumber(int number) {
 	char name[256];
 	sprintf(name, "%s%08d", BDDB_BUILDING_PREFIX, number);
@@ -225,4 +263,16 @@ bool StCreatDir(QString dir);
 // return new result files, if force success, will return all the existing files whatever the files are successfully moved or not
 QStringList moveFilesToDir(QStringList list, QString dir, bool remove_old, QStringList* failed_files = nullptr, bool force_success = false);
 
+inline QStringList _splitStringQ(char* str, const char* seps)
+{
+	QStringList sub_strs;
+	char* token = strtok(str, seps);
+	while (token) {
+		std::string sub(token);
+		sub = sub.substr(0, sub.find_last_of("\t\r\n"));
+		sub_strs << QString::fromStdString(sub);
+		token = strtok(NULL, seps);
+	}
+	return sub_strs;
+}
 #endif
