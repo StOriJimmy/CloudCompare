@@ -194,6 +194,9 @@ public:
 	const stocker::BuildUnit GetBuildingUnit(std::string building_name);
 	stocker::BuildUnit* GetBuildingSp(std::string building_name);
 	std::vector<stocker::ImageUnit> GetImageData();
+
+public:
+	bool updateBuildUnits(bool use_existing_info);
 };
 
 class BDImageBaseHObject : public BDBaseHObject_

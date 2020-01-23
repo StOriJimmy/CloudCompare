@@ -86,6 +86,7 @@ class StDBMainRoot;
 class StDBBuildingRoot;
 class StDBImageRoot;
 class DataBaseHObject;
+class BDBaseHObject;
 class BDImageBaseHObject;
 
 namespace Ui {
@@ -540,6 +541,8 @@ private slots:
 	inline void doActionMoveBBCenterToOrigin()    { doActionFastRegistration(MoveBBCenterToOrigin); }
 	inline void doActionMoveBBMinCornerToOrigin() { doActionFastRegistration(MoveBBMinCornerToOrigin); }
 	inline void doActionMoveBBMaxCornerToOrigin() { doActionFastRegistration(MoveBBMaxCornerToOrigin); }
+
+	bool updateBuildingList(BDBaseHObject* baseObj, bool from_file);
 
 	ccHObject * LoadBDReconProject_Shell(QString Filename);
 

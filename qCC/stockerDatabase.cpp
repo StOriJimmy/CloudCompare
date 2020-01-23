@@ -14,6 +14,7 @@
 #include <QStringLiteral>
 
 #include "BlockDBaseIO.h"
+#include "stocker_parser.h"
 
 using namespace stocker;
 
@@ -720,6 +721,65 @@ stocker::BuildUnit* BDBaseHObject::GetBuildingSp(std::string building_name)
 }
 
 std::vector<stocker::ImageUnit> BDBaseHObject::GetImageData() { return image_data; }
+
+bool BDBaseHObject::updateBuildUnits(bool use_existing_info)
+{
+	ccHObject::Container buildings;
+	filterChildren(buildings, true, CC_TYPES::ST_BUILDING, true);
+	for (ccHObject* bd : buildings) {
+		StBuilding* bdObj = ccHObjectCaster::ToStBuilding(bd);
+		if (!bdObj) { return false; }
+
+		auto sp_build = GetBuildingSp(bdObj->getName().toStdString());
+		if (!sp_build) {
+			continue;
+		}
+
+		std::cout << "preparing: " << sp_build->GetName().Str() << std::endl;
+		if (!use_existing_info || !LoadBuildingInfo(*sp_build, (*sp_build).file_path.info)) {
+			ccPointCloud* cloud = GetOriginPointCloud(bdObj->getName(), false);
+			if (!cloud) { continue; }
+
+			stocker::Contour3d points_global; stocker::Contour3f points_local;
+			if (!GetPointsFromCloud(cloud, points_global, points_local)) { continue; }
+
+			CCVector3d minbb, maxbb;
+			if (cloud->getGlobalBB(minbb, maxbb)) {
+				(*sp_build).bbox.Add({ minbb.x,minbb.y, minbb.z });
+				(*sp_build).bbox.Add({ maxbb.x,maxbb.y, maxbb.z });
+			}
+
+			// TODO: save these paras to the StBuilding
+			(*sp_build).average_spacing = stocker::ComputeAverageSpacing3f(points_local, true);
+			stocker::Contour3d ground_contour = stocker::CalcBuildingGround(points_global, 0.1);
+			if (ground_contour.size() < 3) {
+				return false;
+			}
+			(*sp_build).ground_height = ground_contour.front().Z();
+			(*sp_build).convex_hull_xy = stocker::ToContour2d(ground_contour);
+			if (m_options.with_image) {
+				for (auto img : GetImageData()) {
+					bool img_check = false;
+					for (size_t i = 0; i < 8; i++) {
+						if (img.CheckInImg3d((*sp_build).bbox.P(i))) {
+							img_check = true;
+							break;
+						}
+					}
+					if (img_check) {
+						(*sp_build).image_list.push_back(img.GetName().Str());
+					}
+				}
+			}
+			if (!SaveBuildingInfo((*sp_build), (*sp_build).file_path.info)) {
+				cout << "failed to save building info: " << (*sp_build).GetName().Str() << endl;
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
 
 StHObject* findChildByName(StHObject* parent,
 	bool recursive,

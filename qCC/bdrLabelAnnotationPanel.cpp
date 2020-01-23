@@ -75,8 +75,8 @@ bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
  	addOverridenShortcut(Qt::Key_Return); //return key for the "apply" button
  	addOverridenShortcut(Qt::Key_Delete); //delete key for the "apply and delete" button
  	addOverridenShortcut(Qt::Key_Tab);    //tab key to switch between rectangular and polygonal selection modes
- 	addOverridenShortcut(Qt::Key_C);      //'C' key for the "segment in" button
- 	addOverridenShortcut(Qt::Key_S);      //'S' key for the "segment out" button
+ 	addOverridenShortcut(Qt::Key_C);      //'C' 
+ 	addOverridenShortcut(Qt::Key_I);      //'S' 
  	connect(this,								&ccOverlayDialog::shortcutTriggered, this, &bdrLabelAnnotationPanel::onShortcutTriggered);
 
  	QMenu* selectionModeMenu = new QMenu(this);
@@ -118,7 +118,6 @@ void bdrLabelAnnotationPanel::allowStateChange(bool state)
 	m_UI->selectionModeButton->setEnabled(state);
 	m_UI->typeComboBox->setEnabled(state);
 	m_UI->filterToolButton->setEnabled(state);
-	m_UI->exitButton->setEnabled(state);
 }
 
 bdrLabelAnnotationPanel::~bdrLabelAnnotationPanel()
@@ -141,6 +140,7 @@ void bdrLabelAnnotationPanel::onShortcutTriggered(int key)
 		return;
 
 	case Qt::Key_I:
+		MainWindow::TheInstance()->showBestImage(false);
 		//inButton->click();
 		return;
 

@@ -1,4 +1,4 @@
-/*
+ï»¿/*
 @File	: StFileOperator.hpp
 @Brief	: Functions for file operation
 @Author	: Xinyi Liu
@@ -102,7 +102,7 @@ inline char *GetFileDirectory(const char* filename) {
 	{
 		if (cur == dir)
 		{
-			//1.¸ùÄ¿Â¼  
+			//1.æ ¹ç›®å½•  
 			dir[1] = 0;
 		}
 		else
@@ -113,7 +113,7 @@ inline char *GetFileDirectory(const char* filename) {
 	}
 	else
 	{
-		//1.Èç¹ûÊÇÏà¶ÔÂ·¾¶,»ñÈ¡µ±Ç°Ä¿Â¼  
+		//1.å¦‚æœæ˜¯ç›¸å¯¹è·¯å¾„,è·å–å½“å‰ç›®å½•  
 		//io.h  
 		if (getcwd(dir, 1024) != NULL)
 		{

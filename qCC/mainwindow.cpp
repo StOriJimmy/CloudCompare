@@ -12441,6 +12441,83 @@ BDBaseHObject::Container GetBDBaseProjx() {
 	return prjx;
 }
 
+bool MainWindow::updateBuildingList(BDBaseHObject* baseObj, bool from_file)
+{
+	ccHObject::Container buildings;
+	if (baseObj->filterChildren(buildings, true, CC_TYPES::ST_BUILDING, true) == 0) return false;
+
+	bool prj_changed = false;
+	if (!IsExist(baseObj->m_options.prj_file.building_list.c_str())) {
+		baseObj->m_options.prj_file.building_list = baseObj->getPath().toStdString() + "buildings/building.txt";
+		prj_changed = true;
+	}
+	std::string building_dir_ = GetFileDirectory(baseObj->m_options.prj_file.building_list.c_str());
+	QString building_dir = QString::fromStdString(building_dir_);
+	if (!StCreatDir(building_dir)) {
+		return false;
+	}
+
+	FileIOFilter::SaveParameters parameters; {
+		parameters.alwaysDisplaySaveDialog = false;
+		parameters.parentWidget = this;
+		parameters.saveMode = 0;
+	}
+
+	QStringList valid_bd_paths;
+	for (ccHObject* bd : buildings) {
+		StBuilding* buildObj = ccHObjectCaster::ToStBuilding(bd); if (!buildObj) continue;
+		
+		ccPointCloud* pc = baseObj->GetOriginPointCloud(buildObj->getName(), false);
+		if (!pc) {
+			//! load the pc
+			bool ply_exist = QFileInfo(buildObj->getPath()).exists();
+			// TODO
+		}
+		if (!pc) {
+			removeFromDB(buildObj);
+			continue;
+		}
+		QString this_dir = building_dir + "/" + pc->getName(); if (!StCreatDir(this_dir)) continue;
+		QString relative_path = pc->getName() + "/" + pc->getName() + ".ply"; // bd00000000/bd00000000.ply
+		QString absolute_path = building_dir + "/" + relative_path;
+		
+		if (FileIOFilter::SaveToFile(pc, absolute_path, parameters, "PLY mesh (*.ply)") != CC_FERR_NO_ERROR) {
+			continue;
+		}
+
+		pc->setPath(absolute_path);
+		if (pc->getParent()->isA(CC_TYPES::HIERARCHY_OBJECT)) {
+			pc->getParent()->setPath(absolute_path);
+		}
+		buildObj->setPath(absolute_path);
+
+		valid_bd_paths.append(relative_path);
+	}
+
+	FILE* fp = fopen(baseObj->m_options.prj_file.building_list.c_str(), "w");
+	if (!fp) { return false; }
+	fprintf(fp, "%d\n", valid_bd_paths.size());
+	for (QString p : valid_bd_paths) {
+		fprintf(fp, "%s\n", p.toStdString().c_str());
+	}
+	fclose(fp);
+
+	stocker::BuildingData building_data;
+	if (!stocker::LoadBuildingListFile(building_data, baseObj->m_options.prj_file.building_list))
+		return false;
+
+	if (!baseObj->updateBuildUnits(false)) {
+		return false;
+	}
+
+	if (prj_changed) {
+		if (!stocker::SaveProjectIni(baseObj->m_options.prj_file.project_ini, baseObj->m_options))
+			return false;
+	}
+
+	return true;
+}
+
 ccHObject* MainWindow::LoadBDReconProject_Shell(QString Filename)
 {
 	BDBaseHObject* bd_grp = nullptr;
@@ -12582,59 +12659,12 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 		if (bd_grp->getPath().isEmpty()) {
 			bd_grp->setPath(QString::fromStdString(options.prj_file.root_dir));
 		}
-
-		for (size_t i = 0; i < bd_grp->getChildrenNumber(); i++) {
-			StBuilding* bdObj = ccHObjectCaster::ToStBuilding(bd_grp->getChild(i));
-			if (!bdObj) continue;
-
-			auto sp_build = bd_grp->GetBuildingSp(bdObj->getName().toStdString());
-			if (!sp_build) {
-				continue;
-			}
-
-			std::cout << "preparing: " << sp_build->GetName().Str() << std::endl;
-			if (!LoadBuildingInfo(*sp_build, (*sp_build).file_path.info)) {
-				ccPointCloud* cloud = bd_grp->GetOriginPointCloud(bdObj->getName(), false);
-				stocker::Contour3d points_global; stocker::Contour3f points_local;
-				if (!GetPointsFromCloud(cloud, points_global, points_local)) { continue; }
-
-				CCVector3d minbb, maxbb;
-				if (cloud->getGlobalBB(minbb, maxbb)) {
-					(*sp_build).bbox.Add({ minbb.x,minbb.y, minbb.z });
-					(*sp_build).bbox.Add({ maxbb.x,maxbb.y, maxbb.z });
-				}
-
-				// TODO: save these paras to the StBuilding
-				(*sp_build).average_spacing = stocker::ComputeAverageSpacing3f(points_local, true);
-				stocker::Contour3d ground_contour = stocker::CalcBuildingGround(points_global, 0.1);
-				if (ground_contour.size() < 3) {
-					return false;
-				}
-				(*sp_build).ground_height = ground_contour.front().Z();
-				(*sp_build).convex_hull_xy = stocker::ToContour2d(ground_contour);
-				if (bd_grp->m_options.with_image) {
-					for (auto img : bd_grp->GetImageData()) {
-						bool img_check = false;
-						for (size_t i = 0; i < 8; i++) {
-							if (img.CheckInImg3d((*sp_build).bbox.P(i))) {
-								img_check = true;
-								break;
-							}
-						}
-						if (img_check) {
-							(*sp_build).image_list.push_back(img.GetName().Str());
-						}
-					}
-				}
-
-				// TODO: still wrong sometimes, the file cannot be saved??
-				if (!SaveBuildingInfo((*sp_build), (*sp_build).file_path.info)) {
-					cout << "failed to save building info: " << (*sp_build).GetName().Str() << endl;
-					return false;
-				}
-
-			}
+		if (!bd_grp->updateBuildUnits(true)) {
+			delete bd_grp;
+			bd_grp = nullptr;
+			return nullptr;
 		}
+				
 		if (!has_global_shift || !has_global_scale) {
 			ccHObject::Container point_clouds;
 			bd_grp->filterChildren(point_clouds, true, CC_TYPES::POINT_CLOUD, true);
@@ -13014,14 +13044,14 @@ void MainWindow::doActionBDImagesToggle3DView()
 			if (!sensor) continue;
 			
 			sensor->setVisible(checked);
-// 			sensor->drawFrustum(checked);
-// 			sensor->drawNearPlane(checked);
-// 
-// 			if (!checked) {
-// 				sensor->drawBaseAxis(false);
-// 				sensor->drawImage(false);
-// 				sensor->drawFrustumPlanes(false);
-// 			}
+			sensor->drawFrustum(checked);
+			sensor->drawNearPlane(checked);
+
+			if (!checked) {
+				sensor->drawBaseAxis(false);
+				sensor->drawImage(false);
+				sensor->drawFrustumPlanes(false);
+ 			}
 
 			sensor->redrawDisplay();
 		}
@@ -16137,6 +16167,7 @@ void MainWindow::doActionCreateBuildingProject()
 			FileIOFilter::SaveParameters parameters; {
 				parameters.alwaysDisplaySaveDialog = false;
 				parameters.parentWidget = this;
+				parameters.saveMode = 0;
 			}
 
 			QStringList bd_paths;

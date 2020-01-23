@@ -105,12 +105,16 @@ public:
 		SaveParameters()
 			: alwaysDisplaySaveDialog(true)
 			, parentWidget(nullptr)
+			, saveMode(-1)
 		{}
 		
 		//! Wether to always display a dialog (if any), even if automatic guess is possible
 		bool alwaysDisplaySaveDialog;
 		//! Parent widget (if any)
 		QWidget* parentWidget;
+
+		//! -1 for default, 0 for fast
+		int saveMode;
 	};
 	
 	//! Shared type
