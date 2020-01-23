@@ -15428,7 +15428,7 @@ ccHObject * MainWindow::getCameraGroup(QString name)
 	return nullptr;
 }
 
-void MainWindow::doActionShowBestImage()
+void MainWindow::showBestImage(bool use_area)
 {
 	ccGLWindow* glwin = getActiveGLWindow(); assert(glwin); if (!glwin) return;
 	ccViewportParameters params = glwin->getViewportParameters();
@@ -15446,14 +15446,14 @@ void MainWindow::doActionShowBestImage()
 	}
 	else {
 		//! TODO: mesh.. refer to graphical segmentation
- 		ccHObject::Container point_clouds = GetEnabledObjFromGroup(dbRootObject(getCurrentDB()), CC_TYPES::POINT_CLOUD, true, true);
-		
- 		for (ccHObject* pc : point_clouds) {
- 			ccPointCloud* pcObj = ccHObjectCaster::ToPointCloud(pc);
- 			if (!pcObj) { continue; }
+		ccHObject::Container point_clouds = GetEnabledObjFromGroup(dbRootObject(getCurrentDB()), CC_TYPES::POINT_CLOUD, true, true);
+
+		for (ccHObject* pc : point_clouds) {
+			ccPointCloud* pcObj = ccHObjectCaster::ToPointCloud(pc);
+			if (!pcObj) { continue; }
 			ccBBox box_ = pcObj->getTheVisiblePointsBBox(camParas);
 			objBox += box_;
- 		}
+		}
 		double scale_box = m_pbdrImagePanel->getBoxScale();
 		objBox = ccBBox(objBox.getCenter() - objBox.getDiagVec()*scale_box / 2, objBox.getCenter() + objBox.getDiagVec()*scale_box / 2);
 		std::cout << "calc bbox from clouds" << std::endl;
@@ -15464,7 +15464,7 @@ void MainWindow::doActionShowBestImage()
 	std::cout << "obj_bbox_max: " << objBox.maxCorner().x << " " << objBox.maxCorner().y << " " << objBox.maxCorner().z << std::endl;
 	std::cout << "up dir: " << glwin->getCurrentUpDir().x << " " << glwin->getCurrentUpDir().y << " " << glwin->getCurrentUpDir().z << std::endl;
 #endif // _DEBUG
-	
+
 	if (!objBox.isValid()) {
 		std::cout << "cannot deduce object bbox" << std::endl;
 		return;
@@ -15476,7 +15476,7 @@ void MainWindow::doActionShowBestImage()
 		objBox.getCenter();	// should be seen from the view
 	CCVector3 view_to_obj = objCenter - CCVector3::fromArray(viewPoint.u);
 	view_to_obj.normalize();
-	
+
 	CCVector3 obj_to_view = -view_to_obj;
 	vcg::Point3f n(view_to_obj.u), u, v;
 	vcg::GetUV(n, u, v);
@@ -15487,7 +15487,7 @@ void MainWindow::doActionShowBestImage()
 
 	//! get all cameras available 
 	ccHObject::Container cameras = GetEnabledObjFromGroup(m_imageRoot->getRootEntity(), CC_TYPES::CAMERA_SENSOR, true, true);
-	
+
 	// sort by dir and distance
 	typedef std::pair<ccCameraSensor*, double> HArea;
 	std::vector<HArea> visible_area;
@@ -15521,14 +15521,14 @@ void MainWindow::doActionShowBestImage()
 		}
 
 		float double_area = 10000;
-		if (0) {
+		if (use_area) {
 			//! sort by projection area
 			double_area = (objU_img - objO_img).cross(objV_img - objO_img);
 		}
 		else {
 			double_area = (obj_angle + cam_angle);
 		}
-		
+
 		visible_area.back().second = double_area;
 	}
 	if (visible_area.empty()) {
@@ -15537,26 +15537,25 @@ void MainWindow::doActionShowBestImage()
 	std::sort(visible_area.begin(), visible_area.end(), [](HArea _l, HArea _r) {
 		return _l.second > _r.second;
 	});
+
+	ccHObject* best_image = nullptr;
 	for (size_t i = 0; i < visible_area.size(); i++) {
 		ccCameraSensor* camObj = visible_area[i].first;
 		assert(camObj); if (!camObj) return;
 		camObj->setDisplayOrder(i);
+
+		if (i == 0) best_image = camObj;
 	}
 	m_pbdrImagePanel->display(false);
 
-	doActionShowSelectedImage();
+	showImage(best_image);
 }
 
-void MainWindow::doActionShowSelectedImage()
+void MainWindow::showImage(ccHObject * imCamera)
 {
-	ccHObject::Container sels;
-	m_imageRoot->getSelectedEntities(sels, CC_TYPES::CAMERA_SENSOR);
-	if (sels.empty()) {
-		return;
-	}
-	ccCameraSensor* cam = ccHObjectCaster::ToCameraSensor(sels.front());
+	ccCameraSensor* cam = ccHObjectCaster::ToCameraSensor(imCamera);
 	if (!cam) { return; }
-		
+
 	m_pbdrImagePanel->clearTempProjected();
 	m_pbdrImshow->setImageAndCamera(cam);
 	if (m_pbdrImagePanel->isObjChecked()) {
@@ -15585,6 +15584,21 @@ void MainWindow::doActionShowSelectedImage()
 	else {
 		m_pbdrImshow->ZoomFit();
 	}
+}
+
+void MainWindow::doActionShowBestImage()
+{
+	showBestImage();
+}
+
+void MainWindow::doActionShowSelectedImage()
+{
+	ccHObject::Container sels;
+	m_imageRoot->getSelectedEntities(sels, CC_TYPES::CAMERA_SENSOR);
+	if (sels.empty()) {
+		return;
+	}
+	showImage(sels.front());
 }
 
 void MainWindow::doActionProjectToImage()
@@ -16617,8 +16631,6 @@ void MainWindow::doActionPointClassEditor()
 	if (!haveSelection())
 		return;
 
-	
-
 	if (!m_pbdrLAPanel)
 	{
 		m_pbdrLAPanel = new bdrLabelAnnotationPanel(this);
@@ -16634,7 +16646,7 @@ void MainWindow::doActionPointClassEditor()
 			m_pbdrLAPanel->addEntity(entity);
 		}
 	}
-	
+	updatePropertiesView();
 
 	if (m_pbdrLAPanel->getNumberOfValidEntities() == 0)
 	{

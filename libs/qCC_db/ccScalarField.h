@@ -87,7 +87,7 @@ public:
 		inline bool isInbound(ScalarType val) const { return (val >= m_min && val <= m_max); }
 		//! Returns whether a value is inside range or not
 		inline bool isInRange(ScalarType val) const { return (val >= m_start && val <= m_stop); }
-
+		
 	protected:
 
 		//! Updates actual range
@@ -169,6 +169,8 @@ public:
 
 	//inherited
 	void computeMinAndMax() override;
+
+	void computeMinAndMax(bool inherit, bool histogram);
 
 	//! Returns associated color scale
 	inline const ccColorScale::Shared& getColorScale() const { return m_colorScale; }

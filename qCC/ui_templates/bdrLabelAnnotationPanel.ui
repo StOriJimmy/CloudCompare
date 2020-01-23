@@ -291,6 +291,36 @@
     <string>3维视图选择</string>
    </property>
   </action>
+  <action name="actionLabeledOnly">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/ellipsish.png</normaloff>:/CC/Stocker/images/stocker/ellipsish.png</iconset>
+   </property>
+   <property name="text">
+    <string>Labeled Only</string>
+   </property>
+   <property name="toolTip">
+    <string>仅纳入多边形内该类别标签的点</string>
+   </property>
+  </action>
+  <action name="actionCreateEntity">
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/building.png</normaloff>:/CC/Stocker/images/stocker/building.png</iconset>
+   </property>
+   <property name="text">
+    <string>Create</string>
+   </property>
+   <property name="toolTip">
+    <string>创建实体</string>
+   </property>
+   <property name="shortcut">
+    <string>C</string>
+   </property>
+  </action>
  </widget>
  <resources>
   <include location="../icones.qrc"/>

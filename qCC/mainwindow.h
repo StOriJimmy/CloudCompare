@@ -255,6 +255,9 @@ public:
 	DataBaseHObject* getCurrentMainDatabase(bool check_enable);
 	DataBaseHObject* getCurrentMainDatabase();
 
+	void showBestImage(bool use_area = true);
+	void showImage(ccHObject* imCamera);
+
 private slots:
 	//! Creates a new 3D GL sub-window
 	ccGLWindow* new3DView( bool allowEntitySelection );

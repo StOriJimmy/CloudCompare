@@ -882,10 +882,19 @@ struct LasCloudChunk
 			LasField::Shared& field = lasFields.back();
 			if (field && field->sf)
 			{
-				field->sf->computeMinAndMax();
+				if (field->type == LAS_CLASSIFICATION) {
+					field->sf->setMin(0);
+					field->sf->setMax(18);
+					field->sf->computeMinAndMax(false, true);
+				}
+				else
+					field->sf->computeMinAndMax();
 
-				if (   field->type == LAS_CLASSIFICATION
-				    || field->type == LAS_CLASSIF_VALUE
+				if (field->type == LAS_CLASSIFICATION) {
+					field->sf->setColorScale(ccColorScalesManager::GetDefaultScale(ccColorScalesManager::CLASSIFICATION));
+				}
+				else if (//   field->type == LAS_CLASSIFICATION ||
+					   field->type == LAS_CLASSIF_VALUE
 				    || field->type == LAS_CLASSIF_SYNTHETIC
 				    || field->type == LAS_CLASSIF_KEYPOINT
 				    || field->type == LAS_CLASSIF_WITHHELD

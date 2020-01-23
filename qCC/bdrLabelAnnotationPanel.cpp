@@ -16,6 +16,8 @@
 #include <ccMesh.h>
 #include <ccHObjectCaster.h>
 #include <cc2DViewportObject.h>
+#include <ccScalarField.h>
+#include <ccColorScalesManager.h>
 
 //qCC_gl
 #include <ccGLWindow.h>
@@ -267,6 +269,7 @@ void bdrLabelAnnotationPanel::stop(bool accepted)
 		m_associatedWin->setInteractionMode(ccGLWindow::TRANSFORM_CAMERA());
 		m_associatedWin->setPickingMode(ccGLWindow::DEFAULT_PICKING);
 		m_associatedWin->setPerspectiveState(true, true);
+		m_associatedWin->lockRotationAxis(false, CCVector3d(0, 0, 1));
 		m_associatedWin->setUnclosable(false);
 		m_associatedWin->removeFromOwnDB(m_segmentationPoly);
 	}
@@ -343,8 +346,20 @@ bool bdrLabelAnnotationPanel::addEntity(ccHObject* entity)
 					class_index = cloudObj->addScalarField("classification");
 					if (class_index < 0) return false;
 				}
+				
 				cloudObj->setCurrentScalarField(class_index);
 				cloudObj->setCurrentDisplayedScalarField(class_index);
+
+				ccScalarField* sf = static_cast<ccScalarField*>(cloudObj->getCurrentInScalarField());
+				
+				if (!sf || sf != cloudObj->getCurrentDisplayedScalarField()) {
+					return false;
+				}
+
+				sf->setMax(LAS_LABEL::LABEL_END - 1);
+				sf->setMin(0);				
+				sf->computeMinAndMax(false, false);
+				sf->setColorScale(ccColorScalesManager::GetDefaultScale(ccColorScalesManager::CLASSIFICATION));
 
 				cloud->showColors(false);
 				cloud->showSF(true);
@@ -873,10 +888,10 @@ void bdrLabelAnnotationPanel::createEntity()
 		if (!destination) continue;
 
 		//! create a new point cloud
-		int number = GetMaxNumberExcludeChildPrefix(destination, BDDB_BUILDING_PREFIX);
-		ccPointCloud* new_building = new ccPointCloud(BuildingNameByNumber(number + 1));
-		new_building->setGlobalScale(cloud->getGlobalScale());
-		new_building->setGlobalShift(cloud->getGlobalShift());
+		
+		ccPointCloud* new_ent = new ccPointCloud();
+		new_ent->setGlobalScale(cloud->getGlobalScale());
+		new_ent->setGlobalShift(cloud->getGlobalShift());
 
 		//we project each point and we check if it falls inside the segmentation polyline
 // #if defined(_OPENMP)
@@ -899,26 +914,44 @@ void bdrLabelAnnotationPanel::createEntity()
 
 			if (!pointInside) { continue; }
 
-			new_building->addPoint(*P3D);
+			new_ent->addPoint(*P3D);
 		}
-		if (new_building->getPointSize() > 15) {
-			ccHObject* new_building_folder = new ccHObject(new_building->getName() + BDDB_ORIGIN_CLOUD_SUFFIX);
-			new_building->setRGBColor(ccColor::Generator::Random());
-			new_building->showColors(true);
-			new_building_folder->addChild(new_building);
+		new_ent->setRGBColor(ccColor::Generator::Random());
+		new_ent->showColors(true);
+		new_ent->setPointSize(2);
+		
+		bool created = false;
+		switch (m_UI->typeComboBox->currentIndex())
+		{
+		case LAS_LABEL::Building:
+		{
+			int number = GetMaxNumberExcludeChildPrefix(destination, BDDB_BUILDING_PREFIX);
+			new_ent->setName(BuildingNameByNumber(number + 1));
 
-			StBuilding* new_building_obj = new StBuilding(new_building->getName());			
-			new_building_obj->addChild(new_building_folder);
-			new_building_obj->setDisplay_recursive(destination->getDisplay());
-			new_building_obj->setDBSourceType_recursive(destination->getDBSourceType());
+			if (new_ent->size() > 15) {
+				ccHObject* new_building_folder = new ccHObject(new_ent->getName() + BDDB_ORIGIN_CLOUD_SUFFIX);
+				new_building_folder->addChild(new_ent);
+				StBuilding* new_building_obj = new StBuilding(new_ent->getName());
+				new_building_obj->addChild(new_building_folder);
+				new_building_obj->setDisplay_recursive(destination->getDisplay());
+				new_building_obj->setDBSourceType_recursive(destination->getDBSourceType());
 
-			destination->addChild(new_building);
-			MainWindow::TheInstance()->addToDB(new_building, destination->getDBSourceType());
+				destination->addChild(new_building_obj);
+				MainWindow::TheInstance()->addToDB(new_building_obj, destination->getDBSourceType());
+				created = true;
+			}
+
+			break;
 		}
-		else {
+		default:
+			break;
+		}
+		
+		if (!created && new_ent) {
+			delete new_ent;
+			new_ent = nullptr;
 			continue;
 		}
-
 		m_somethingHasChanged = true;
 	}
 

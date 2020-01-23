@@ -162,11 +162,19 @@ void ccScalarField::setLogScale(bool state)
 
 void ccScalarField::computeMinAndMax()
 {
-	ScalarField::computeMinAndMax();
+	computeMinAndMax(true, true);
+}
+
+void ccScalarField::computeMinAndMax(bool inherit, bool histogram)
+{
+	if (inherit) {
+		ScalarField::computeMinAndMax();
+	}
 
 	m_displayRange.setBounds(m_minVal, m_maxVal);
 
 	//update histogram
+	if (histogram)
 	{
 		if (m_displayRange.maxRange() == 0 || currentSize() == 0)
 		{
