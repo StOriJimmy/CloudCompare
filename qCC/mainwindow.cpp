@@ -789,6 +789,7 @@ void MainWindow::connectActions()
 	connect(m_UI->actionInvertNormals,				&QAction::triggered, this, &MainWindow::doActionInvertNormals);
 	connect(m_UI->actionConvertNormalToHSV,			&QAction::triggered, this, &MainWindow::doActionConvertNormalsToHSV);
 	connect(m_UI->actionConvertNormalToDipDir,		&QAction::triggered, this, &MainWindow::doActionConvertNormalsToDipDir);
+	connect(m_UI->actionExportNormalToSF,			&QAction::triggered, this, &MainWindow::doActionExportNormalToSF);
 	connect(m_UI->actionOrientNormalsMST,			&QAction::triggered, this, &MainWindow::doActionOrientNormalsMST);
 	connect(m_UI->actionOrientNormalsFM,			&QAction::triggered, this, &MainWindow::doActionOrientNormalsFM);
 	connect(m_UI->actionClearNormals, &QAction::triggered, this, [=]() {
@@ -889,7 +890,8 @@ void MainWindow::connectActions()
 	connect(m_UI->actionRasterize,					&QAction::triggered, this, &MainWindow::doActionRasterize);
 	connect(m_UI->actionConvertPolylinesToMesh,		&QAction::triggered, this, &MainWindow::doConvertPolylinesToMesh);
 	//connect(m_UI->actionCreateSurfaceBetweenTwoPolylines, &QAction::triggered, this, &MainWindow::doMeshTwoPolylines); //DGM: already connected to actionMeshTwoPolylines
-	connect(m_UI->actionExportCoordToSF,			&QAction::triggered, this, &MainWindow::doActionExportCoordToSF);
+	connect(m_UI->actionExportCoordToSF, &QAction::triggered, this, &MainWindow::doActionExportCoordToSF);
+	
 	//"Tools > Registration" menu
 	connect(m_UI->actionMatchBBCenters,				&QAction::triggered, this, &MainWindow::doActionMatchBBCenters);
 	connect(m_UI->actionMatchScales,				&QAction::triggered, this, &MainWindow::doActionMatchScales);
@@ -2761,6 +2763,7 @@ void MainWindow::enableUIItems(dbTreeSelectionInfo& selInfo)
 	m_UI->actionClone->setEnabled(atLeastOneEntity);
 	m_UI->actionDelete->setEnabled(atLeastOneEntity);
 	m_UI->actionExportCoordToSF->setEnabled(atLeastOneEntity);
+	m_UI->actionExportNormalToSF->setEnabled(atLeastOneNormal);
 	m_UI->actionSegment->setEnabled(atLeastOneEntity && activeWindow);
 	m_UI->actionTranslateRotate->setEnabled(atLeastOneEntity && activeWindow);
 	m_UI->actionShowDepthBuffer->setEnabled(atLeastOneGBLSensor);
@@ -2904,7 +2907,7 @@ void MainWindow::enableUIItems(dbTreeSelectionInfo& selInfo)
 	m_UI->actionAlign->setEnabled(exactlyTwoEntities); //Aurelien BEY le 13/11/2008
 	m_UI->actionCloudCloudDist->setEnabled(exactlyTwoClouds);
 	m_UI->actionCloudMeshDist->setEnabled(exactlyTwoEntities && atLeastOneMesh);
-	m_UI->actionCloudPrimitiveDist->setEnabled(atLeastOneCloud && atLeastOneMesh);
+	m_UI->actionCloudPrimitiveDist->setEnabled(atLeastOneCloud && (atLeastOneMesh || atLeastOnePolyline));
 	m_UI->actionCPS->setEnabled(exactlyTwoClouds);
 	m_UI->actionScalarFieldArithmetic->setEnabled(exactlyOneEntity && atLeastOneSF);
 
@@ -7689,6 +7692,17 @@ void MainWindow::doActionExportCoordToSF()
 	updateUI();
 }
 
+void MainWindow::doActionExportNormalToSF()
+{
+	if (!ccEntityAction::exportNormalToSF(m_selectedEntities, this))
+	{
+		return;
+	}
+
+	refreshAll();
+	updateUI();
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 //"Tools > Registration" menu
@@ -8005,18 +8019,19 @@ void MainWindow::doActionCloudPrimitiveDist()
 	const char* errString = "[Compute Primitive Distances] Cloud to %s failed, error code = %i!";
 
 	for (unsigned i = 0; i < getSelectedEntities().size(); ++i)
-	{
-		
-		if (m_selectedEntities[i]->isKindOf(CC_TYPES::PRIMITIVE))
+	{		
+		if (m_selectedEntities[i]->isKindOf(CC_TYPES::PRIMITIVE) || m_selectedEntities[i]->isA(CC_TYPES::POLY_LINE))
 		{
 			if (m_selectedEntities[i]->isA(CC_TYPES::PLANE) || 
 				m_selectedEntities[i]->isA(CC_TYPES::SPHERE) ||
 				m_selectedEntities[i]->isA(CC_TYPES::CYLINDER) ||
-				m_selectedEntities[i]->isA(CC_TYPES::CONE))
+				m_selectedEntities[i]->isA(CC_TYPES::CONE) ||
+				m_selectedEntities[i]->isA(CC_TYPES::BOX) ||
+				m_selectedEntities[i]->isA(CC_TYPES::POLY_LINE))
 			{
 				if (foundPrimitive)
 				{
-					ccConsole::Error("[Compute Primitive Distances] Select only a single Plane/Sphere/Cylinder/Cone Primitive");
+					ccConsole::Error("[Compute Primitive Distances] Select only a single Plane/Box/Sphere/Cylinder/Cone/Polyline Primitive");
 					return;
 				}
 				foundPrimitive = true;
@@ -8032,7 +8047,7 @@ void MainWindow::doActionCloudPrimitiveDist()
 
 	if (!foundPrimitive)
 	{
-		ccConsole::Error("[Compute Primitive Distances] Select at least one Plane/Sphere/Cylinder/Cone Primitive!");
+		ccConsole::Error("[Compute Primitive Distances] Select at least one Plane/Box/Sphere/Cylinder/Cone/Polyline Primitive!");
 		return;
 	}
 	if (clouds.size() <= 0)
@@ -8042,10 +8057,20 @@ void MainWindow::doActionCloudPrimitiveDist()
 	}
 		
 	ccPrimitiveDistanceDlg pDD{ this };
-	if (pDD.exec())
+	if (refEntity->isA(CC_TYPES::PLANE))
+	{
+		pDD.treatPlanesAsBoundedCheckBox->setUpdatesEnabled(true);
+	}
+	bool execute = true;
+	if (!refEntity->isA(CC_TYPES::POLY_LINE))
+	{
+		execute = pDD.exec();
+	}
+	if (execute)
 	{
 		bool signedDist = pDD.signedDistances();
 		bool flippedNormals = signedDist && pDD.flipNormals();
+		bool treatPlanesAsBounded = pDD.treatPlanesAsBounded();
 		for (auto &cloud : clouds)
 		{
 			ccPointCloud* compEnt = ccHObjectCaster::ToPointCloud(cloud);
@@ -8066,25 +8091,66 @@ void MainWindow::doActionCloudPrimitiveDist()
 			int returnCode;
 			switch (entityType)
 			{
-			case CC_TYPES::SPHERE:
-				if (!(returnCode = CCLib::DistanceComputationTools::computeCloud2SphereEquation(compEnt, refEntity->getOwnBB().getCenter(), static_cast<ccSphere*>(refEntity)->getRadius(), signedDist)))
-					ccConsole::Error(errString, "Sphere", returnCode);
-				break;
-			case CC_TYPES::PLANE:
-				if (!(returnCode = CCLib::DistanceComputationTools::computeCloud2PlaneEquation(compEnt, static_cast<ccPlane*>(refEntity)->getEquation(), signedDist)))
-					ccConsole::Error(errString, "Plane", returnCode);
-				break;
-			case CC_TYPES::CYLINDER:
-				if (!(returnCode = CCLib::DistanceComputationTools::computeCloud2CylinderEquation(compEnt, static_cast<ccCylinder*>(refEntity)->getBottomCenter(), static_cast<ccCylinder*>(refEntity)->getTopCenter(), static_cast<ccCylinder*>(refEntity)->getBottomRadius(), signedDist)))
-					ccConsole::Error(errString, "Cylinder", returnCode);
-				break;
-			case CC_TYPES::CONE:
-				if(!(returnCode = CCLib::DistanceComputationTools::computeCloud2ConeEquation(compEnt, static_cast<ccCone*>(refEntity)->getLargeCenter(), static_cast<ccCone*>(refEntity)->getSmallCenter(), static_cast<ccCone*>(refEntity)->getLargeRadius(), static_cast<ccCone*>(refEntity)->getSmallRadius(), signedDist)))
-					ccConsole::Error(errString, "Cone", returnCode);
-				break;
-			default:
-				ccConsole::Error("[Compute Primitive Distances] Unsupported primitive type"); //Shouldn't ever reach here...
-				break;
+				case CC_TYPES::SPHERE:
+				{
+					if (!(returnCode = CCLib::DistanceComputationTools::computeCloud2SphereEquation(compEnt, refEntity->getOwnBB().getCenter(), static_cast<ccSphere*>(refEntity)->getRadius(), signedDist)))
+						ccConsole::Error(errString, "Sphere", returnCode);
+					break;
+				}
+				case CC_TYPES::PLANE: 
+				{
+					ccPlane* plane = static_cast<ccPlane*>(refEntity);
+					if (treatPlanesAsBounded)
+					{
+						CCLib::SquareMatrix rotationTransform(plane->getTransformation().data(), true);
+						if (!(returnCode = CCLib::DistanceComputationTools::computeCloud2RectangleEquation(compEnt, plane->getXWidth(), plane->getYWidth(), rotationTransform, plane->getCenter(), signedDist)))
+							ccConsole::Error(errString, "Bounded Plane", returnCode);
+					}
+					else
+					{
+						if (!(returnCode = CCLib::DistanceComputationTools::computeCloud2PlaneEquation(compEnt, static_cast<ccPlane*>(refEntity)->getEquation(), signedDist)))
+							ccConsole::Error(errString, "Infinite Plane", returnCode);
+					}
+					break;
+				}
+				case CC_TYPES::CYLINDER:
+				{
+					if (!(returnCode = CCLib::DistanceComputationTools::computeCloud2CylinderEquation(compEnt, static_cast<ccCylinder*>(refEntity)->getBottomCenter(), static_cast<ccCylinder*>(refEntity)->getTopCenter(), static_cast<ccCylinder*>(refEntity)->getBottomRadius(), signedDist)))
+						ccConsole::Error(errString, "Cylinder", returnCode);
+					break;
+				}
+				case CC_TYPES::CONE:
+				{
+					if (!(returnCode = CCLib::DistanceComputationTools::computeCloud2ConeEquation(compEnt, static_cast<ccCone*>(refEntity)->getLargeCenter(), static_cast<ccCone*>(refEntity)->getSmallCenter(), static_cast<ccCone*>(refEntity)->getLargeRadius(), static_cast<ccCone*>(refEntity)->getSmallRadius(), signedDist)))
+						ccConsole::Error(errString, "Cone", returnCode);
+					break;
+				}
+				case CC_TYPES::BOX: 
+				{
+					const ccGLMatrix& glTransform = refEntity->getGLTransformationHistory();
+					CCLib::SquareMatrix rotationTransform(glTransform.data(), true);
+					CCVector3 boxCenter = glTransform.getColumnAsVec3D(3);
+					if (!(returnCode = CCLib::DistanceComputationTools::computeCloud2BoxEquation(compEnt, static_cast<ccBox*>(refEntity)->getDimensions(), rotationTransform, boxCenter, signedDist)))
+						ccConsole::Error(errString, "Box", returnCode);
+					break; 
+				}
+				case CC_TYPES::POLY_LINE:
+				{
+					signedDist = false;
+					flippedNormals = false;
+					ccPolyline* line = static_cast<ccPolyline*>(refEntity);
+					returnCode = CCLib::DistanceComputationTools::computeCloud2PolylineEquation(compEnt, line);
+					if (!returnCode)
+					{
+						ccConsole::Error(errString, "Polyline", returnCode);
+					}
+					break;
+				}
+				default:
+				{
+					ccConsole::Error("[Compute Primitive Distances] Unsupported primitive type"); //Shouldn't ever reach here...
+					break;
+				}
 			}
 			QString sfName;
 			sfName.clear();

@@ -768,8 +768,12 @@ public: //other methods
 	//! Exports the specified coordinate dimension(s) to scalar field(s)
 	bool exportCoordToSF(bool exportDims[3]);
 
+	//! Exports the specified normal dimension(s) to scalar field(s)
+	bool exportNormalToSF(bool exportDims[3]);
+
 	std::vector<CCVector3> getTheVisiblePointsHUll(ccGLCameraParameters camParas) const;
 	ccBBox getTheVisiblePointsBBox(ccGLCameraParameters camParas) const;
+
 protected:
 
 	//inherited from ccHObject
