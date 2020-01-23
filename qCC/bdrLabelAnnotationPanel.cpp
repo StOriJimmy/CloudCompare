@@ -343,6 +343,7 @@ bool bdrLabelAnnotationPanel::addEntity(ccHObject* entity)
 					class_index = cloudObj->addScalarField("classification");
 					if (class_index < 0) return false;
 				}
+				cloudObj->setCurrentScalarField(class_index);
 				cloudObj->setCurrentDisplayedScalarField(class_index);
 
 				cloud->showColors(false);
@@ -819,6 +820,8 @@ void bdrLabelAnnotationPanel::setLabel()
 
 			}
 		}
+		cloud->notifyGeometryUpdate();
+		cloud->prepareDisplayForRefresh();
 	}
 
 	m_somethingHasChanged = true;
