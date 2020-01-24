@@ -65,9 +65,14 @@ bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
 
 	for (size_t i = 0; i < LAS_LABEL::LABEL_END; ++i) {
 		m_UI->typeComboBox->addItem(LAS_LABEL::g_strLabelName[i]);
+		QPixmap px(20, 20);
+		px.fill(QColor(LAS_LABEL::g_classification_color[i * 3], LAS_LABEL::g_classification_color[i * 3 + 1], LAS_LABEL::g_classification_color[i * 3 + 2]));
+		m_UI->typeComboBox->setItemIcon(i, QIcon(px));
 	}
 	m_UI->typeComboBox->setCurrentIndex(LAS_LABEL::Building);	
 	connect(m_UI->typeComboBox,					SIGNAL(currentIndexChanged(int)), this, SLOT(onLasLabelChanged(int)));
+	connect(m_UI->typeComboBox,					SIGNAL(activated),		this, SLOT(onLasLabelActivated));
+	m_UI->typeComboBox->setFocusPolicy(Qt::NoFocus);
  
  	//add shortcuts
  	addOverridenShortcut(Qt::Key_Space);  //space bar for the "pause" button
@@ -943,7 +948,7 @@ void bdrLabelAnnotationPanel::createEntity()
 				MainWindow::TheInstance()->addToDB(new_building_obj, destination->getDBSourceType());
 				created = true;
 			}
-
+			
 			break;
 		}
 		default:
@@ -1013,6 +1018,11 @@ void bdrLabelAnnotationPanel::doSet3DSelection()
 void bdrLabelAnnotationPanel::onLasLabelChanged(int)
 {
 	//int i = m_UI->typeComboBox->currentIndex();
+}
+
+void bdrLabelAnnotationPanel::onLasLabelActivated()
+{
+	//m_UI->pauseButton->setFocus();
 }
 
 void bdrLabelAnnotationPanel::setSegmentMode(SegmentMode mode)

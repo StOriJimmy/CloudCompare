@@ -111,6 +111,8 @@ protected slots:
 
 	void onLasLabelChanged(int);
 
+	void onLasLabelActivated();
+
 	//! To capture overridden shortcuts (pause button, etc.)
 	void onShortcutTriggered(int);
 

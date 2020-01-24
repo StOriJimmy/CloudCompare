@@ -307,7 +307,7 @@ double s_viridis[] =
 	0.99324789, 0.90615657, 0.1439362
 };
 
-double s_classification[] =
+static const double s_classification[] =
 {
 	184,184,184,//0
 	173,173,173,//1
