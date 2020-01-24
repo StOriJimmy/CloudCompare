@@ -1409,7 +1409,7 @@ ccHObject* PlaneFrameOptimization(ccHObject* planeObj, stocker::FrameOption opti
 	if (baseObj) {	
 		stocker::BuildUnit* bd_unit = baseObj->GetBuildingSp(base_name);
 		if (bd_unit) {
-			output_prefix = bd_unit.file_path.root_dir + "\\primitives\\frame_opt\\";
+			output_prefix = bd_unit->file_path.root_dir + "\\primitives\\frame_opt\\";
 			CreateDir(output_prefix.c_str());
 			output_prefix = output_prefix + base_name;
 		}
