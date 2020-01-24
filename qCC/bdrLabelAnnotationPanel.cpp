@@ -35,7 +35,7 @@
 static CC_TYPES::DB_SOURCE s_dbSource;
 
 bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
-	: ccOverlayDialog(parent)
+	: ccOverlayDialog(parent, Qt::Tool | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowStaysOnTopHint)
 	, m_UI(new Ui::bdrLabelAnnotationPanel )
 	, m_somethingHasChanged(false)
 	, m_state(0)

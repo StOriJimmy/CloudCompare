@@ -22,7 +22,6 @@ namespace Ui
 	class bdrLabelAnnotationPanel;
 }
 
-//! Graphical segmentation mechanism (with polyline)
 class bdrLabelAnnotationPanel : public ccOverlayDialog
 {
 	Q_OBJECT

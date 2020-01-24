@@ -10764,9 +10764,10 @@ ccGLWindow* MainWindow::new3DView(bool allowEntitySelection)
 	view3D->addSceneDB(m_buildingRoot->getRootEntity());
 	view3D->addSceneDB(m_imageRoot->getRootEntity());
 	viewWidget->setAttribute(Qt::WA_DeleteOnClose);
-	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowCloseButtonHint);
-	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowMinimizeButtonHint);
-	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowMaximizeButtonHint);
+	viewWidget->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowMaximizeButtonHint);
+// 	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowCloseButtonHint);
+// 	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowMinimizeButtonHint);
+// 	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowMaximizeButtonHint);
 	updatePropertiesView();
 
 	QMainWindow::statusBar()->showMessage(QString("New 3D View"), 2000);
@@ -16677,10 +16678,10 @@ void MainWindow::doActionPointClassEditor()
 
 	if (!m_pbdrLAPanel)
 	{
-		m_pbdrLAPanel = new bdrLabelAnnotationPanel(this);
+		m_pbdrLAPanel = new bdrLabelAnnotationPanel(nullptr);
 		connect(m_pbdrLAPanel, &ccOverlayDialog::processFinished, this, &MainWindow::deactivatePointClassEditor);
 
-		registerOverlayDialog(m_pbdrLAPanel, Qt::TopLeftCorner);
+		//registerOverlayDialog(m_pbdrLAPanel, Qt::TopLeftCorner);
 	}
 	m_pbdrLAPanel->setSegmentMode(bdrLabelAnnotationPanel::SEGMENT_LABELING);
 	m_pbdrLAPanel->linkWith(win);
@@ -16708,8 +16709,9 @@ void MainWindow::doActionPointClassEditor()
 
 	if (!m_pbdrLAPanel->start())
 		deactivatePointClassEditor(false);
-	else
-		updateOverlayDialogsPlacement();
+	else {
+		m_pbdrLAPanel->move(m_mdiArea->mapToGlobal(QPoint(0, 0)));
+	}
 }
 
 void MainWindow::deactivatePointClassEditor(bool state)

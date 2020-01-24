@@ -4462,7 +4462,7 @@ void ccGLWindow::mouseMoveEvent(QMouseEvent *event)
 			}
 		}
 	}
-	else if ((event->buttons() & Qt::MiddleButton)) // zoom
+	else if ((event->buttons() & Qt::MiddleButton) && (m_interactionFlags & INTERACT_ZOOM_CAMERA)) // zoom
 	{
 		//middle button = zooming
 		float pseudo_wheelDelta_deg = static_cast<float>(-dy) * 2.0f; // XYLIU
