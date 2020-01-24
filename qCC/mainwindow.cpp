@@ -3132,12 +3132,15 @@ void MainWindow::dispToConsole(QString message, ConsoleMessageLevel level/*=STD_
 	switch (level)
 	{
 	case STD_CONSOLE_MESSAGE:
-		ccConsole::Print(message);
+		std::cout << "[BlockBuilder] INFO - " << message.toStdString() << std::endl;
+		//ccConsole::Print(message);
 		break;
 	case WRN_CONSOLE_MESSAGE:
-		ccConsole::Warning(message);
+		std::cout << "[BlockBuilder] WARNING - " << message.toStdString() << std::endl;
+		//ccConsole::Warning(message);
 		break;
 	case ERR_CONSOLE_MESSAGE:
+		std::cout << "[BlockBuilder] ERROR - " << message.toStdString() << std::endl;
 		ccConsole::Error(message);
 		break;
 	}
