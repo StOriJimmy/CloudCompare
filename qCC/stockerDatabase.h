@@ -214,7 +214,6 @@ public:
 
 	std::string GetPathModelObj(std::string building_name);
 
-	const stocker::BuildUnit GetBuildingUnit(std::string building_name);
 	stocker::BuildUnit* GetBuildingSp(std::string building_name);
 	std::vector<stocker::ImageUnit> GetImageData();
 

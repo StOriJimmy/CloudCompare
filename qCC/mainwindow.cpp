@@ -12609,6 +12609,7 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 
 			newGroup->setName(building_name + BDDB_ORIGIN_CLOUD_SUFFIX);
 			building->addChild(newGroup);
+			building->setPath(newGroup->getPath());
 
 			bd_grp->addChild(building);
 		}
@@ -12901,8 +12902,9 @@ void MainWindow::doActionBDImagesLoad()
 			for (ccHObject* camera_group : camera_groups) {
 				QStringList building_images;
 				for (ccHObject* bd : getSelectedEntities()) {
-					stocker::BuildUnit bd_unit = baseObj->GetBuildingUnit(bd->getName().toStdString());
-					for (auto img : bd_unit.image_list) {
+					stocker::BuildUnit* bdsp = baseObj->GetBuildingSp(bd->getName().toStdString());
+					if (!bdsp) continue;
+					for (auto img : bdsp->image_list) {
 						building_images.append(img.c_str());
 					}
 				}
@@ -13879,10 +13881,11 @@ void MainWindow::doActionBDPrimCreateGround()
 		double ground_height;
 		stocker::Polyline2d ground_convex;
 		if (baseObj) {
-			stocker::BuildUnit bd_unit = baseObj->GetBuildingUnit(GetBaseName(primGroup->getName()).toStdString());
-			ground_height = bd_unit.ground_height;
+			stocker::BuildUnit* bd_unit = baseObj->GetBuildingSp(GetBaseName(primGroup->getName()).toStdString());
+			if (!bd_unit)continue;
+			ground_height = bd_unit->ground_height;
 			stocker::Contour2d c_h_local;
-			for (auto & pt : bd_unit.convex_hull_xy) {
+			for (auto & pt : bd_unit->convex_hull_xy) {
 				c_h_local.push_back(ToVec2d(baseObj->ToLocal(ToVec3d(pt))));
 			}
 			ground_convex = stocker::MakeLoopPolylinefromContour(c_h_local);
@@ -14733,8 +14736,9 @@ void MainWindow::doActionBDFootPrintAuto()
 		}
 
 		try {
-			stocker::BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
-			ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit.ground_height, 0.8, 0.8, 2);
+			stocker::BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
+			if (!build_unit) throw std::runtime_error("invalid building");
+			ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit->ground_height, 0.8, 0.8, 2);
 			for (ccHObject* ft : footprints) {
 				if (ft && ft->isA(CC_TYPES::ST_FOOTPRINT)) {
 					SetGlobalShiftAndScale(ft);
@@ -14745,7 +14749,11 @@ void MainWindow::doActionBDFootPrintAuto()
 		}
 		catch (const std::runtime_error& e) {
 			dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
+			ProgStepBreak
 			//return;
+		}
+		catch (...) {
+			ProgStepBreak
 		}
 		ProgStepBreak
 	}
@@ -14793,8 +14801,9 @@ void MainWindow::doActionBDFootPrintManual()
 		dispToConsole("No building cloud in selection!", ERR_CONSOLE_MESSAGE);
 		return;
 	}
-	stocker::BuildUnit _build = baseObj->GetBuildingUnit(building_name.toStdString());
-	double ground = _build.ground_height;
+	stocker::BuildUnit* _build = baseObj->GetBuildingSp(building_name.toStdString());
+	if (!_build) return;
+	double ground = _build->ground_height;
 
 	if (!m_seTool)
 	{
@@ -15152,13 +15161,6 @@ void MainWindow::doActionBDLoD2Generation()
 	for (ccHObject* bd_entity : building_entites) {
 		BDBaseHObject* baseObj = GetRootBDBase(bd_entity);
 
-// 		double height = DBL_MAX;
-// 		if (m_pbdrSettingLoD2Dlg->GroundHeightMode() == 2) {
-// 			height = m_pbdrSettingLoD2Dlg->UserDefinedGroundHeight();
-// 		}
-// 		else /*if (m_pbdrSettingLoD2Dlg->GroundHeightMode() == 0)*/ {
-// 			height = baseObj->GetBuildingUnit(GetParentBuilding(bd_entity)->getName().toStdString()).ground_height;
-// 		}
 		if (bd_entity->isA(CC_TYPES::ST_BUILDING)) {
 			QString building_name = bd_entity->getName();
 			//! check for footprints
@@ -15209,8 +15211,12 @@ void MainWindow::doActionBDLoD2Generation()
 					}
 
 					try {
-						stocker::BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
-						ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit.ground_height, 
+						stocker::BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
+						if (!build_unit) {
+							dispToConsole("invalid building");
+							continue;
+						}
+						ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit->ground_height, 
 							m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
 							m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
 							m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value());
@@ -15560,7 +15566,7 @@ void MainWindow::showBestImage(bool use_area)
 			double_area = (objU_img - objO_img).cross(objV_img - objO_img);
 		}
 		else {
-			double_area = (obj_angle + cam_angle);
+			double_area = (acos(obj_angle) + acos(cam_angle));
 		}
 
 		visible_area.back().second = double_area;
@@ -15622,7 +15628,7 @@ void MainWindow::showImage(ccHObject * imCamera)
 
 void MainWindow::doActionShowBestImage()
 {
-	showBestImage();
+	showBestImage(true);
 }
 
 void MainWindow::doActionShowSelectedImage()

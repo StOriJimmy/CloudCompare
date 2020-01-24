@@ -2858,7 +2858,7 @@ void ccPropertiesTreeDelegate::fillWithStBuilding(const StBuilding *_obj)
 		if (!bdsp) return;
 		auto bd = *bdsp;
 		//path
-		appendRow(ITEM(tr("Path")), ITEM(QString(bd.file_path.ori_points.c_str())));
+		//appendRow(ITEM(tr("Path")), ITEM(QString(bd.file_path.ori_points.c_str())));
 		//average spacing
 		appendRow(ITEM(tr("Average Spacing")), ITEM(QLocale(QLocale::English).toString(bd.average_spacing)));
 		//ground height

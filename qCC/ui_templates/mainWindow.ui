@@ -1845,7 +1845,7 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="minimumSize">
     <size>
      <width>87</width>
-     <height>259</height>
+     <height>267</height>
     </size>
    </property>
    <property name="maximumSize">
@@ -1864,13 +1864,20 @@ QTreeView::branch:open:has-children:has-siblings  {
     <set>Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea</set>
    </property>
    <property name="windowTitle">
-    <string>Properties</string>
+    <string>Edit Panel</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_4">
     <layout class="QVBoxLayout" name="verticalLayout_4">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayoutPanel">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+      </layout>
+     </item>
      <item>
       <widget class="QTreeView" name="propertiesTreeView_Build">
        <property name="sizePolicy">
@@ -2088,15 +2095,7 @@ QTreeView::branch:open:has-children:has-siblings  {
           <height>69</height>
          </rect>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout_3">
-         <item>
-          <layout class="QVBoxLayout" name="verticalLayoutPanel">
-           <property name="spacing">
-            <number>0</number>
-           </property>
-          </layout>
-         </item>
-        </layout>
+        <layout class="QVBoxLayout" name="verticalLayout_3"/>
        </widget>
       </widget>
      </item>

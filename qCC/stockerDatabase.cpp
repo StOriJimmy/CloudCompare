@@ -695,18 +695,11 @@ ccPointCloud * BDBaseHObject::GetTodoLine(QString buildig_name)
 }
 std::string BDBaseHObject::GetPathModelObj(std::string building_name)
 {
-	return std::string(GetBuildingUnit(building_name).file_path.model_dir + building_name + MODEL_LOD3_OBJ_SUFFIX);
-}
-
-const stocker::BuildUnit BDBaseHObject::GetBuildingUnit(std::string building_name) {
-	stocker::BuildUnit* sp = GetBuildingSp(building_name);
-	if (!sp) {
-		throw runtime_error("internal error: cannot find building");
-		return stocker::BuildUnit("invalid");
+	stocker::BuildUnit* bd = GetBuildingSp(building_name);
+	if (bd) {
+		return bd->file_path.model_dir + building_name + MODEL_LOD3_OBJ_SUFFIX;
 	}
-	else {
-		return *sp;
-	}
+	else return std::string();
 }
 
 stocker::BuildUnit* BDBaseHObject::GetBuildingSp(std::string building_name)
