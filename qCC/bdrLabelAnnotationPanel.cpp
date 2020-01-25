@@ -65,7 +65,7 @@ bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
 
 	for (size_t i = 0; i < LAS_LABEL::LABEL_END; ++i) {
 		m_UI->typeComboBox->addItem(LAS_LABEL::g_strLabelName[i]);
-		QPixmap px(20, 20);
+		QPixmap px(18, 18);
 		px.fill(QColor(LAS_LABEL::g_classification_color[i * 3], LAS_LABEL::g_classification_color[i * 3 + 1], LAS_LABEL::g_classification_color[i * 3 + 2]));
 		m_UI->typeComboBox->setItemIcon(i, QIcon(px));
 	}
@@ -98,7 +98,7 @@ bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
  	m_polyVertices = new ccPointCloud("vertices");
  	m_segmentationPoly = new ccPolyline(m_polyVertices);
  	m_segmentationPoly->setForeground(true);
- 	m_segmentationPoly->setColor(ccColor::green);
+ 	m_segmentationPoly->setColor(ccColor::doderBlue);
  	m_segmentationPoly->showColors(true);
  	m_segmentationPoly->set2DMode(true);
  	allowExecutePolyline(false);
@@ -647,12 +647,12 @@ void bdrLabelAnnotationPanel::closePolyLine(int, int)
 		//remove last point!
 		m_segmentationPoly->resize(vertCount-1); //can't fail --> smaller
 		m_segmentationPoly->setClosed(true);
+		allowExecutePolyline(true);
 	}
 
 	//stop
 	m_state &= (~RUNNING);
-		
- 	allowExecutePolyline(true);
+ 	
  	if (m_associatedWin)
  	{
  		m_associatedWin->redraw(true, false);
@@ -747,12 +747,13 @@ void bdrLabelAnnotationPanel::pauseLabelingMode(bool state)
 		{
 			m_segmentationPoly->clear();
 			m_polyVertices->clear();
-			allowExecutePolyline(false);
 		}
+		allowExecutePolyline(false);
 		allowStateChange(true);
 		m_associatedWin->setInteractionMode(ccGLWindow::TRANSFORM_CAMERA());
 		m_associatedWin->setPickingMode(ccGLWindow::DEFAULT_PICKING);
 		MainWindow::TheInstance()->dispToStatus(QString("paused, press space to continue labeling"));
+		m_UI->pauseButton->setIcon(QIcon(QStringLiteral(":/CC/Stocker/images/stocker/play.png")));
 	}
 	else {
 		m_state = STARTED;
@@ -764,6 +765,7 @@ void bdrLabelAnnotationPanel::pauseLabelingMode(bool state)
 		else if (m_selection_mode == SELECT_3D) {
 			MainWindow::TheInstance()->dispToStatus(QString("labeling (3D), left click to add contour points, right click to close"));
 		}
+		m_UI->pauseButton->setIcon(QIcon(QStringLiteral(":/CC/Stocker/images/stocker/pause.png")));
 	}
 
 	//update mini-GUI

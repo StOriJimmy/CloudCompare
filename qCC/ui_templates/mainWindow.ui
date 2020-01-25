@@ -578,6 +578,7 @@
     <addaction name="actionBDProjectLoad"/>
     <addaction name="actionBDProjectSave"/>
     <addaction name="separator"/>
+    <addaction name="actionPrimitives3D"/>
     <addaction name="actionBDPlaneSegmentation"/>
     <addaction name="separator"/>
     <addaction name="actionBDImage_Lines"/>
@@ -1760,6 +1761,7 @@ QTreeView::branch:open:has-children:has-siblings  {
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionPrimitives3D"/>
    <addaction name="actionBDPlaneSegmentation"/>
    <addaction name="actionBDPrimPlaneQuality"/>
    <addaction name="separator"/>
@@ -4542,13 +4544,13 @@ QTreeView::branch:open:has-children:has-siblings  {
   <action name="actionBDPlaneSegmentation">
    <property name="icon">
     <iconset resource="../icones.qrc">
-     <normaloff>:/CC/Stocker/images/stocker/primitives.png</normaloff>:/CC/Stocker/images/stocker/primitives.png</iconset>
+     <normaloff>:/CC/Stocker/images/stocker/plane2.png</normaloff>:/CC/Stocker/images/stocker/plane2.png</iconset>
    </property>
    <property name="text">
     <string>Plane Segmentation</string>
    </property>
    <property name="iconText">
-    <string>Primitive</string>
+    <string>Plane</string>
    </property>
   </action>
   <action name="actionGotoNextZoom">
@@ -5282,7 +5284,7 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="icon">
     <iconset resource="../icones.qrc">
-     <normaloff>:/CC/Stocker/images/stocker/primitive.png</normaloff>:/CC/Stocker/images/stocker/primitive.png</iconset>
+     <normaloff>:/CC/Stocker/images/stocker/plane.png</normaloff>:/CC/Stocker/images/stocker/plane.png</iconset>
    </property>
    <property name="text">
     <string>PlaneQuality</string>
@@ -5298,6 +5300,15 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="shortcutVisibleInContextMenu">
     <bool>false</bool>
+   </property>
+  </action>
+  <action name="actionPrimitives3D">
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/primitive.png</normaloff>:/CC/Stocker/images/stocker/primitive.png</iconset>
+   </property>
+   <property name="text">
+    <string>Primitive</string>
    </property>
   </action>
  </widget>
