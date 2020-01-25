@@ -79,6 +79,7 @@ class bdrSettingGrdFilterDlg;
 
 class bdrProjectDlg;
 class bdrLabelAnnotationPanel;
+class bdr3DGeometryEditPanel;
 
 class PolyFitObj;
 
@@ -561,6 +562,8 @@ private slots:
 	void doActionBDImagesLoad();
 	void doActionBDImagesToggle3DView();
 
+	void doActionBDPrimitives();
+	void deactiveBDPrimitives(bool state);
 	/// Plane Segmentation
 	void doActionBDPlaneSegmentation();
 	void doActionBDPrimPlaneQuality();
@@ -916,6 +919,7 @@ private:
 
 	bdrProjectDlg* m_pbdrPrjDlg;
 	bdrLabelAnnotationPanel* m_pbdrLAPanel;
+	bdr3DGeometryEditPanel* m_pbdrGeoPanel;
 
 	PolyFitObj* polyfit_obj;
 	int m_GCSvr_prj_id;

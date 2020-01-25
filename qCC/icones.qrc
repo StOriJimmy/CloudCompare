@@ -277,7 +277,25 @@
     <file>images/stocker/viewoff.png</file>
     <file>images/stocker/image.png</file>
     <file>images/stocker/pickpts_lock.png</file>
+    <file>images/stocker/cylinder.png</file>
     <file>images/stocker/refresh.png</file>
+    <file>images/stocker/parapet.png</file>
+    <file>images/stocker/torus_cylinder.png</file>
+    <file>images/stocker/sphere.png</file>
+    <file>images/stocker/torus.png</file>
+    <file>images/stocker/box3d.png</file>
+    <file>images/stocker/dish.png</file>
+    <file>images/stocker/downarrow.png</file>
+    <file>images/stocker/block3d.png</file>
+    <file>images/stocker/cone.png</file>
+    <file>images/stocker/wall.png</file>
+    <file>images/stocker/plane2.png</file>
     <file>images/stocker/buildingblack.png</file>
+    <file>images/stocker/freemesh.png</file>
+    <file>images/stocker/polyline.png</file>
+    <file>images/stocker/crosshairs.png</file>
+    <file>images/stocker/poly.png</file>
+    <file>images/stocker/play.png</file>
+    <file>images/stocker/polygon2.png</file>
   </qresource>
 </RCC>

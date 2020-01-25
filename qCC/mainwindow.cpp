@@ -124,6 +124,7 @@
 #include "bdrProjectDlg.h"
 #include "bdrPlaneQualityDlg.h"
 #include "bdrLabelAnnotationPanel.h"
+#include "bdr3DGeometryEditPanel.h"
 
 //other
 #include "ccCropTool.h"
@@ -260,6 +261,7 @@ MainWindow::MainWindow()
 	, m_pbdrPrjDlg(nullptr)
 	, m_pbdrPlaneQDlg(nullptr)
 	, m_pbdrLAPanel(nullptr)
+	, m_pbdrGeoPanel(nullptr)
 {
 	m_UI->setupUi( this );
 
@@ -1048,6 +1050,7 @@ void MainWindow::connectActions()
 	//////////////////////////////////////////////////////////////////////////
 	//Building Reconstruction
 	
+	connect(m_UI->actionPrimitives3D,				&QAction::triggered, this, &MainWindow::doActionBDPrimitives);
 	connect(m_UI->actionBDPlaneSegmentation,		&QAction::triggered, this, &MainWindow::doActionBDPlaneSegmentation);
 	connect(m_UI->actionBDPrimPlaneQuality,			&QAction::triggered, this, &MainWindow::doActionBDPrimPlaneQuality);
 	connect(m_UI->actionBDRetrieve,					&QAction::triggered, this, &MainWindow::doActionBDRetrieve);
@@ -10764,7 +10767,7 @@ ccGLWindow* MainWindow::new3DView(bool allowEntitySelection)
 	view3D->addSceneDB(m_buildingRoot->getRootEntity());
 	view3D->addSceneDB(m_imageRoot->getRootEntity());
 	viewWidget->setAttribute(Qt::WA_DeleteOnClose);
-	viewWidget->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowMaximizeButtonHint);
+	viewWidget->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowMinimizeButtonHint | Qt::WindowMaximizeButtonHint);
 // 	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowCloseButtonHint);
 // 	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowMinimizeButtonHint);
 // 	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowMaximizeButtonHint);
@@ -13066,6 +13069,53 @@ void MainWindow::doActionBDImagesToggle3DView()
 		}
 	}
 	refreshAll();
+}
+
+void MainWindow::doActionBDPrimitives()
+{
+	ccGLWindow* win = getActiveGLWindow();
+	if (!win) return;
+
+	switchDatabase(CC_TYPES::DB_BUILDING);
+
+	if (!m_pbdrGeoPanel) {
+		m_pbdrGeoPanel = new bdr3DGeometryEditPanel(this);
+		connect(m_pbdrGeoPanel, &ccOverlayDialog::processFinished, this, &MainWindow::deactiveBDPrimitives);
+	}
+
+	m_pbdrGeoPanel->linkWith(win);
+	ccHObject::Container active;
+	for (ccHObject* entity : getSelectedEntities()) {
+		if (entity->getDBSourceType() == CC_TYPES::DB_BUILDING 
+			&& entity->isKindOf(CC_TYPES::PRIMITIVE)) {
+			active.push_back(entity);
+		}
+	}
+	m_pbdrGeoPanel->setActiveItem(active);
+
+	if (!m_pbdrGeoPanel->start()) {
+		deactiveBDPrimitives(false);
+	}
+	else {
+		m_pbdrGeoPanel->move(m_mdiArea->mapToGlobal(QPoint(0, 0)));
+	}
+}
+
+void MainWindow::deactiveBDPrimitives(bool state)
+{
+	if (m_pbdrGeoPanel) {
+		m_pbdrGeoPanel->removeAllEntities(true);
+
+		if (state) {
+
+		}
+		m_pbdrGeoPanel->clearChangedBaseObj();
+	}
+
+	updateUI();
+	if (getActiveGLWindow()) {
+		getActiveGLWindow()->redraw();
+	}
 }
 
 // for point cloud (.original by default)
@@ -16678,7 +16728,7 @@ void MainWindow::doActionPointClassEditor()
 
 	if (!m_pbdrLAPanel)
 	{
-		m_pbdrLAPanel = new bdrLabelAnnotationPanel(nullptr);
+		m_pbdrLAPanel = new bdrLabelAnnotationPanel(this);
 		connect(m_pbdrLAPanel, &ccOverlayDialog::processFinished, this, &MainWindow::deactivatePointClassEditor);
 
 		//registerOverlayDialog(m_pbdrLAPanel, Qt::TopLeftCorner);
@@ -16721,17 +16771,17 @@ void MainWindow::deactivatePointClassEditor(bool state)
 	if (m_pbdrLAPanel)
 	{
 		m_pbdrLAPanel->removeAllEntities(!deleteHiddenParts);
-	}
 
-	if (state) {
-		//TODO: UPDATE BUILDING LIST
-		QSet<ccHObject*> changed = m_pbdrLAPanel->getChangedBaseObj();
-		for (ccHObject* obj : changed) {
-			BDBaseHObject* baseObj = GetRootBDBase(obj);
-			if (baseObj) updateBuildingList(baseObj, false);
+		if (state) {
+			//TODO: UPDATE BUILDING LIST
+			QSet<ccHObject*> changed = m_pbdrLAPanel->getChangedBaseObj();
+			for (ccHObject* obj : changed) {
+				BDBaseHObject* baseObj = GetRootBDBase(obj);
+				if (baseObj) updateBuildingList(baseObj, false);
+			}
 		}
+		m_pbdrLAPanel->clearChangedBaseObj();
 	}
-	m_pbdrLAPanel->clearChangedBaseObj();
 
 	//we enable all GL windows
 	enableAll();
