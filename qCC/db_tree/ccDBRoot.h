@@ -191,6 +191,10 @@ public:
 	void gotoNextZoom();
 
 	void clickItem(const QModelIndex &index);
+
+	void doubleClicked(const QModelIndex &index);
+
+	void rename();
 private:
 	//! Entity property that can be toggled
 	enum TOGGLE_PROPERTY {	TG_ENABLE,
@@ -317,6 +321,8 @@ protected:
 	QAction* m_editLabelScalarValue;
 	//! Context menu action: deselect other children
 	QAction* m_deselectOtherChildren;
+	
+	QAction* m_rename;
 
 	//! Last context menu pos
 	QPoint m_contextMenuPos;
