@@ -55,6 +55,7 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent)
 	, m_destination(nullptr)
 {
 	m_UI->setupUi(this);
+	setMouseTracking(true);
 
 	connect(m_UI->pauseButton,					&QToolButton::toggled, this, &bdr3DGeometryEditPanel::pauseLabelingMode);
 	connect(m_UI->blockToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doBlock);
@@ -89,6 +90,8 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent)
 	addOverridenShortcut(Qt::Key_E);	  // EIDITING
  	connect(this,								&ccOverlayDialog::shortcutTriggered, this, &bdr3DGeometryEditPanel::onShortcutTriggered);
 
+	echoUIchange();
+
 //  QMenu* selectionModeMenu = new QMenu(this);
 //  selectionModeMenu->addAction(m_UI->action2DSelection);
 //  selectionModeMenu->addAction(m_UI->action3DSelection);
@@ -114,14 +117,16 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent)
 void bdr3DGeometryEditPanel::echoUIchange()
 {
 //block
-	connect(m_UI->blockTopDoubleSpinBox,	SIGNAL(valueChanged), this, SLOT(echoBlockTopHeight));
-	connect(m_UI->blockBottomDoubleSpinBox, SIGNAL(valueChanged), this, SLOT(echoBlockBottomHeight));
+	connect(m_UI->blockTopDoubleSpinBox,	SIGNAL(valueChanged(double)), this, SLOT(echoBlockTopHeight(double)));
+	connect(m_UI->blockBottomDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(echoBlockBottomHeight(double)));
 }
 
 bool bdr3DGeometryEditPanel::eventFilter(QObject * obj, QEvent * e)
 {
 	if (e->type() == QEvent::Enter)	{
-		if (obj == m_UI->blockToolButton)				{ m_UI->geometryTabWidget->setCurrentIndex(GEO_BLOCK); }
+		if (obj == m_UI->blockToolButton)				{ 
+			m_UI->geometryTabWidget->setCurrentIndex(GEO_BLOCK); 
+		}
 		else if (obj == m_UI->boxToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_BOX); }
 		else if (obj == m_UI->sphereToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_SPHERE); }
 		else if (obj == m_UI->coneToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_CONE); }
@@ -295,7 +300,7 @@ bool bdr3DGeometryEditPanel::start()
 	m_associatedWin->addToOwnDB(m_segmentationPoly);
 	m_associatedWin->setPickingMode(ccGLWindow::NO_PICKING);
 	
-	pauseLabelingMode(false);
+	pauseLabelingMode(true);
 
 	m_somethingHasChanged = false;
 
@@ -571,6 +576,8 @@ void bdr3DGeometryEditPanel::echoSelectChange(ccHObject* obj)
 
 void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 {
+	return;
+
 	if ((m_state & STARTED) == 0)
 	{
 		return;
@@ -819,7 +826,7 @@ void bdr3DGeometryEditPanel::pauseLabelingMode(bool state)
 		else if (m_selection_mode == SELECT_3D) {
 			MainWindow::TheInstance()->dispToStatus(QString("labeling (3D), left click to add contour points, right click to close"));
 		}
-		m_UI->pauseButton->setIcon(QIcon(QStringLiteral(":/CC/Stocker/images/stocker/play.png")));
+		m_UI->pauseButton->setIcon(QIcon(QStringLiteral(":/CC/Stocker/images/stocker/pause.png")));
 	}
 
 	//update mini-GUI
@@ -1102,6 +1109,7 @@ void bdr3DGeometryEditPanel::echoBlockTopHeight(double v)
 		StBlock* block = ccHObjectCaster::ToStBlock(active);
 		block->setTopHeight(v);
 	}
+	m_associatedWin->redraw();
 }
 
 void bdr3DGeometryEditPanel::echoBlockBottomHeight(double v)
@@ -1110,4 +1118,5 @@ void bdr3DGeometryEditPanel::echoBlockBottomHeight(double v)
 		StBlock* block = ccHObjectCaster::ToStBlock(active);
 		block->setBottomHeight(v);
 	}
+	m_associatedWin->redraw();
 }

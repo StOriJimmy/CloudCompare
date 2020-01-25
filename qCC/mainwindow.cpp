@@ -1932,14 +1932,18 @@ void MainWindow::removeFromDB(ccHObject* obj, bool autoDelete/*=true*/)
 
 void MainWindow::setSelectedInDB(ccHObject* obj, bool selected)
 {
-
-	ccDBRoot* root = obj ? db(obj->getDBSourceType()) : nullptr;
-	if (root)
-	{
-		if (selected)
-			root->selectEntity(obj);
-		else
-			root->unselectEntity(obj);
+	if (!obj) {
+		unselectAllInDB();
+	}
+	else {
+		ccDBRoot* root = db(obj->getDBSourceType());
+		if (root)
+		{
+			if (selected)
+				root->selectEntity(obj);
+			else
+				root->unselectEntity(obj);
+		}
 	}
 }
 
