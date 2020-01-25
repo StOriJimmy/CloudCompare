@@ -55,7 +55,19 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent)
 	, m_destination(nullptr)
 {
 	m_UI->setupUi(this);
-	setMouseTracking(true);
+
+	m_UI->boxToolButton->installEventFilter(this);
+	m_UI->sphereToolButton->installEventFilter(this);
+	m_UI->coneToolButton->installEventFilter(this);
+	m_UI->cylinderToolButton->installEventFilter(this);
+	m_UI->parapetToolButton->installEventFilter(this);
+	m_UI->toroidCylinderToolButton->installEventFilter(this);
+	m_UI->torusToolButton->installEventFilter(this);
+	m_UI->dishToolButton->installEventFilter(this);
+	m_UI->planeToolButton->installEventFilter(this);
+	m_UI->polygonToolButton->installEventFilter(this);
+	m_UI->polylineToolButton->installEventFilter(this);
+	m_UI->wallToolButton->installEventFilter(this);
 
 	connect(m_UI->pauseButton,					&QToolButton::toggled, this, &bdr3DGeometryEditPanel::pauseLabelingMode);
 	connect(m_UI->blockToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doBlock);
@@ -78,7 +90,7 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent)
 	connect(m_UI->freeMeshToolButton,			&QToolButton::clicked, this, &bdr3DGeometryEditPanel::makeFreeMesh);
 
 	m_UI->geometryTabWidget->tabBar()->hide();
-
+	
  	//add shortcuts
  	addOverridenShortcut(Qt::Key_Space);  //space bar for the "pause" button
  	addOverridenShortcut(Qt::Key_Escape); //escape key for the "cancel" button
@@ -123,10 +135,8 @@ void bdr3DGeometryEditPanel::echoUIchange()
 
 bool bdr3DGeometryEditPanel::eventFilter(QObject * obj, QEvent * e)
 {
-	if (e->type() == QEvent::Enter)	{
-		if (obj == m_UI->blockToolButton)				{ 
-			m_UI->geometryTabWidget->setCurrentIndex(GEO_BLOCK); 
-		}
+	if (e->type() == QEvent::HoverEnter) {
+		if (obj == m_UI->blockToolButton)				{ m_UI->geometryTabWidget->setCurrentIndex(GEO_BLOCK); }
 		else if (obj == m_UI->boxToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_BOX); }
 		else if (obj == m_UI->sphereToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_SPHERE); }
 		else if (obj == m_UI->coneToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_CONE); }
