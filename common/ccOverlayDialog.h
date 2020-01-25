@@ -88,7 +88,7 @@ protected slots:
 protected:
 
 	//inherited from QObject
-	bool eventFilter(QObject *obj, QEvent *e) override;
+	virtual bool eventFilter(QObject *obj, QEvent *e) override;
 
 	//! Associated (MDI) window
 	ccGLWindow* m_associatedWin;
