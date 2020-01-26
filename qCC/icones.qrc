@@ -296,6 +296,8 @@
     <file>images/stocker/crosshairs.png</file>
     <file>images/stocker/poly.png</file>
     <file>images/stocker/play.png</file>
+    <file>images/stocker/undo_dis.png</file>
     <file>images/stocker/polygon2.png</file>
+    <file>images/stocker/undo.png</file>
   </qresource>
 </RCC>

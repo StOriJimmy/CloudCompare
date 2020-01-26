@@ -2546,7 +2546,7 @@ QTreeView::branch:open:has-children:has-siblings  {
   <action name="actionSegment">
    <property name="icon">
     <iconset resource="../icones.qrc">
-     <normaloff>:/CC/images/ccSegment.png</normaloff>:/CC/images/ccSegment.png</iconset>
+     <normaloff>:/CC/Stocker/images/stocker/cut.png</normaloff>:/CC/Stocker/images/stocker/cut.png</iconset>
    </property>
    <property name="text">
     <string>Segment</string>
@@ -5176,6 +5176,9 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="toolTip">
     <string>Manual Annotation</string>
+   </property>
+   <property name="shortcut">
+    <string>L</string>
    </property>
   </action>
   <action name="actionSettingsGroundFiltering">

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>466</width>
+    <width>430</width>
     <height>141</height>
    </rect>
   </property>
@@ -74,6 +74,24 @@
          <bool>false</bool>
         </property>
         <layout class="QFormLayout" name="formLayout">
+         <property name="horizontalSpacing">
+          <number>1</number>
+         </property>
+         <property name="verticalSpacing">
+          <number>2</number>
+         </property>
+         <property name="leftMargin">
+          <number>1</number>
+         </property>
+         <property name="topMargin">
+          <number>1</number>
+         </property>
+         <property name="rightMargin">
+          <number>1</number>
+         </property>
+         <property name="bottomMargin">
+          <number>1</number>
+         </property>
          <item row="0" column="0">
           <widget class="QLabel" name="label_3">
            <property name="text">
@@ -165,8 +183,23 @@
         <property name="title">
          <string>Normal</string>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
-         <item>
+        <layout class="QFormLayout" name="formLayout_2">
+         <property name="horizontalSpacing">
+          <number>1</number>
+         </property>
+         <property name="leftMargin">
+          <number>1</number>
+         </property>
+         <property name="topMargin">
+          <number>1</number>
+         </property>
+         <property name="rightMargin">
+          <number>1</number>
+         </property>
+         <property name="bottomMargin">
+          <number>1</number>
+         </property>
+         <item row="0" column="0">
           <widget class="QDoubleSpinBox" name="nxDoubleSpinBox">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -194,7 +227,7 @@
            </property>
           </widget>
          </item>
-         <item>
+         <item row="1" column="0">
           <widget class="QDoubleSpinBox" name="nyDoubleSpinBox">
            <property name="minimumSize">
             <size>
@@ -216,7 +249,7 @@
            </property>
           </widget>
          </item>
-         <item>
+         <item row="2" column="0">
           <widget class="QDoubleSpinBox" name="nzDoubleSpinBox">
            <property name="minimumSize">
             <size>
@@ -452,7 +485,7 @@
     </widget>
    </item>
    <item row="2" column="1">
-    <widget class="QGroupBox" name="groupBox_3">
+    <widget class="QGroupBox" name="confirmGroupBox">
      <property name="title">
       <string/>
      </property>
