@@ -46,7 +46,7 @@ static const char c_csm_stepColor[]				= "color";
 static const char c_csm_customLabels[]			= "labels";
 static const char c_csm_customLabelValue[]		= "value";
 
-//matplotlib library colorscale created by Stéfan van der Walt and Nathaniel Smith
+//matplotlib library colorscale created by StÃ©fan van der Walt and Nathaniel Smith
 double s_viridis[] =
 {
 	0.26700401, 0.00487433, 0.32941519,
@@ -307,6 +307,29 @@ double s_viridis[] =
 	0.99324789, 0.90615657, 0.1439362
 };
 
+static const double s_classification[] =
+{
+	184,184,184,//0
+	173,173,173,//1
+	167,112,1,	//2
+	36,	115,0,	//3
+	73,	231,6,	//4
+	207,245,123,//5
+	215,101,62,	//6
+	228,2,	0,	//7
+	168,110,2,	//8
+	2,	87,	237,//9
+	232,227,2,	//10
+	231,230,1,	//11
+	201,3,	255,//12
+	234,226,3,	//13
+	232,227,2,	//14
+	231,229,0,	//15
+	229,226,3,	//16
+	230,227,10,	//17
+	232,228,1	//18
+};
+
 ccColorScalesManager* ccColorScalesManager::GetUniqueInstance()
 {
 	if (!s_uniqueInstance.instance)
@@ -339,6 +362,7 @@ ccColorScalesManager::ccColorScalesManager()
 		addScale(Create(DIP_BRYW));
 		addScale(Create(DIP_DIR_REPEAT));
 		addScale(Create(VIRIDIS));
+		addScale(Create(CLASSIFICATION));
 	}
 }
 
@@ -533,6 +557,8 @@ ccColorScale::Shared ccColorScalesManager::Create(DEFAULT_SCALES scaleType)
 				return QStringLiteral("Dip direction (repeat) [0-360]");
 			case VIRIDIS:
 				return QStringLiteral("Viridis");
+			case CLASSIFICATION:
+				return QStringLiteral("Classification");
 		}
 		return QString();
 	}();
@@ -646,6 +672,17 @@ ccColorScale::Shared ccColorScalesManager::Create(DEFAULT_SCALES scaleType)
 			int b = static_cast<int>(_viridis[2] * 255);
 			scale->insert(ccColorScaleElement(i / 255.0, qRgb(r, g, b)), false);
 		}
+		break;
+	}
+	case CLASSIFICATION:
+	{
+		const double * _class = s_classification;
+		for (size_t i = 0; i < 19; i++, _class += 3) {
+			scale->insert(ccColorScaleElement(i / 18.0, qRgb(_class[0], _class[1], _class[2])), false);
+		}
+		scale->setAbsolute(0, 18.0);
+		scale->customLabels().insert(0);
+		scale->customLabels().insert(18);
 		break;
 	}
 	default:

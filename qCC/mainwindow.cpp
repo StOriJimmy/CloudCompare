@@ -124,6 +124,7 @@
 #include "bdrProjectDlg.h"
 #include "bdrPlaneQualityDlg.h"
 #include "bdrLabelAnnotationPanel.h"
+#include "bdr3DGeometryEditPanel.h"
 
 //other
 #include "ccCropTool.h"
@@ -260,6 +261,7 @@ MainWindow::MainWindow()
 	, m_pbdrPrjDlg(nullptr)
 	, m_pbdrPlaneQDlg(nullptr)
 	, m_pbdrLAPanel(nullptr)
+	, m_pbdrGeoPanel(nullptr)
 {
 	m_UI->setupUi( this );
 
@@ -1048,6 +1050,7 @@ void MainWindow::connectActions()
 	//////////////////////////////////////////////////////////////////////////
 	//Building Reconstruction
 	
+	connect(m_UI->actionPrimitives3D,				&QAction::triggered, this, &MainWindow::doActionBDPrimitives);
 	connect(m_UI->actionBDPlaneSegmentation,		&QAction::triggered, this, &MainWindow::doActionBDPlaneSegmentation);
 	connect(m_UI->actionBDPrimPlaneQuality,			&QAction::triggered, this, &MainWindow::doActionBDPrimPlaneQuality);
 	connect(m_UI->actionBDRetrieve,					&QAction::triggered, this, &MainWindow::doActionBDRetrieve);
@@ -1929,14 +1932,18 @@ void MainWindow::removeFromDB(ccHObject* obj, bool autoDelete/*=true*/)
 
 void MainWindow::setSelectedInDB(ccHObject* obj, bool selected)
 {
-
-	ccDBRoot* root = obj ? db(obj->getDBSourceType()) : nullptr;
-	if (root)
-	{
-		if (selected)
-			root->selectEntity(obj);
-		else
-			root->unselectEntity(obj);
+	if (!obj) {
+		unselectAllInDB();
+	}
+	else {
+		ccDBRoot* root = db(obj->getDBSourceType());
+		if (root)
+		{
+			if (selected)
+				root->selectEntity(obj);
+			else
+				root->unselectEntity(obj);
+		}
 	}
 }
 
@@ -3132,12 +3139,15 @@ void MainWindow::dispToConsole(QString message, ConsoleMessageLevel level/*=STD_
 	switch (level)
 	{
 	case STD_CONSOLE_MESSAGE:
-		ccConsole::Print(message);
+		std::cout << "[BlockBuilder] INFO - " << message.toStdString() << std::endl;
+		//ccConsole::Print(message);
 		break;
 	case WRN_CONSOLE_MESSAGE:
-		ccConsole::Warning(message);
+		std::cout << "[BlockBuilder] WARNING - " << message.toStdString() << std::endl;
+		//ccConsole::Warning(message);
 		break;
 	case ERR_CONSOLE_MESSAGE:
+		std::cout << "[BlockBuilder] ERROR - " << message.toStdString() << std::endl;
 		ccConsole::Error(message);
 		break;
 	}
@@ -10761,9 +10771,10 @@ ccGLWindow* MainWindow::new3DView(bool allowEntitySelection)
 	view3D->addSceneDB(m_buildingRoot->getRootEntity());
 	view3D->addSceneDB(m_imageRoot->getRootEntity());
 	viewWidget->setAttribute(Qt::WA_DeleteOnClose);
-	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowCloseButtonHint);
-	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowMinimizeButtonHint);
-	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowMaximizeButtonHint);
+	viewWidget->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowMinimizeButtonHint | Qt::WindowMaximizeButtonHint);
+// 	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowCloseButtonHint);
+// 	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowMinimizeButtonHint);
+// 	viewWidget->setWindowFlags(viewWidget->windowFlags()&~Qt::WindowMaximizeButtonHint);
 	updatePropertiesView();
 
 	QMainWindow::statusBar()->showMessage(QString("New 3D View"), 2000);
@@ -12441,6 +12452,86 @@ BDBaseHObject::Container GetBDBaseProjx() {
 	return prjx;
 }
 
+bool MainWindow::updateBuildingList(BDBaseHObject* baseObj, bool from_file)
+{
+	ccHObject::Container buildings;
+	if (baseObj->filterChildren(buildings, true, CC_TYPES::ST_BUILDING, true) == 0) return false;
+
+	bool prj_changed = false;
+	if (!IsExist(baseObj->m_options.prj_file.building_list.c_str())) {
+		baseObj->m_options.prj_file.building_list = baseObj->getPath().toStdString() + "buildings/building.txt";
+		prj_changed = true;
+	}
+	char* building_dir_ = GetFileDirectory(baseObj->m_options.prj_file.building_list.c_str());
+	Dos2Unix(building_dir_);
+	QString building_dir = QString::fromLocal8Bit(building_dir_);
+	if (!StCreatDir(building_dir)) {
+		return false;
+	}
+
+	FileIOFilter::SaveParameters parameters; {
+		parameters.alwaysDisplaySaveDialog = false;
+		parameters.parentWidget = this;
+		parameters.saveMode = 0;
+	}
+
+	QStringList valid_bd_paths;
+	for (ccHObject* bd : buildings) {
+		StBuilding* buildObj = ccHObjectCaster::ToStBuilding(bd); if (!buildObj) continue;
+		
+		ccPointCloud* pc = baseObj->GetOriginPointCloud(buildObj->getName(), false);
+		if (!pc) {
+			//! load the pc
+			bool ply_exist = QFileInfo(buildObj->getPath()).exists();
+			// TODO
+		}
+		if (!pc) {
+			removeFromDB(buildObj);
+			continue;
+		}
+		QString this_dir = building_dir + pc->getName(); if (!StCreatDir(this_dir)) continue;
+		QString relative_path = pc->getName() + "/" + pc->getName() + ".ply"; // bd00000000/bd00000000.ply
+		QString absolute_path = building_dir + "/" + relative_path;
+		
+		if (FileIOFilter::SaveToFile(pc, absolute_path, parameters, "PLY mesh (*.ply)") != CC_FERR_NO_ERROR) {
+			continue;
+		}
+
+		pc->setPath(absolute_path);
+		if (pc->getParent()->isA(CC_TYPES::HIERARCHY_OBJECT)) {
+			pc->getParent()->setPath(absolute_path);
+		}
+		buildObj->setPath(absolute_path);
+
+		valid_bd_paths.append(relative_path);
+	}
+
+	FILE* fp = fopen(baseObj->m_options.prj_file.building_list.c_str(), "w");
+	if (!fp) { return false; }
+	fprintf(fp, "%d\n", valid_bd_paths.size());
+	for (QString p : valid_bd_paths) {
+		fprintf(fp, "%s\n", p.toStdString().c_str());
+	}
+	fclose(fp);
+
+	stocker::BuildingData building_data;
+	if (!stocker::LoadBuildingListFile(building_data, baseObj->m_options.prj_file.building_list))
+		return false;
+
+	baseObj->build_data = building_data;
+
+	if (!baseObj->updateBuildUnits(false)) {
+		return false;
+	}
+
+	if (prj_changed) {
+		if (!stocker::SaveProjectIni(baseObj->m_options.prj_file.project_ini, baseObj->m_options))
+			return false;
+	}
+
+	return true;
+}
+
 ccHObject* MainWindow::LoadBDReconProject_Shell(QString Filename)
 {
 	BDBaseHObject* bd_grp = nullptr;
@@ -12529,6 +12620,7 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 
 			newGroup->setName(building_name + BDDB_ORIGIN_CLOUD_SUFFIX);
 			building->addChild(newGroup);
+			building->setPath(newGroup->getPath());
 
 			bd_grp->addChild(building);
 		}
@@ -12582,59 +12674,12 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 		if (bd_grp->getPath().isEmpty()) {
 			bd_grp->setPath(QString::fromStdString(options.prj_file.root_dir));
 		}
-
-		for (size_t i = 0; i < bd_grp->getChildrenNumber(); i++) {
-			StBuilding* bdObj = ccHObjectCaster::ToStBuilding(bd_grp->getChild(i));
-			if (!bdObj) continue;
-
-			auto sp_build = bd_grp->GetBuildingSp(bdObj->getName().toStdString());
-			if (!sp_build) {
-				continue;
-			}
-
-			std::cout << "preparing: " << sp_build->GetName().Str() << std::endl;
-			if (!LoadBuildingInfo(*sp_build, (*sp_build).file_path.info)) {
-				ccPointCloud* cloud = bd_grp->GetOriginPointCloud(bdObj->getName(), false);
-				stocker::Contour3d points_global; stocker::Contour3f points_local;
-				if (!GetPointsFromCloud(cloud, points_global, points_local)) { continue; }
-
-				CCVector3d minbb, maxbb;
-				if (cloud->getGlobalBB(minbb, maxbb)) {
-					(*sp_build).bbox.Add({ minbb.x,minbb.y, minbb.z });
-					(*sp_build).bbox.Add({ maxbb.x,maxbb.y, maxbb.z });
-				}
-
-				// TODO: save these paras to the StBuilding
-				(*sp_build).average_spacing = stocker::ComputeAverageSpacing3f(points_local, true);
-				stocker::Contour3d ground_contour = stocker::CalcBuildingGround(points_global, 0.1);
-				if (ground_contour.size() < 3) {
-					return false;
-				}
-				(*sp_build).ground_height = ground_contour.front().Z();
-				(*sp_build).convex_hull_xy = stocker::ToContour2d(ground_contour);
-				if (bd_grp->m_options.with_image) {
-					for (auto img : bd_grp->GetImageData()) {
-						bool img_check = false;
-						for (size_t i = 0; i < 8; i++) {
-							if (img.CheckInImg3d((*sp_build).bbox.P(i))) {
-								img_check = true;
-								break;
-							}
-						}
-						if (img_check) {
-							(*sp_build).image_list.push_back(img.GetName().Str());
-						}
-					}
-				}
-
-				// TODO: still wrong sometimes, the file cannot be saved??
-				if (!SaveBuildingInfo((*sp_build), (*sp_build).file_path.info)) {
-					cout << "failed to save building info: " << (*sp_build).GetName().Str() << endl;
-					return false;
-				}
-
-			}
+		if (!bd_grp->updateBuildUnits(true)) {
+			delete bd_grp;
+			bd_grp = nullptr;
+			return nullptr;
 		}
+				
 		if (!has_global_shift || !has_global_scale) {
 			ccHObject::Container point_clouds;
 			bd_grp->filterChildren(point_clouds, true, CC_TYPES::POINT_CLOUD, true);
@@ -12868,8 +12913,9 @@ void MainWindow::doActionBDImagesLoad()
 			for (ccHObject* camera_group : camera_groups) {
 				QStringList building_images;
 				for (ccHObject* bd : getSelectedEntities()) {
-					stocker::BuildUnit bd_unit = baseObj->GetBuildingUnit(bd->getName().toStdString());
-					for (auto img : bd_unit.image_list) {
+					stocker::BuildUnit* bdsp = baseObj->GetBuildingSp(bd->getName().toStdString());
+					if (!bdsp) continue;
+					for (auto img : bdsp->image_list) {
 						building_images.append(img.c_str());
 					}
 				}
@@ -13013,6 +13059,7 @@ void MainWindow::doActionBDImagesToggle3DView()
 			ccCameraSensor* sensor = ccHObjectCaster::ToCameraSensor(cam_group->getChild(i));
 			if (!sensor) continue;
 			
+			sensor->setVisible(checked);
 			sensor->drawFrustum(checked);
 			sensor->drawNearPlane(checked);
 
@@ -13020,12 +13067,59 @@ void MainWindow::doActionBDImagesToggle3DView()
 				sensor->drawBaseAxis(false);
 				sensor->drawImage(false);
 				sensor->drawFrustumPlanes(false);
-			}
+ 			}
 
 			sensor->redrawDisplay();
 		}
 	}
 	refreshAll();
+}
+
+void MainWindow::doActionBDPrimitives()
+{
+	ccGLWindow* win = getActiveGLWindow();
+	if (!win) return;
+
+	switchDatabase(CC_TYPES::DB_BUILDING);
+
+	if (!m_pbdrGeoPanel) {
+		m_pbdrGeoPanel = new bdr3DGeometryEditPanel(this);
+		connect(m_pbdrGeoPanel, &ccOverlayDialog::processFinished, this, &MainWindow::deactiveBDPrimitives);
+	}
+
+	m_pbdrGeoPanel->linkWith(win);
+	ccHObject::Container active;
+	for (ccHObject* entity : getSelectedEntities()) {
+		if (entity->getDBSourceType() == CC_TYPES::DB_BUILDING 
+			&& entity->isKindOf(CC_TYPES::PRIMITIVE)) {
+			active.push_back(entity);
+		}
+	}
+	m_pbdrGeoPanel->setActiveItem(active);
+
+	if (!m_pbdrGeoPanel->start()) {
+		deactiveBDPrimitives(false);
+	}
+	else {
+		m_pbdrGeoPanel->move(m_mdiArea->mapToGlobal(QPoint(0, 0)));
+	}
+}
+
+void MainWindow::deactiveBDPrimitives(bool state)
+{
+	if (m_pbdrGeoPanel) {
+		m_pbdrGeoPanel->removeAllEntities(true);
+
+		if (state) {
+
+		}
+		m_pbdrGeoPanel->clearChangedBaseObj();
+	}
+
+	updateUI();
+	if (getActiveGLWindow()) {
+		getActiveGLWindow()->redraw();
+	}
 }
 
 // for point cloud (.original by default)
@@ -13845,10 +13939,11 @@ void MainWindow::doActionBDPrimCreateGround()
 		double ground_height;
 		stocker::Polyline2d ground_convex;
 		if (baseObj) {
-			stocker::BuildUnit bd_unit = baseObj->GetBuildingUnit(GetBaseName(primGroup->getName()).toStdString());
-			ground_height = bd_unit.ground_height;
+			stocker::BuildUnit* bd_unit = baseObj->GetBuildingSp(GetBaseName(primGroup->getName()).toStdString());
+			if (!bd_unit)continue;
+			ground_height = bd_unit->ground_height;
 			stocker::Contour2d c_h_local;
-			for (auto & pt : bd_unit.convex_hull_xy) {
+			for (auto & pt : bd_unit->convex_hull_xy) {
 				c_h_local.push_back(ToVec2d(baseObj->ToLocal(ToVec3d(pt))));
 			}
 			ground_convex = stocker::MakeLoopPolylinefromContour(c_h_local);
@@ -14699,8 +14794,9 @@ void MainWindow::doActionBDFootPrintAuto()
 		}
 
 		try {
-			stocker::BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
-			ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit.ground_height, 0.8, 0.8, 2);
+			stocker::BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
+			if (!build_unit) throw std::runtime_error("invalid building");
+			ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit->ground_height, 0.8, 0.8, 2);
 			for (ccHObject* ft : footprints) {
 				if (ft && ft->isA(CC_TYPES::ST_FOOTPRINT)) {
 					SetGlobalShiftAndScale(ft);
@@ -14711,7 +14807,11 @@ void MainWindow::doActionBDFootPrintAuto()
 		}
 		catch (const std::runtime_error& e) {
 			dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
+			ProgStepBreak
 			//return;
+		}
+		catch (...) {
+			ProgStepBreak
 		}
 		ProgStepBreak
 	}
@@ -14759,8 +14859,9 @@ void MainWindow::doActionBDFootPrintManual()
 		dispToConsole("No building cloud in selection!", ERR_CONSOLE_MESSAGE);
 		return;
 	}
-	stocker::BuildUnit _build = baseObj->GetBuildingUnit(building_name.toStdString());
-	double ground = _build.ground_height;
+	stocker::BuildUnit* _build = baseObj->GetBuildingSp(building_name.toStdString());
+	if (!_build) return;
+	double ground = _build->ground_height;
 
 	if (!m_seTool)
 	{
@@ -15118,13 +15219,6 @@ void MainWindow::doActionBDLoD2Generation()
 	for (ccHObject* bd_entity : building_entites) {
 		BDBaseHObject* baseObj = GetRootBDBase(bd_entity);
 
-// 		double height = DBL_MAX;
-// 		if (m_pbdrSettingLoD2Dlg->GroundHeightMode() == 2) {
-// 			height = m_pbdrSettingLoD2Dlg->UserDefinedGroundHeight();
-// 		}
-// 		else /*if (m_pbdrSettingLoD2Dlg->GroundHeightMode() == 0)*/ {
-// 			height = baseObj->GetBuildingUnit(GetParentBuilding(bd_entity)->getName().toStdString()).ground_height;
-// 		}
 		if (bd_entity->isA(CC_TYPES::ST_BUILDING)) {
 			QString building_name = bd_entity->getName();
 			//! check for footprints
@@ -15175,8 +15269,12 @@ void MainWindow::doActionBDLoD2Generation()
 					}
 
 					try {
-						stocker::BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
-						ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit.ground_height, 
+						stocker::BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
+						if (!build_unit) {
+							dispToConsole("invalid building");
+							continue;
+						}
+						ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit->ground_height, 
 							m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
 							m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
 							m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value());
@@ -15428,7 +15526,7 @@ ccHObject * MainWindow::getCameraGroup(QString name)
 	return nullptr;
 }
 
-void MainWindow::doActionShowBestImage()
+void MainWindow::showBestImage(bool use_area)
 {
 	ccGLWindow* glwin = getActiveGLWindow(); assert(glwin); if (!glwin) return;
 	ccViewportParameters params = glwin->getViewportParameters();
@@ -15446,14 +15544,14 @@ void MainWindow::doActionShowBestImage()
 	}
 	else {
 		//! TODO: mesh.. refer to graphical segmentation
- 		ccHObject::Container point_clouds = GetEnabledObjFromGroup(dbRootObject(getCurrentDB()), CC_TYPES::POINT_CLOUD, true, true);
-		
- 		for (ccHObject* pc : point_clouds) {
- 			ccPointCloud* pcObj = ccHObjectCaster::ToPointCloud(pc);
- 			if (!pcObj) { continue; }
+		ccHObject::Container point_clouds = GetEnabledObjFromGroup(dbRootObject(getCurrentDB()), CC_TYPES::POINT_CLOUD, true, true);
+
+		for (ccHObject* pc : point_clouds) {
+			ccPointCloud* pcObj = ccHObjectCaster::ToPointCloud(pc);
+			if (!pcObj) { continue; }
 			ccBBox box_ = pcObj->getTheVisiblePointsBBox(camParas);
 			objBox += box_;
- 		}
+		}
 		double scale_box = m_pbdrImagePanel->getBoxScale();
 		objBox = ccBBox(objBox.getCenter() - objBox.getDiagVec()*scale_box / 2, objBox.getCenter() + objBox.getDiagVec()*scale_box / 2);
 		std::cout << "calc bbox from clouds" << std::endl;
@@ -15464,7 +15562,7 @@ void MainWindow::doActionShowBestImage()
 	std::cout << "obj_bbox_max: " << objBox.maxCorner().x << " " << objBox.maxCorner().y << " " << objBox.maxCorner().z << std::endl;
 	std::cout << "up dir: " << glwin->getCurrentUpDir().x << " " << glwin->getCurrentUpDir().y << " " << glwin->getCurrentUpDir().z << std::endl;
 #endif // _DEBUG
-	
+
 	if (!objBox.isValid()) {
 		std::cout << "cannot deduce object bbox" << std::endl;
 		return;
@@ -15476,7 +15574,7 @@ void MainWindow::doActionShowBestImage()
 		objBox.getCenter();	// should be seen from the view
 	CCVector3 view_to_obj = objCenter - CCVector3::fromArray(viewPoint.u);
 	view_to_obj.normalize();
-	
+
 	CCVector3 obj_to_view = -view_to_obj;
 	vcg::Point3f n(view_to_obj.u), u, v;
 	vcg::GetUV(n, u, v);
@@ -15487,7 +15585,7 @@ void MainWindow::doActionShowBestImage()
 
 	//! get all cameras available 
 	ccHObject::Container cameras = GetEnabledObjFromGroup(m_imageRoot->getRootEntity(), CC_TYPES::CAMERA_SENSOR, true, true);
-	
+
 	// sort by dir and distance
 	typedef std::pair<ccCameraSensor*, double> HArea;
 	std::vector<HArea> visible_area;
@@ -15521,14 +15619,14 @@ void MainWindow::doActionShowBestImage()
 		}
 
 		float double_area = 10000;
-		if (0) {
+		if (use_area) {
 			//! sort by projection area
 			double_area = (objU_img - objO_img).cross(objV_img - objO_img);
 		}
 		else {
-			double_area = (obj_angle + cam_angle);
+			double_area = (acos(obj_angle) + acos(cam_angle));
 		}
-		
+
 		visible_area.back().second = double_area;
 	}
 	if (visible_area.empty()) {
@@ -15537,26 +15635,25 @@ void MainWindow::doActionShowBestImage()
 	std::sort(visible_area.begin(), visible_area.end(), [](HArea _l, HArea _r) {
 		return _l.second > _r.second;
 	});
+
+	ccHObject* best_image = nullptr;
 	for (size_t i = 0; i < visible_area.size(); i++) {
 		ccCameraSensor* camObj = visible_area[i].first;
 		assert(camObj); if (!camObj) return;
 		camObj->setDisplayOrder(i);
+
+		if (i == 0) best_image = camObj;
 	}
 	m_pbdrImagePanel->display(false);
 
-	doActionShowSelectedImage();
+	showImage(best_image);
 }
 
-void MainWindow::doActionShowSelectedImage()
+void MainWindow::showImage(ccHObject * imCamera)
 {
-	ccHObject::Container sels;
-	m_imageRoot->getSelectedEntities(sels, CC_TYPES::CAMERA_SENSOR);
-	if (sels.empty()) {
-		return;
-	}
-	ccCameraSensor* cam = ccHObjectCaster::ToCameraSensor(sels.front());
+	ccCameraSensor* cam = ccHObjectCaster::ToCameraSensor(imCamera);
 	if (!cam) { return; }
-		
+
 	m_pbdrImagePanel->clearTempProjected();
 	m_pbdrImshow->setImageAndCamera(cam);
 	if (m_pbdrImagePanel->isObjChecked()) {
@@ -15585,6 +15682,21 @@ void MainWindow::doActionShowSelectedImage()
 	else {
 		m_pbdrImshow->ZoomFit();
 	}
+}
+
+void MainWindow::doActionShowBestImage()
+{
+	showBestImage(true);
+}
+
+void MainWindow::doActionShowSelectedImage()
+{
+	ccHObject::Container sels;
+	m_imageRoot->getSelectedEntities(sels, CC_TYPES::CAMERA_SENSOR);
+	if (sels.empty()) {
+		return;
+	}
+	showImage(sels.front());
 }
 
 void MainWindow::doActionProjectToImage()
@@ -16122,6 +16234,7 @@ void MainWindow::doActionCreateBuildingProject()
 			FileIOFilter::SaveParameters parameters; {
 				parameters.alwaysDisplaySaveDialog = false;
 				parameters.parentWidget = this;
+				parameters.saveMode = 0;
 			}
 
 			QStringList bd_paths;
@@ -16617,14 +16730,12 @@ void MainWindow::doActionPointClassEditor()
 	if (!haveSelection())
 		return;
 
-	
-
 	if (!m_pbdrLAPanel)
 	{
 		m_pbdrLAPanel = new bdrLabelAnnotationPanel(this);
 		connect(m_pbdrLAPanel, &ccOverlayDialog::processFinished, this, &MainWindow::deactivatePointClassEditor);
 
-		registerOverlayDialog(m_pbdrLAPanel, Qt::TopLeftCorner);
+		//registerOverlayDialog(m_pbdrLAPanel, Qt::TopLeftCorner);
 	}
 	m_pbdrLAPanel->setSegmentMode(bdrLabelAnnotationPanel::SEGMENT_LABELING);
 	m_pbdrLAPanel->linkWith(win);
@@ -16634,7 +16745,7 @@ void MainWindow::doActionPointClassEditor()
 			m_pbdrLAPanel->addEntity(entity);
 		}
 	}
-	
+	updatePropertiesView();
 
 	if (m_pbdrLAPanel->getNumberOfValidEntities() == 0)
 	{
@@ -16652,8 +16763,9 @@ void MainWindow::doActionPointClassEditor()
 
 	if (!m_pbdrLAPanel->start())
 		deactivatePointClassEditor(false);
-	else
-		updateOverlayDialogsPlacement();
+	else {
+		m_pbdrLAPanel->move(m_mdiArea->mapToGlobal(QPoint(0, 0)));
+	}
 }
 
 void MainWindow::deactivatePointClassEditor(bool state)
@@ -16663,10 +16775,16 @@ void MainWindow::deactivatePointClassEditor(bool state)
 	if (m_pbdrLAPanel)
 	{
 		m_pbdrLAPanel->removeAllEntities(!deleteHiddenParts);
-	}
 
-	if (state) {
-		//TODO: UPDATE BUILDING LIST
+		if (state) {
+			//TODO: UPDATE BUILDING LIST
+			QSet<ccHObject*> changed = m_pbdrLAPanel->getChangedBaseObj();
+			for (ccHObject* obj : changed) {
+				BDBaseHObject* baseObj = GetRootBDBase(obj);
+				if (baseObj) updateBuildingList(baseObj, false);
+			}
+		}
+		m_pbdrLAPanel->clearChangedBaseObj();
 	}
 
 	//we enable all GL windows

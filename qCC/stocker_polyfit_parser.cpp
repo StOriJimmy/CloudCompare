@@ -96,7 +96,9 @@ ccHObject * PolyfitGenerateHypothesis(ccHObject * primitive_group, PolyFitObj * 
 		global_shift = CCVector3d(vcgXYZ(baseObj->global_shift));
 		global_scale = baseObj->global_scale;
 		hypoObj = baseObj->GetHypothesisGroup(building_name);
-		stocker::Contour2d bd_cvx = baseObj->GetBuildingUnit(building_name.toStdString()).convex_hull_xy;
+		stocker::BuildUnit* bd = baseObj->GetBuildingSp(building_name.toStdString());
+		if (!bd) return nullptr;
+		stocker::Contour2d bd_cvx = bd->convex_hull_xy;
 		assert(!bd_cvx.empty());
 		building_convex_hull_2d = stocker::MakeLoopPolylinefromContour(bd_cvx);
 	}

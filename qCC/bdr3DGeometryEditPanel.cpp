@@ -1,4 +1,4 @@
-#include "bdrLabelAnnotationPanel.h"
+#include "bdr3DGeometryEditPanel.h"
 
 //Local
 #include "mainwindow.h"
@@ -19,6 +19,15 @@
 #include <ccScalarField.h>
 #include <ccColorScalesManager.h>
 
+#include "StBlock.h"
+#include "ccBox.h"
+#include "ccSphere.h"
+#include "ccCone.h"
+#include "ccCylinder.h"
+#include "ccTorus.h"
+#include "ccDish.h"
+#include "ccPlane.h"
+
 //qCC_gl
 #include <ccGLWindow.h>
 
@@ -34,9 +43,9 @@
 
 static CC_TYPES::DB_SOURCE s_dbSource;
 
-bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
+bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent)
 	: ccOverlayDialog(parent, Qt::Tool | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowStaysOnTopHint)
-	, m_UI(new Ui::bdrLabelAnnotationPanel )
+	, m_UI(new Ui::bdr3DGeometryEditPanel )
 	, m_somethingHasChanged(false)
 	, m_state(0)
 	, m_segmentationPoly(0)
@@ -44,51 +53,62 @@ bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
 	, m_rectangularSelection(false)
 	, m_deleteHiddenParts(false)
 	, m_destination(nullptr)
-	, m_segment_mode(SEGMENT_LABELING)
 {
 	m_UI->setupUi(this);
 
-	connect(m_UI->settingToolButton,			&QToolButton::clicked, this, &bdrLabelAnnotationPanel::settings);
-	connect(m_UI->pauseButton,					&QToolButton::toggled, this, &bdrLabelAnnotationPanel::pauseLabelingMode);
-	connect(m_UI->filterToolButton,				&QToolButton::clicked, this, &bdrLabelAnnotationPanel::filterClassification);
-	connect(m_UI->setLabelToolButton,			&QToolButton::clicked, this, &bdrLabelAnnotationPanel::setLabel);
-	connect(m_UI->createEntityToolButton,		&QToolButton::clicked, this, &bdrLabelAnnotationPanel::createEntity);
-	connect(m_UI->razButton,					&QToolButton::clicked, this, &bdrLabelAnnotationPanel::reset);
-	connect(m_UI->exitButton,					&QToolButton::clicked, this, &bdrLabelAnnotationPanel::exit);
+	m_UI->boxToolButton->installEventFilter(this);
+	m_UI->sphereToolButton->installEventFilter(this);
+	m_UI->coneToolButton->installEventFilter(this);
+	m_UI->cylinderToolButton->installEventFilter(this);
+	m_UI->parapetToolButton->installEventFilter(this);
+	m_UI->toroidCylinderToolButton->installEventFilter(this);
+	m_UI->torusToolButton->installEventFilter(this);
+	m_UI->dishToolButton->installEventFilter(this);
+	m_UI->planeToolButton->installEventFilter(this);
+	m_UI->polygonToolButton->installEventFilter(this);
+	m_UI->polylineToolButton->installEventFilter(this);
+	m_UI->wallToolButton->installEventFilter(this);
 
- 	//selection modes
- 	connect(m_UI->action2DSelection,			&QAction::triggered,	this, &bdrLabelAnnotationPanel::doSet2DSelection);
- 	connect(m_UI->action3DSelection,			&QAction::triggered,	this, &bdrLabelAnnotationPanel::doSet3DSelection);
- 	//import/export options
-// 	connect(actionUseExistingPolyline,			&QAction::triggered,	this,	&bdrLabelAnnotationPanel::doActionUseExistingPolyline);
-// 	connect(actionExportSegmentationPolyline,	&QAction::triggered,	this,	&bdrLabelAnnotationPanel::doExportSegmentationPolyline);
+	connect(m_UI->pauseButton,					&QToolButton::toggled, this, &bdr3DGeometryEditPanel::pauseLabelingMode);
+	connect(m_UI->blockToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doBlock);
+	connect(m_UI->boxToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doBox);
+	connect(m_UI->sphereToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doSphere);
+	connect(m_UI->coneToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doCone);
+	connect(m_UI->cylinderToolButton,			&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doCylinder);
+	connect(m_UI->parapetToolButton,			&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doParapet);
+	connect(m_UI->toroidCylinderToolButton,		&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doToroidCylinder); 
+	connect(m_UI->torusToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doTorus);
+	connect(m_UI->dishToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doDish);
+	connect(m_UI->planeToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doPlane);
+	connect(m_UI->polylineToolButton,			&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doPolyline);
+	connect(m_UI->wallToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doWall);
+	
+	connect(m_UI->razButton,					&QToolButton::clicked, this, &bdr3DGeometryEditPanel::reset);
+	connect(m_UI->exitButton,					&QToolButton::clicked, this, &bdr3DGeometryEditPanel::exit);
 
-	for (size_t i = 0; i < LAS_LABEL::LABEL_END; ++i) {
-		m_UI->typeComboBox->addItem(LAS_LABEL::g_strLabelName[i]);
-		QPixmap px(18, 18);
-		px.fill(QColor(LAS_LABEL::g_classification_color[i * 3], LAS_LABEL::g_classification_color[i * 3 + 1], LAS_LABEL::g_classification_color[i * 3 + 2]));
-		m_UI->typeComboBox->setItemIcon(i, QIcon(px));
-	}
-	m_UI->typeComboBox->setCurrentIndex(LAS_LABEL::Building);	
-	connect(m_UI->typeComboBox,					SIGNAL(currentIndexChanged(int)), this, SLOT(onLasLabelChanged(int)));
-	connect(m_UI->typeComboBox,					SIGNAL(activated),		this, SLOT(onLasLabelActivated));
-	m_UI->typeComboBox->setFocusPolicy(Qt::NoFocus);
- 
+	connect(m_UI->editToolButton,				&QToolButton::toggled, this, &bdr3DGeometryEditPanel::startEdit);
+	connect(m_UI->freeMeshToolButton,			&QToolButton::clicked, this, &bdr3DGeometryEditPanel::makeFreeMesh);
+
+	m_UI->geometryTabWidget->tabBar()->hide();
+	
  	//add shortcuts
  	addOverridenShortcut(Qt::Key_Space);  //space bar for the "pause" button
  	addOverridenShortcut(Qt::Key_Escape); //escape key for the "cancel" button
  	addOverridenShortcut(Qt::Key_Return); //return key for the "apply" button
  	addOverridenShortcut(Qt::Key_Delete); //delete key for the "apply and delete" button
- 	addOverridenShortcut(Qt::Key_Tab);    //tab key to switch between rectangular and polygonal selection modes
- 	addOverridenShortcut(Qt::Key_C);      //'C' 
- 	addOverridenShortcut(Qt::Key_I);      //'S' 
- 	connect(this,								&ccOverlayDialog::shortcutTriggered, this, &bdrLabelAnnotationPanel::onShortcutTriggered);
+ 	addOverridenShortcut(Qt::Key_Tab);    //tab key to switch between EDITING mode
+ 	addOverridenShortcut(Qt::Key_C);      // CONFIRM
+ 	addOverridenShortcut(Qt::Key_I);      // IMAGE VIEW
+	addOverridenShortcut(Qt::Key_E);	  // EIDITING
+ 	connect(this,								&ccOverlayDialog::shortcutTriggered, this, &bdr3DGeometryEditPanel::onShortcutTriggered);
 
- 	QMenu* selectionModeMenu = new QMenu(this);
- 	selectionModeMenu->addAction(m_UI->action2DSelection);
- 	selectionModeMenu->addAction(m_UI->action3DSelection);
-	m_UI->selectionModeButton->setDefaultAction(m_UI->action3DSelection);
-	m_UI->selectionModeButton->setMenu(selectionModeMenu);
+	echoUIchange();
+
+//  QMenu* selectionModeMenu = new QMenu(this);
+//  selectionModeMenu->addAction(m_UI->action2DSelection);
+//  selectionModeMenu->addAction(m_UI->action3DSelection);
+// 	m_UI->selectionModeButton->setDefaultAction(m_UI->action3DSelection);
+// 	m_UI->selectionModeButton->setMenu(selectionModeMenu);
  
 // 	QMenu* importExportMenu = new QMenu(this);
 // 	importExportMenu->addAction(actionUseExistingPolyline);
@@ -98,7 +118,7 @@ bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
  	m_polyVertices = new ccPointCloud("vertices");
  	m_segmentationPoly = new ccPolyline(m_polyVertices);
  	m_segmentationPoly->setForeground(true);
- 	m_segmentationPoly->setColor(ccColor::doderBlue);
+ 	m_segmentationPoly->setColor(ccColor::green);
  	m_segmentationPoly->showColors(true);
  	m_segmentationPoly->set2DMode(true);
  	allowExecutePolyline(false);
@@ -106,11 +126,38 @@ bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
 	m_selection_mode = SELECT_3D;
 }
 
-void bdrLabelAnnotationPanel::allowExecutePolyline(bool state)
+void bdr3DGeometryEditPanel::echoUIchange()
 {
-	m_UI->createEntityToolButton->setEnabled(state);
-	m_UI->setLabelToolButton->setEnabled(state);
+//block
+	connect(m_UI->blockTopDoubleSpinBox,	SIGNAL(valueChanged(double)), this, SLOT(echoBlockTopHeight(double)));
+	connect(m_UI->blockBottomDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(echoBlockBottomHeight(double)));
+}
 
+bool bdr3DGeometryEditPanel::eventFilter(QObject * obj, QEvent * e)
+{
+	if (e->type() == QEvent::HoverEnter) {
+		if (obj == m_UI->blockToolButton)				{ m_UI->geometryTabWidget->setCurrentIndex(GEO_BLOCK); }
+		else if (obj == m_UI->boxToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_BOX); }
+		else if (obj == m_UI->sphereToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_SPHERE); }
+		else if (obj == m_UI->coneToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_CONE); }
+		else if (obj == m_UI->cylinderToolButton)		{ m_UI->geometryTabWidget->setCurrentIndex(GEO_CYLINDER); }
+		else if (obj == m_UI->parapetToolButton)		{ m_UI->geometryTabWidget->setCurrentIndex(GEO_PARAPET); }
+		else if (obj == m_UI->toroidCylinderToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_TORCYLINDER); }
+		else if (obj == m_UI->torusToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_TORUS); }
+		else if (obj == m_UI->dishToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_DISH); }
+		else if (obj == m_UI->planeToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_PLANE); }
+		else if (obj == m_UI->polygonToolButton)		{ m_UI->geometryTabWidget->setCurrentIndex(GEO_POLYGON); }
+		else if (obj == m_UI->polylineToolButton)		{ m_UI->geometryTabWidget->setCurrentIndex(GEO_POLYLINE); }
+		else if (obj == m_UI->wallToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_WALL); }
+	}
+	else if (e->type() == QEvent::Leave) {
+
+	}
+	return ccOverlayDialog::eventFilter(obj, e);
+}
+
+void bdr3DGeometryEditPanel::allowExecutePolyline(bool state)
+{
  	if (state) {
  	}
  	else {
@@ -118,14 +165,46 @@ void bdrLabelAnnotationPanel::allowExecutePolyline(bool state)
  	}
 }
 
-void bdrLabelAnnotationPanel::allowStateChange(bool state)
+void bdr3DGeometryEditPanel::allowStateChange(bool state)
 {
-	m_UI->selectionModeButton->setEnabled(state);
-	m_UI->typeComboBox->setEnabled(state);
-	m_UI->filterToolButton->setEnabled(state);
+
 }
 
-bdrLabelAnnotationPanel::~bdrLabelAnnotationPanel()
+void bdr3DGeometryEditPanel::updateWithActive(ccHObject * obj)
+{
+	if (obj->isA(CC_TYPES::ST_BLOCK)) {
+		StBlock* block = ccHObjectCaster::ToStBlock(obj);
+		if (!block) return;
+		m_UI->blockTopDoubleSpinBox->setValue(block->getTopHeight());
+		m_UI->blockBottomDoubleSpinBox->setValue(block->getBottomHeight());
+	}
+	else if (obj->isA(CC_TYPES::BOX)) {
+
+	}
+	else if (obj->isA(CC_TYPES::SPHERE)) {
+
+	}
+	else if (obj->isA(CC_TYPES::CONE)) {
+		
+	}
+	else if (obj->isA(CC_TYPES::CYLINDER)) {
+
+	}
+	else if (obj->isA(CC_TYPES::TORUS)) {
+
+	}
+	else if (obj->isA(CC_TYPES::DISH)) {
+		
+	}
+	else if (obj->isA(CC_TYPES::PLANE)) {
+
+	}
+	else if (obj->isA(CC_TYPES::POLY_LINE)) {
+
+	}
+}
+
+bdr3DGeometryEditPanel::~bdr3DGeometryEditPanel()
 {
 	if (m_segmentationPoly)
 		delete m_segmentationPoly;
@@ -136,7 +215,7 @@ bdrLabelAnnotationPanel::~bdrLabelAnnotationPanel()
 	m_polyVertices = 0;
 }
 
-void bdrLabelAnnotationPanel::onShortcutTriggered(int key)
+void bdr3DGeometryEditPanel::onShortcutTriggered(int key)
 {
  	switch(key)
 	{
@@ -153,6 +232,10 @@ void bdrLabelAnnotationPanel::onShortcutTriggered(int key)
 		//outButton->click();
 		return;
 
+	case Qt::Key_E:
+		m_UI->editToolButton->toggle();
+		return;
+
 	case Qt::Key_Return:
 		//validButton->click();
 		return;
@@ -160,14 +243,10 @@ void bdrLabelAnnotationPanel::onShortcutTriggered(int key)
 		//validAndDeleteButton->click();
 		return;
 	case Qt::Key_Escape:
-		m_UI->exitButton->click();
 		return;
 
 	case Qt::Key_Tab:
-		if (m_selection_mode == SELECT_2D)
-			doSet3DSelection();
-		else if (m_selection_mode == SELECT_3D)
-			doSet2DSelection();
+		
 		return;
 
 	default:
@@ -176,7 +255,7 @@ void bdrLabelAnnotationPanel::onShortcutTriggered(int key)
 	}
 }
 
-bool bdrLabelAnnotationPanel::linkWith(ccGLWindow* win)
+bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 {
 	assert(m_segmentationPoly);
 
@@ -198,10 +277,11 @@ bool bdrLabelAnnotationPanel::linkWith(ccGLWindow* win)
 	
 	if (m_associatedWin)
 	{
-		connect(m_associatedWin, &ccGLWindow::leftButtonClicked,	this, &bdrLabelAnnotationPanel::addPointToPolyline);
-		connect(m_associatedWin, &ccGLWindow::rightButtonClicked,	this, &bdrLabelAnnotationPanel::closePolyLine);
-		connect(m_associatedWin, &ccGLWindow::mouseMoved,			this, &bdrLabelAnnotationPanel::updatePolyLine);
-		connect(m_associatedWin, &ccGLWindow::buttonReleased,		this, &bdrLabelAnnotationPanel::closeRectangle);
+		connect(m_associatedWin, &ccGLWindow::leftButtonClicked,	this, &bdr3DGeometryEditPanel::addPointToPolyline);
+		connect(m_associatedWin, &ccGLWindow::rightButtonClicked,	this, &bdr3DGeometryEditPanel::closePolyLine);
+		connect(m_associatedWin, &ccGLWindow::mouseMoved,			this, &bdr3DGeometryEditPanel::updatePolyLine);
+		connect(m_associatedWin, &ccGLWindow::buttonReleased,		this, &bdr3DGeometryEditPanel::closeRectangle);
+		connect(m_associatedWin, &ccGLWindow::entitySelectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
 
 		if (m_segmentationPoly)
 		{
@@ -212,7 +292,7 @@ bool bdrLabelAnnotationPanel::linkWith(ccGLWindow* win)
 	return true;
 }
 
-bool bdrLabelAnnotationPanel::start()
+bool bdr3DGeometryEditPanel::start()
 {
 	assert(m_polyVertices && m_segmentationPoly);
 
@@ -229,20 +309,8 @@ bool bdrLabelAnnotationPanel::start()
 	m_associatedWin->setUnclosable(true);
 	m_associatedWin->addToOwnDB(m_segmentationPoly);
 	m_associatedWin->setPickingMode(ccGLWindow::NO_PICKING);
-	if (m_selection_mode == SELECT_3D)
-	{
-		m_associatedWin->setPerspectiveState(true, true);
-		m_associatedWin->lockRotationAxis(false, CCVector3d(0, 0, 1));
-
-		m_UI->selectionModeButton->setDefaultAction(m_UI->action3DSelection);
-	}
-	else if (m_selection_mode == SELECT_2D) {
-		m_associatedWin->setPerspectiveState(false, true);
-		m_associatedWin->lockRotationAxis(true, CCVector3d(0, 0, 1));
-		m_associatedWin->setView(CC_TOP_VIEW);
-		m_UI->selectionModeButton->setDefaultAction(m_UI->action2DSelection);
-	}
-	pauseLabelingMode(false);
+	
+	pauseLabelingMode(true);
 
 	m_somethingHasChanged = false;
 
@@ -251,24 +319,29 @@ bool bdrLabelAnnotationPanel::start()
 	return ccOverlayDialog::start();
 }
 
-void bdrLabelAnnotationPanel::removeAllEntities(bool unallocateVisibilityArrays)
+void bdr3DGeometryEditPanel::removeAllEntities(bool unallocateVisibilityArrays)
 {
 	for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
 	{
-		if (m_segment_mode == SEGMENT_LABELING || m_segment_mode == SEGMENT_BUILD_EIDT) {
-			ccPointCloud* pc = ccHObjectCaster::ToPointCloud(*p);
-			if (pc) pc->setPointSize(0);
-			(*p)->setLocked(false);
-		}
-		else if (unallocateVisibilityArrays) {
-			ccHObjectCaster::ToGenericPointCloud(*p)->unallocateVisibilityArray();
-		}
+		
 	}
 	
 	m_toSegment.clear();
 }
 
-void bdrLabelAnnotationPanel::stop(bool accepted)
+void bdr3DGeometryEditPanel::setActiveItem(std::vector<ccHObject*> active)
+{
+	if (m_state & EDITING) {
+		return;
+	}
+	m_actives = active;
+
+	if (m_actives.size() == 1 && m_actives.front()) {
+		updateWithActive(m_actives.front());
+	}
+}
+
+void bdr3DGeometryEditPanel::stop(bool accepted)
 {
 	assert(m_segmentationPoly);
 
@@ -284,15 +357,13 @@ void bdrLabelAnnotationPanel::stop(bool accepted)
 	ccOverlayDialog::stop(accepted);
 }
 
-void bdrLabelAnnotationPanel::reset()
+void bdr3DGeometryEditPanel::reset()
 {
 	if (m_somethingHasChanged)
 	{
 		for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
 		{
-			if (m_segment_mode <= SEGMENT_PLANE_SPLIT) {
-				ccHObjectCaster::ToGenericPointCloud(*p)->resetVisibilityArray();
-			}
+			
 		}
 
 		if (m_associatedWin)
@@ -306,7 +377,7 @@ void bdrLabelAnnotationPanel::reset()
 // 	loadSaveToolButton->setDefaultAction(actionUseExistingPolyline);
 }
 
-bool bdrLabelAnnotationPanel::addEntity(ccHObject* entity)
+bool bdr3DGeometryEditPanel::addEntity(ccHObject* entity)
 {
 	//FIXME
 	/*if (entity->isLocked())
@@ -342,7 +413,7 @@ bool bdrLabelAnnotationPanel::addEntity(ccHObject* entity)
 			}
 		}
 
-		if (m_segment_mode == SEGMENT_LABELING || m_segment_mode == SEGMENT_BUILD_EIDT) {
+		{
 			//cloud->hasScalarFields()
 			//cloud->geScalarValueColor()
 			
@@ -372,9 +443,8 @@ bool bdrLabelAnnotationPanel::addEntity(ccHObject* entity)
 				cloud->showSF(true);
 			}
 		}
-		else {
-			cloud->resetVisibilityArray();
-		}
+		
+
 		cloud->setLocked(true);
 		m_toSegment.insert(cloud);
 
@@ -386,12 +456,12 @@ bool bdrLabelAnnotationPanel::addEntity(ccHObject* entity)
 	{
 		if (entity->isKindOf(CC_TYPES::PRIMITIVE))
 		{
-			ccLog::Warning("[bdrLabelAnnotationPanel] Can't segment primitives yet! Sorry...");
+			ccLog::Warning("[bdr3DGeometryEditPanel] Can't segment primitives yet! Sorry...");
 			return false;
 		}
 		if (entity->isKindOf(CC_TYPES::SUB_MESH))
 		{
-			ccLog::Warning("[bdrLabelAnnotationPanel] Can't segment sub-meshes! Select the parent mesh...");
+			ccLog::Warning("[bdr3DGeometryEditPanel] Can't segment sub-meshes! Select the parent mesh...");
 			return false;
 		}
 		else
@@ -435,12 +505,12 @@ bool bdrLabelAnnotationPanel::addEntity(ccHObject* entity)
 	return result;
 }
 
-unsigned bdrLabelAnnotationPanel::getNumberOfValidEntities() const
+unsigned bdr3DGeometryEditPanel::getNumberOfValidEntities() const
 {
 	return static_cast<unsigned>(m_toSegment.size());
 }
 
-void bdrLabelAnnotationPanel::updatePolyLine(int x, int y, Qt::MouseButtons buttons)
+void bdr3DGeometryEditPanel::updatePolyLine(int x, int y, Qt::MouseButtons buttons)
 {
 	//process not started yet?
 	if ((m_state & RUNNING) == 0)
@@ -502,12 +572,22 @@ void bdrLabelAnnotationPanel::updatePolyLine(int x, int y, Qt::MouseButtons butt
 	m_associatedWin->redraw(true, false);
 }
 
-void bdrLabelAnnotationPanel::settings()
+void bdr3DGeometryEditPanel::echoSelectChange(ccHObject* obj)
 {
+	if (m_state & EDITING) {
+		return;
+	}
+	if (!(QApplication::keyboardModifiers() & Qt::ControlModifier)) {
+		m_actives.clear();
+	}
+	m_actives.push_back(obj);
+	setActiveItem(m_actives);
 }
 
-void bdrLabelAnnotationPanel::addPointToPolyline(int x, int y)
+void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 {
+	return;
+
 	if ((m_state & STARTED) == 0)
 	{
 		return;
@@ -596,7 +676,7 @@ void bdrLabelAnnotationPanel::addPointToPolyline(int x, int y)
 	m_associatedWin->redraw(true, false);
 }
 
-void bdrLabelAnnotationPanel::closeRectangle()
+void bdr3DGeometryEditPanel::closeRectangle()
 {
 	//only for rectangle selection in RUNNING mode
 	if ((m_state & RECTANGLE) == 0 || (m_state & RUNNING) == 0)
@@ -625,7 +705,7 @@ void bdrLabelAnnotationPanel::closeRectangle()
 		m_associatedWin->redraw(true, false);
 }
 
-void bdrLabelAnnotationPanel::closePolyLine(int, int)
+void bdr3DGeometryEditPanel::closePolyLine(int, int)
 {
 	//only for polyline in RUNNING mode
 	if ((m_state & POLYLINE) == 0 || (m_state & RUNNING) == 0)
@@ -659,17 +739,7 @@ void bdrLabelAnnotationPanel::closePolyLine(int, int)
  	}
 }
 
-void bdrLabelAnnotationPanel::segmentIn()
-{
-	segment(true);
-}
-
-void bdrLabelAnnotationPanel::segmentOut()
-{
-	segment(false);
-}
-
-void bdrLabelAnnotationPanel::segment(bool keepPointsInside)
+void bdr3DGeometryEditPanel::segment(bool keepPointsInside)
 {
 	if (!m_associatedWin)
 		return;
@@ -734,7 +804,7 @@ void bdrLabelAnnotationPanel::segment(bool keepPointsInside)
 	pauseLabelingMode(true);
 }
 
-void bdrLabelAnnotationPanel::pauseLabelingMode(bool state)
+void bdr3DGeometryEditPanel::pauseLabelingMode(bool state)
 {
 	assert(m_polyVertices && m_segmentationPoly);
 
@@ -753,6 +823,7 @@ void bdrLabelAnnotationPanel::pauseLabelingMode(bool state)
 		m_associatedWin->setInteractionMode(ccGLWindow::TRANSFORM_CAMERA());
 		m_associatedWin->setPickingMode(ccGLWindow::DEFAULT_PICKING);
 		MainWindow::TheInstance()->dispToStatus(QString("paused, press space to continue labeling"));
+
 		m_UI->pauseButton->setIcon(QIcon(QStringLiteral(":/CC/Stocker/images/stocker/play.png")));
 	}
 	else {
@@ -776,11 +847,70 @@ void bdrLabelAnnotationPanel::pauseLabelingMode(bool state)
 	m_associatedWin->redraw(!state);
 }
 
-void bdrLabelAnnotationPanel::filterClassification()
+void bdr3DGeometryEditPanel::doBlock()
 {
 }
 
-void bdrLabelAnnotationPanel::setLabel()
+void bdr3DGeometryEditPanel::doBox()
+{
+}
+
+void bdr3DGeometryEditPanel::doSphere()
+{
+}
+
+void bdr3DGeometryEditPanel::doCone()
+{
+}
+
+void bdr3DGeometryEditPanel::doCylinder()
+{
+}
+
+void bdr3DGeometryEditPanel::doParapet()
+{
+}
+
+void bdr3DGeometryEditPanel::doToroidCylinder()
+{
+
+}
+
+void bdr3DGeometryEditPanel::doTorus()
+{
+
+}
+
+void bdr3DGeometryEditPanel::doDish()
+{
+
+}
+
+void bdr3DGeometryEditPanel::doPlane()
+{
+
+}
+
+void bdr3DGeometryEditPanel::doPolyline()
+{
+
+}
+
+void bdr3DGeometryEditPanel::doWall()
+{
+
+}
+
+void bdr3DGeometryEditPanel::startEdit()
+{
+
+}
+
+void bdr3DGeometryEditPanel::makeFreeMesh()
+{
+}
+
+void bdr3DGeometryEditPanel::setLabel()
 {
 	if (!m_associatedWin)
 		return;
@@ -853,7 +983,7 @@ void bdrLabelAnnotationPanel::setLabel()
 	pauseLabelingMode(true);
 }
 
-void bdrLabelAnnotationPanel::createEntity()
+void bdr3DGeometryEditPanel::createEntity()
 {
 	if (!m_associatedWin)
 		return;
@@ -969,7 +1099,7 @@ void bdrLabelAnnotationPanel::createEntity()
 	pauseLabelingMode(true);
 }
 
-void bdrLabelAnnotationPanel::exit()
+void bdr3DGeometryEditPanel::exit()
 {
 	if (m_somethingHasChanged) {
 		// TODO: ask for reset
@@ -983,82 +1113,20 @@ void bdrLabelAnnotationPanel::exit()
 	stop(true);
 }
 
-void bdrLabelAnnotationPanel::doSet2DSelection()
+void bdr3DGeometryEditPanel::echoBlockTopHeight(double v)
 {
-	if (m_selection_mode == SELECT_2D) return;	
-	m_selection_mode = SELECT_2D;
-
-	if (m_state != PAUSED)
-	{
-		pauseLabelingMode(true);
-		pauseLabelingMode(false);
+	for (ccHObject* active : m_actives) {
+		StBlock* block = ccHObjectCaster::ToStBlock(active);
+		block->setTopHeight(v);
 	}
-
-	m_associatedWin->setPerspectiveState(false, true);
-	m_associatedWin->lockRotationAxis(true, CCVector3d(0, 0, 1));
-	m_associatedWin->setView(CC_TOP_VIEW);
-	m_UI->selectionModeButton->setDefaultAction(m_UI->action2DSelection);
+	m_associatedWin->redraw();
 }
 
-void bdrLabelAnnotationPanel::doSet3DSelection()
+void bdr3DGeometryEditPanel::echoBlockBottomHeight(double v)
 {
-	if (m_selection_mode == SELECT_3D) return;
-	m_selection_mode = SELECT_3D;
-		 
-	if (m_state != PAUSED)
-	{
-		pauseLabelingMode(true);
-		pauseLabelingMode(false);
+	for (ccHObject* active : m_actives) {
+		StBlock* block = ccHObjectCaster::ToStBlock(active);
+		block->setBottomHeight(v);
 	}
-
-	m_associatedWin->setPerspectiveState(true, true);
-	m_associatedWin->lockRotationAxis(false, CCVector3d(0, 0, 1));
-
-	m_UI->selectionModeButton->setDefaultAction(m_UI->action3DSelection);
-}
-
-void bdrLabelAnnotationPanel::onLasLabelChanged(int)
-{
-	//int i = m_UI->typeComboBox->currentIndex();
-}
-
-void bdrLabelAnnotationPanel::onLasLabelActivated()
-{
-	//m_UI->pauseButton->setFocus();
-}
-
-void bdrLabelAnnotationPanel::setSegmentMode(SegmentMode mode)
-{
-	m_segment_mode = mode;
-
-// 	switch (mode)
-// 	{
-// 	case bdrLabelAnnotationPanel::SEGMENT_GENERAL:
-// 		inButton->setVisible(true);
-// 		outButton->setVisible(true);
-// 		validAndDeleteButton->setToolTip("Confirm and delete hidden points");
-// 		validButton->setToolTip("Confirm segmentation");
-// 		createBuildingToolButton->setVisible(false);
-// 		break;
-// 	case bdrLabelAnnotationPanel::SEGMENT_PLANE_CREATE:
-// 	case bdrLabelAnnotationPanel::SEGMENT_PLANE_SPLIT:
-// 		inButton->setVisible(false);
-// 		outButton->setVisible(false);
-// 		validAndDeleteButton->setToolTip("Confirm and delete points inside the polygon");
-// 		validButton->setToolTip("Create a new plane by points inside the polygon");
-// 		createBuildingToolButton->setVisible(false);
-// 		break;
-// 	case bdrLabelAnnotationPanel::SEGMENT_LABELING:
-// 		inButton->setVisible(false);
-// 		outButton->setVisible(false);
-// 		break;
-// 	case bdrLabelAnnotationPanel::SEGMENT_BUILD_EIDT:
-// 		inButton->setVisible(false);
-// 		outButton->setVisible(false);
-// 		createBuildingToolButton->setVisible(true);
-// 		validAndDeleteButton->setVisible(false);
-// 		break;
-// 	default:
-// 		break;
-// 	}
+	m_associatedWin->redraw();
 }

@@ -36,23 +36,6 @@
     <number>2</number>
    </property>
    <item>
-    <widget class="QToolButton" name="settingToolButton">
-     <property name="text">
-      <string>settings</string>
-     </property>
-     <property name="icon">
-      <iconset resource="../icones.qrc">
-       <normaloff>:/CC/Stocker/images/stocker/setting.png</normaloff>:/CC/Stocker/images/stocker/setting.png</iconset>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>23</width>
-       <height>23</height>
-      </size>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QToolButton" name="pauseButton">
      <property name="toolTip">
       <string>暂停 (Space)</string>
@@ -126,11 +109,11 @@
      <property name="minimumSize">
       <size>
        <width>0</width>
-       <height>27</height>
+       <height>25</height>
       </size>
      </property>
      <property name="toolTip">
-      <string>类别</string>
+      <string>类别 (ASPRS LAS 1.4)</string>
      </property>
      <property name="editable">
       <bool>false</bool>
@@ -201,6 +184,23 @@
      </property>
      <property name="toolButtonStyle">
       <enum>Qt::ToolButtonTextBesideIcon</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="settingToolButton">
+     <property name="text">
+      <string>settings</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../icones.qrc">
+       <normaloff>:/CC/Stocker/images/stocker/setting.png</normaloff>:/CC/Stocker/images/stocker/setting.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>23</width>
+       <height>23</height>
+      </size>
      </property>
     </widget>
    </item>
@@ -289,6 +289,36 @@
    </property>
    <property name="toolTip">
     <string>3维视图选择</string>
+   </property>
+  </action>
+  <action name="actionLabeledOnly">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/ellipsish.png</normaloff>:/CC/Stocker/images/stocker/ellipsish.png</iconset>
+   </property>
+   <property name="text">
+    <string>Labeled Only</string>
+   </property>
+   <property name="toolTip">
+    <string>仅纳入多边形内该类别标签的点</string>
+   </property>
+  </action>
+  <action name="actionCreateEntity">
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/building.png</normaloff>:/CC/Stocker/images/stocker/building.png</iconset>
+   </property>
+   <property name="text">
+    <string>Create</string>
+   </property>
+   <property name="toolTip">
+    <string>创建实体</string>
+   </property>
+   <property name="shortcut">
+    <string>C</string>
    </property>
   </action>
  </widget>

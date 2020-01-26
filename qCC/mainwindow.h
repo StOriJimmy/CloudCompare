@@ -79,6 +79,7 @@ class bdrSettingGrdFilterDlg;
 
 class bdrProjectDlg;
 class bdrLabelAnnotationPanel;
+class bdr3DGeometryEditPanel;
 
 class PolyFitObj;
 
@@ -86,6 +87,7 @@ class StDBMainRoot;
 class StDBBuildingRoot;
 class StDBImageRoot;
 class DataBaseHObject;
+class BDBaseHObject;
 class BDImageBaseHObject;
 
 namespace Ui {
@@ -254,6 +256,9 @@ public:
 
 	DataBaseHObject* getCurrentMainDatabase(bool check_enable);
 	DataBaseHObject* getCurrentMainDatabase();
+
+	void showBestImage(bool use_area = true);
+	void showImage(ccHObject* imCamera);
 
 private slots:
 	//! Creates a new 3D GL sub-window
@@ -538,6 +543,8 @@ private slots:
 	inline void doActionMoveBBMinCornerToOrigin() { doActionFastRegistration(MoveBBMinCornerToOrigin); }
 	inline void doActionMoveBBMaxCornerToOrigin() { doActionFastRegistration(MoveBBMaxCornerToOrigin); }
 
+	bool updateBuildingList(BDBaseHObject* baseObj, bool from_file);
+
 	ccHObject * LoadBDReconProject_Shell(QString Filename);
 
 	ccHObject * LoadBDReconProject(QString Filename);
@@ -555,6 +562,8 @@ private slots:
 	void doActionBDImagesLoad();
 	void doActionBDImagesToggle3DView();
 
+	void doActionBDPrimitives();
+	void deactiveBDPrimitives(bool state);
 	/// Plane Segmentation
 	void doActionBDPlaneSegmentation();
 	void doActionBDPrimPlaneQuality();
@@ -910,6 +919,7 @@ private:
 
 	bdrProjectDlg* m_pbdrPrjDlg;
 	bdrLabelAnnotationPanel* m_pbdrLAPanel;
+	bdr3DGeometryEditPanel* m_pbdrGeoPanel;
 
 	PolyFitObj* polyfit_obj;
 	int m_GCSvr_prj_id;

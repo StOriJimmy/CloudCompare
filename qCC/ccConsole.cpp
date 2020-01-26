@@ -275,8 +275,8 @@ void ccConsole::refresh()
 				{
 					item->setForeground(Qt::darkRed);
 					//we also force the console visibility if a warning message arrives!
-					if (m_parentWindow)
-						m_parentWindow->forceConsoleDisplay();
+// 					if (m_parentWindow)
+// 						m_parentWindow->forceConsoleDisplay();
 				}
 				//Standard
 				else
@@ -364,7 +364,7 @@ void ccConsole::logMessage(const QString& message, int level)
 		&&	QThread::currentThread() == qApp->thread()
 		)
 	{
-		QMessageBox::warning(m_parentWidget, "Error", message);
+		QMessageBox::warning(m_parentWidget, "BlockBuilder Error", message);
 	}
 }
 

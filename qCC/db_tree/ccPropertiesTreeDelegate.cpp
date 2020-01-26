@@ -445,9 +445,8 @@ void ccPropertiesTreeDelegate::fillWithDatabase(ccHObject * _obj)
 	addSeparator(tr("Database"));
 
 	//name
-	appendRow(ITEM(tr("Name")), ITEM(_obj->getName(), Qt::ItemIsEditable, OBJECT_NAME));
+	//appendRow(ITEM(tr("Name")), ITEM(_obj->getName(), Qt::ItemIsEditable, OBJECT_NAME));
 	appendRow(ITEM(tr("Path")), ITEM(_obj->getPath()));
-	appendRow(ITEM(tr("DBSource")), ITEM(QString::number(int(_obj->getDBSourceType()))));
 }
 
 void ccPropertiesTreeDelegate::fillWithHObject(ccHObject* _obj)
@@ -519,8 +518,8 @@ void ccPropertiesTreeDelegate::fillWithHObject(ccHObject* _obj)
 	appendRow(ITEM( tr( "Info" ) ), ITEM( tr("Object ID: %1 - Children: %2").arg(_obj->getUniqueID()).arg(_obj->getChildrenNumber()) ));
 
 	//display window
-	if (!_obj->isLocked())
-		appendRow(ITEM( tr( "Current Display" )), PERSISTENT_EDITOR(OBJECT_CURRENT_DISPLAY), true);
+// 	if (!_obj->isLocked())
+// 		appendRow(ITEM( tr( "Current Display" )), PERSISTENT_EDITOR(OBJECT_CURRENT_DISPLAY), true);
 }
 
 void ccPropertiesTreeDelegate::fillWithShifted(const ccShiftedObject* _obj)
@@ -2858,7 +2857,7 @@ void ccPropertiesTreeDelegate::fillWithStBuilding(const StBuilding *_obj)
 		if (!bdsp) return;
 		auto bd = *bdsp;
 		//path
-		appendRow(ITEM(tr("Path")), ITEM(QString(bd.file_path.ori_points.c_str())));
+		//appendRow(ITEM(tr("Path")), ITEM(QString(bd.file_path.ori_points.c_str())));
 		//average spacing
 		appendRow(ITEM(tr("Average Spacing")), ITEM(QLocale(QLocale::English).toString(bd.average_spacing)));
 		//ground height

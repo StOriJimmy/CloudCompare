@@ -38,8 +38,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1024</width>
-     <height>31</height>
+     <width>1532</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -578,6 +578,7 @@
     <addaction name="actionBDProjectLoad"/>
     <addaction name="actionBDProjectSave"/>
     <addaction name="separator"/>
+    <addaction name="actionPrimitives3D"/>
     <addaction name="actionBDPlaneSegmentation"/>
     <addaction name="separator"/>
     <addaction name="actionBDImage_Lines"/>
@@ -1760,6 +1761,7 @@ QTreeView::branch:open:has-children:has-siblings  {
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionPrimitives3D"/>
    <addaction name="actionBDPlaneSegmentation"/>
    <addaction name="actionBDPrimPlaneQuality"/>
    <addaction name="separator"/>
@@ -1845,7 +1847,7 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="minimumSize">
     <size>
      <width>87</width>
-     <height>259</height>
+     <height>267</height>
     </size>
    </property>
    <property name="maximumSize">
@@ -1864,13 +1866,20 @@ QTreeView::branch:open:has-children:has-siblings  {
     <set>Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea</set>
    </property>
    <property name="windowTitle">
-    <string>Properties</string>
+    <string>Edit Panel</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_4">
     <layout class="QVBoxLayout" name="verticalLayout_4">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayoutPanel">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+      </layout>
+     </item>
      <item>
       <widget class="QTreeView" name="propertiesTreeView_Build">
        <property name="sizePolicy">
@@ -2085,18 +2094,10 @@ QTreeView::branch:open:has-children:has-siblings  {
           <x>0</x>
           <y>0</y>
           <width>304</width>
-          <height>75</height>
+          <height>69</height>
          </rect>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout_3">
-         <item>
-          <layout class="QVBoxLayout" name="verticalLayoutPanel">
-           <property name="spacing">
-            <number>0</number>
-           </property>
-          </layout>
-         </item>
-        </layout>
+        <layout class="QVBoxLayout" name="verticalLayout_3"/>
        </widget>
       </widget>
      </item>
@@ -4543,13 +4544,13 @@ QTreeView::branch:open:has-children:has-siblings  {
   <action name="actionBDPlaneSegmentation">
    <property name="icon">
     <iconset resource="../icones.qrc">
-     <normaloff>:/CC/Stocker/images/stocker/primitives.png</normaloff>:/CC/Stocker/images/stocker/primitives.png</iconset>
+     <normaloff>:/CC/Stocker/images/stocker/plane2.png</normaloff>:/CC/Stocker/images/stocker/plane2.png</iconset>
    </property>
    <property name="text">
     <string>Plane Segmentation</string>
    </property>
    <property name="iconText">
-    <string>Primitive</string>
+    <string>Plane</string>
    </property>
   </action>
   <action name="actionGotoNextZoom">
@@ -5283,7 +5284,7 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="icon">
     <iconset resource="../icones.qrc">
-     <normaloff>:/CC/Stocker/images/stocker/primitive.png</normaloff>:/CC/Stocker/images/stocker/primitive.png</iconset>
+     <normaloff>:/CC/Stocker/images/stocker/plane.png</normaloff>:/CC/Stocker/images/stocker/plane.png</iconset>
    </property>
    <property name="text">
     <string>PlaneQuality</string>
@@ -5299,6 +5300,15 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="shortcutVisibleInContextMenu">
     <bool>false</bool>
+   </property>
+  </action>
+  <action name="actionPrimitives3D">
+   <property name="icon">
+    <iconset resource="../icones.qrc">
+     <normaloff>:/CC/Stocker/images/stocker/primitive.png</normaloff>:/CC/Stocker/images/stocker/primitive.png</iconset>
+   </property>
+   <property name="text">
+    <string>Primitive</string>
    </property>
   </action>
  </widget>

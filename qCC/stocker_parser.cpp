@@ -160,9 +160,9 @@ double GetPointsAverageSpacing(ccHObject * pc)
 	BDBaseHObject* bd_grp = GetRootBDBase(pc);
 	StBuilding* bd = GetParentBuilding(pc);
 	if (bd_grp && bd) {
-		stocker::BuildUnit bd_unit = bd_grp->GetBuildingUnit(bd->getName().toStdString());
-		if (bd_unit.GetName().Str() != "invalid" && bd_unit.average_spacing > 0) {
-			return bd_unit.average_spacing;
+		stocker::BuildUnit* bd_unit = bd_grp->GetBuildingSp(bd->getName().toStdString());
+		if (bd_unit && bd_unit->GetName().Str() != "invalid" && bd_unit->average_spacing > 0) {
+			return bd_unit->average_spacing;
 		}
 	}
 	
@@ -1407,10 +1407,12 @@ ccHObject* PlaneFrameOptimization(ccHObject* planeObj, stocker::FrameOption opti
 	BDBaseHObject* baseObj = GetRootBDBase(planeObj);
 	std::string output_prefix;
 	if (baseObj) {	
-		stocker::BuildUnit bd_unit = baseObj->GetBuildingUnit(base_name);
-		output_prefix = bd_unit.file_path.root_dir + "\\primitives\\frame_opt\\";
-		CreateDir(output_prefix.c_str());
-		output_prefix = output_prefix + base_name;
+		stocker::BuildUnit* bd_unit = baseObj->GetBuildingSp(base_name);
+		if (bd_unit) {
+			output_prefix = bd_unit->file_path.root_dir + "\\primitives\\frame_opt\\";
+			CreateDir(output_prefix.c_str());
+			output_prefix = output_prefix + base_name;
+		}
 	}
 	
 
@@ -1514,14 +1516,6 @@ ccHObject * PlaneFrameLineGrow(ccHObject * planeObj, double alpha, double inters
 
 	std::string base_name = GetParentBuilding(point_cloud_obj)->getName().toStdString();
 
-	BDBaseHObject* baseObj = GetRootBDBase(planeObj);
-	std::string output_prefix;
-	if (baseObj) {
-		stocker::BuildUnit bd_unit = baseObj->GetBuildingUnit(base_name);
-		output_prefix = bd_unit.file_path.root_dir + "\\primitives\\frame_opt\\";
-		CreateDir(output_prefix.c_str());
-		output_prefix = output_prefix + base_name;
-	}
 	vector<vector<Contour3d>> frames_to_add;
 	
 	std::vector<stocker::Outline3d> outlines = GetPlanarOutlines(planeObj, BDDB_OUTLINE_PREFIX);
@@ -1615,7 +1609,8 @@ bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVecto
 		StBuilding* bdObj = ccHObjectCaster::ToStBuilding(entity);
 		if (!bdObj) continue;
 
-		BuildUnit build_unit = baseObj->GetBuildingUnit(bdObj->getName().toStdString());
+		BuildUnit* build_unit = baseObj->GetBuildingSp(bdObj->getName().toStdString());
+		if (!build_unit) { continue; }
 		StBlockGroup* bdGroup = baseObj->GetBlockGroup(bdObj->getName());
 		if (!bdGroup) continue;
 		ccHObject::Container blocks = GetEnabledObjFromGroup(bdGroup, CC_TYPES::ST_BLOCK, true, true);
@@ -1638,7 +1633,7 @@ bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVecto
 
 		/// vis images
 		IndexVector visImageIndice;
-		for (auto img_name : build_unit.image_list) {
+		for (auto img_name : build_unit->image_list) {
 			auto img_iter = std::find_if(image_units.begin(), image_units.end(), [=](ImageUnit img) {
 				return img_name == img.GetName().Str();
 			});
@@ -1646,7 +1641,7 @@ bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVecto
 				visImageIndice.push_back(std::distance(image_units.begin(), img_iter));
 			}
 		}
-		texture_mapping.addMesh(wall_polygons, visImageIndice, build_unit.file_path.model_dir);
+		texture_mapping.addMesh(wall_polygons, visImageIndice, build_unit->file_path.model_dir);
 	}
 
 	if (task_indices) {
@@ -1697,11 +1692,11 @@ bool TextureMappingPlanes(ccHObject::Container primObjs, stocker::IndexVector * 
 
 	 	StBuilding* bdObj = GetParentBuilding(prim_entity);
 		if (!bdObj) continue;
-		BuildUnit build_unit = baseObj->GetBuildingUnit(bdObj->getName().toStdString());
-
+		BuildUnit* build_unit = baseObj->GetBuildingSp(bdObj->getName().toStdString());
+		if (!build_unit) continue;
 		/// vis images
 		IndexVector visImageIndice;
-		for (auto img_name : build_unit.image_list) {
+		for (auto img_name : build_unit->image_list) {
 			auto img_iter = std::find_if(image_units.begin(), image_units.end(), [=](ImageUnit img) {
 				return img_name == img.GetName().Str();
 			});
@@ -1711,7 +1706,7 @@ bool TextureMappingPlanes(ccHObject::Container primObjs, stocker::IndexVector * 
 		}
 		
 		std::vector<stocker::Outline3d> prim_outlines = GetPlanarOutlines(prim_entity, BDDB_PLANEFRAME_PREFIX);
-		std::string model_dir = build_unit.file_path.model_dir + prim_entity->getName().toStdString() + "/";
+		std::string model_dir = build_unit->file_path.model_dir + prim_entity->getName().toStdString() + "/";
 		for (size_t i = 0; i < prim_outlines.size(); i++) {
 			stocker::Outline3d outline = prim_outlines[i];
 			std::string outline_output_dir = model_dir + to_string(i);
@@ -1966,7 +1961,6 @@ ccHObject::Container GenerateFootPrints_PP(ccHObject* prim_group, double ground)
 	int cur_compo_count = 0; // TODO: get component count from block
 	
 	QString building_name = GetBaseName(prim_group->getName());
-	auto buildUnit = baseObj->GetBuildingUnit(building_name.toStdString());
 
 	StBlockGroup* block_group = baseObj->GetBlockGroup(building_name);
 	int biggest = GetMaxNumberExcludeChildPrefix(block_group, BDDB_FOOTPRINT_PREFIX);
@@ -2026,7 +2020,6 @@ ccHObject::Container GenerateFootPrints(ccHObject* prim_group, double ground, do
 	ccHObject::Container new_primObjs;
 
 	QString building_name = GetBaseName(prim_group->getName());
-	auto buildUnit = baseObj->GetBuildingUnit(building_name.toStdString());
 
 	StBlockGroup* block_group = baseObj->GetBlockGroup(building_name);
 	int biggest = GetMaxNumberExcludeChildPrefix(block_group, BDDB_FOOTPRINT_PREFIX);
@@ -2164,7 +2157,9 @@ ccHObject* LoD2FromFootPrint_WholeProcess(ccHObject* buildingObj, ccHObject::Con
 	BDBaseHObject* baseObj = GetRootBDBase(buildingObj);
 	if (!baseObj) { return nullptr;	}
 	QString building_name = buildingObj->getName();
-	BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
+	BuildUnit* build_sp = baseObj->GetBuildingSp(building_name.toStdString());
+	if (!build_sp) return nullptr;
+	BuildUnit build_unit = *build_sp;
 	StPrimGroup* prim_group_obj = baseObj->GetPrimitiveGroup(building_name);
 	StBlockGroup* blockgroup_obj = baseObj->GetBlockGroup(buildingObj->getName());
 	if (!prim_group_obj || !blockgroup_obj) { return nullptr; }
@@ -2283,7 +2278,8 @@ ccHObject* LoD2FromFootPrint(ccHObject* buildingObj, ccHObject::Container footpr
 	BDBaseHObject* baseObj = GetRootBDBase(buildingObj);
 	if (!baseObj) { return nullptr; }
 	QString building_name = buildingObj->getName();
-	BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
+	BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
+	if (!build_unit) return nullptr;
 	ccHObject* prim_group_obj = baseObj->GetPrimitiveGroup(building_name);
 	StBlockGroup* blockgroup_obj = baseObj->GetBlockGroup(buildingObj->getName());
 	if (!prim_group_obj || !blockgroup_obj) { return nullptr; }
@@ -2303,7 +2299,7 @@ ccHObject* LoD2FromFootPrint(ccHObject* buildingObj, ccHObject::Container footpr
 			//! just for debug 
 			QString model_name = BDDB_LOD2MODEL_PREFIX + ftObj->getName();
 			sprintf(output_path, "%s%s%s%s%s",
-				build_unit.file_path.model_dir.c_str(),
+				build_unit->file_path.model_dir.c_str(),
 				building_name.toStdString().c_str(), ".", model_name.toStdString().c_str(), ".obj");
 			builder_3d4em.SetOutputPath(output_path);
 		}
@@ -2516,7 +2512,8 @@ bool PackPlaneFrames(ccHObject* buildingObj, int max_iter, bool cap_hole, double
 	try {
 		BDBaseHObject* baseObj = GetRootBDBase(buildingObj); if (!baseObj) return false;
 		QString building_name = buildingObj->getName();
-		BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
+		BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
+		if (!build_unit) return false;
 		StPrimGroup* prim_group_obj = baseObj->GetPrimitiveGroup(building_name);
 		if (!prim_group_obj) return false;
 
@@ -2591,7 +2588,7 @@ bool PackPlaneFrames(ccHObject* buildingObj, int max_iter, bool cap_hole, double
 				output_dir = QFileInfo(buildingObj->getPath()).absoluteFilePath().toStdString() + "/footprints";
 			}
 			else {
-				output_dir = QFileInfo(QString::fromStdString(build_unit.file_path.ori_points)).absolutePath().toStdString() + "/footprints";
+				output_dir = QFileInfo(QString::fromStdString(build_unit->file_path.ori_points)).absolutePath().toStdString() + "/footprints";
 			}
 			poly_partition.setOutputDir(output_dir);
 
@@ -2653,7 +2650,8 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 	try {
 		BDBaseHObject* baseObj = GetRootBDBase(buildingObj); if (!baseObj) return false;
 		QString building_name = buildingObj->getName();
-		BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
+		BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
+		if (!build_unit) return false;
 		StPrimGroup* prim_group_obj = baseObj->GetPrimitiveGroup(building_name);
 		StBlockGroup* blockgroup_obj = baseObj->GetBlockGroup(buildingObj->getName());
 		if (!prim_group_obj || !blockgroup_obj) { return false; }
@@ -2732,7 +2730,7 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 				output_dir = QFileInfo(buildingObj->getPath()).absoluteFilePath().toStdString() + "/footprints";
 			}
 			else {
-				output_dir = QFileInfo(QString::fromStdString(build_unit.file_path.ori_points)).absolutePath().toStdString() + "/footprints";
+				output_dir = QFileInfo(QString::fromStdString(build_unit->file_path.ori_points)).absolutePath().toStdString() + "/footprints";
 			}
 			poly_partition.setOutputDir(output_dir);
 
@@ -2778,9 +2776,9 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 			StFootPrint* footptObj = AddPolygonAsFootprint(footprints_points_pp[i], name, ccColor::magenta, true);
 
 			footptObj->setComponentId(0);
-			footptObj->setHighest(build_unit.ground_height);
-			footptObj->setBottom(build_unit.ground_height);
-			footptObj->setLowest(build_unit.ground_height);
+			footptObj->setHighest(build_unit->ground_height);
+			footptObj->setBottom(build_unit->ground_height);
+			footptObj->setLowest(build_unit->ground_height);
 			if (footprints_pp_index[i] >= footprints_original_index.size()) {
 				std::cout << "--STOCKER FAIL: error footprint index" << std::endl;
 				return false;
@@ -2818,7 +2816,8 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 	else return nullptr;
 	
 	QString building_name = buildingObj->getName();
-	BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
+	BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
+	if (!build_unit) return nullptr;
 	StPrimGroup* prim_group_obj = baseObj->GetPrimitiveGroup(building_name);
 	StBlockGroup* blockgroup_obj = baseObj->GetBlockGroup(buildingObj->getName());
 	if (!prim_group_obj || !blockgroup_obj) { return false; }
@@ -2935,7 +2934,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 				output_dir = QFileInfo(buildingObj->getPath()).absoluteFilePath().toStdString() + "/footprints/" + ftObj->getName().toStdString();
 			}
 			else {
-				output_dir = QFileInfo(QString::fromStdString(build_unit.file_path.ori_points)).absolutePath().toStdString() + "/footprints/" + ftObj->getName().toStdString();
+				output_dir = QFileInfo(QString::fromStdString(build_unit->file_path.ori_points)).absolutePath().toStdString() + "/footprints/" + ftObj->getName().toStdString();
 			}
 			poly_partition.setOutputDir(output_dir);
 
@@ -3003,7 +3002,8 @@ bool PackFootprints_PPRepair(ccHObject* buildingObj)
 	try {
 		BDBaseHObject* baseObj = GetRootBDBase(buildingObj); if (!baseObj) return false;
 		QString building_name = buildingObj->getName();
-		BuildUnit build_unit = baseObj->GetBuildingUnit(building_name.toStdString());
+		BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
+		if (!build_unit) return false;
 		StPrimGroup* prim_group_obj = baseObj->GetPrimitiveGroup(building_name);
 		StBlockGroup* blockgroup_obj = baseObj->GetBlockGroup(buildingObj->getName());
 		if (!prim_group_obj || !blockgroup_obj) { return false; }
@@ -3046,9 +3046,9 @@ bool PackFootprints_PPRepair(ccHObject* buildingObj)
 			StFootPrint* footptObj = AddPolygonAsFootprint(footprints_points_pp[i], name, ccColor::magenta, true);
 
 			footptObj->setComponentId(0);
-			footptObj->setHighest(build_unit.ground_height);
-			footptObj->setBottom(build_unit.ground_height);
-			footptObj->setLowest(build_unit.ground_height);
+			footptObj->setHighest(build_unit->ground_height);
+			footptObj->setBottom(build_unit->ground_height);
+			footptObj->setLowest(build_unit->ground_height);
 			blockgroup_obj->addChild(footptObj);
 		}
 

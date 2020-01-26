@@ -87,6 +87,29 @@ namespace LAS_LABEL {
 		"building","noise","modelKey","water","rail","road surface",
 		"overlap","wire-guard","wire-conductor","transmission tower","wire-connector","bridge deck",
 		"high noise"};
+
+	static const double g_classification_color[] =
+	{
+		184,184,184,//0
+		173,173,173,//1
+		167,112,1,	//2
+		36,	115,0,	//3
+		73,	231,6,	//4
+		207,245,123,//5
+		215,101,62,	//6
+		228,2,	0,	//7
+		168,110,2,	//8
+		2,	87,	237,//9
+		232,227,2,	//10
+		231,230,1,	//11
+		201,3,	255,//12
+		234,226,3,	//13
+		232,227,2,	//14
+		231,229,0,	//15
+		229,226,3,	//16
+		230,227,10,	//17
+		232,228,1	//18
+	};
 }
 
 Q_DECLARE_METATYPE(BlockDB::blkDataInfo*)
@@ -191,9 +214,11 @@ public:
 
 	std::string GetPathModelObj(std::string building_name);
 
-	const stocker::BuildUnit GetBuildingUnit(std::string building_name);
 	stocker::BuildUnit* GetBuildingSp(std::string building_name);
 	std::vector<stocker::ImageUnit> GetImageData();
+
+public:
+	bool updateBuildUnits(bool use_existing_info);
 };
 
 class BDImageBaseHObject : public BDBaseHObject_

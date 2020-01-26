@@ -393,6 +393,7 @@ ccGLWindow::ccGLWindow(	QSurfaceFormat* format/*=0*/,
 	, m_lockedRotationAxis(0, 0, 1)
 	, m_drawBBox(true)
 	, m_pointSnapBuffer(5)
+	, m_bboxDisplayType(BBOX_SHOW_ON_SELECT)
 {
 	//start internal timer
 	m_timer.start();
@@ -4461,7 +4462,7 @@ void ccGLWindow::mouseMoveEvent(QMouseEvent *event)
 			}
 		}
 	}
-	else if ((event->buttons() & Qt::MiddleButton)) // zoom
+	else if ((event->buttons() & Qt::MiddleButton) && (m_interactionFlags & INTERACT_ZOOM_CAMERA)) // zoom
 	{
 		//middle button = zooming
 		float pseudo_wheelDelta_deg = static_cast<float>(-dy) * 2.0f; // XYLIU

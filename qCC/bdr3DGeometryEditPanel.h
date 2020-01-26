@@ -1,5 +1,5 @@
-#ifndef BDR_LABEL_ANNOTATION_PANEL_HEADER
-#define BDR_LABEL_ANNOTATION_PANEL_HEADER
+#ifndef BDR_3D_GEOMETRY_EDIT_PANEL_HEADER
+#define BDR_3D_GEOMETRY_EDIT_PANEL_HEADER
 
 //Local
 #include <ccOverlayDialog.h>
@@ -11,27 +11,45 @@
 #include <QSet>
 
 //GUI
-#include <ui_bdrLabelAnnotationPanel.h>
+#include <ui_bdr3DGeometryEditPanel.h>
 
 class ccPolyline;
 class ccPointCloud;
 class ccGLWindow;
 
+enum GEOMETRY3D
+{
+	GEO_BLOCK,
+	GEO_BOX,
+	GEO_SPHERE,
+	GEO_CONE,
+	GEO_CYLINDER,
+	GEO_PARAPET,
+	GEO_TORCYLINDER,
+	GEO_TORUS,
+	GEO_DISH,
+	GEO_PLANE,
+	GEO_POLYGON,
+	GEO_POLYLINE,
+	GEO_WALL,
+	GEO_END,
+};
+
 namespace Ui
 {
-	class bdrLabelAnnotationPanel;
+	class bdr3DGeometryEditPanel;
 }
 
-class bdrLabelAnnotationPanel : public ccOverlayDialog
+class bdr3DGeometryEditPanel : public ccOverlayDialog
 {
 	Q_OBJECT
 
 public:
 
 	//! Default constructor
-	explicit bdrLabelAnnotationPanel(QWidget* parent);
+	explicit bdr3DGeometryEditPanel(QWidget* parent);
 	//! Destructor
-	~bdrLabelAnnotationPanel() override;
+	~bdr3DGeometryEditPanel() override;
 
 	//! Adds an entity (and/or its children) to the 'to be segmented' pool
 	/** Warning: some entities may be rejected if they are
@@ -67,37 +85,41 @@ public:
 
 	void clearChangedBaseObj() { m_changed_baseobj.clear(); }
 	QSet<ccHObject*> getChangedBaseObj() { return m_changed_baseobj; }
-
-	enum SegmentMode
-	{
-		SEGMENT_GENERAL,
-		SEGMENT_PLANE_CREATE,
-		SEGMENT_PLANE_SPLIT,
-		SEGMENT_LABELING,
-		SEGMENT_BUILD_EIDT,
-	};
-	void setSegmentMode(SegmentMode mode);
-	int getSegmentMode() {	return m_segment_mode; }
-
+	
 	void setDestinationGroup(ccHObject* obj) { m_destination = obj; }
+
+	void setActiveItem(std::vector<ccHObject*> active);
 private:
-	Ui::bdrLabelAnnotationPanel	*m_UI;
+	Ui::bdr3DGeometryEditPanel	*m_UI;
+
+	void echoUIchange();
 
 protected slots:
 
-	void segmentIn();
-	void segmentOut();
 	void segment(bool);
 	
 	void addPointToPolyline(int x, int y);
 	void closePolyLine(int x=0, int y=0); //arguments for compatibility with ccGlWindow::rightButtonClicked signal
 	void closeRectangle();
 	void updatePolyLine(int x, int y, Qt::MouseButtons buttons);
-
-	void settings();
+	void echoSelectChange(ccHObject* obj);
 
 	void pauseLabelingMode(bool);
-	void filterClassification();
+	void doBlock();
+	void doBox();
+	void doSphere();
+	void doCone();
+	void doCylinder();
+	void doParapet();
+	void doToroidCylinder();
+	void doTorus();
+	void doDish();
+	void doPlane();
+	void doPolyline();
+	void doWall();
+
+	void startEdit();
+	void makeFreeMesh();
 
 	void setLabel();
 	void createEntity();
@@ -105,22 +127,25 @@ protected slots:
 	void reset();
 	void exit();
 
-	void doSet2DSelection();
-	void doSet3DSelection();
-
-	void onLasLabelChanged(int);
-
-	void onLasLabelActivated();
-
 	//! To capture overridden shortcuts (pause button, etc.)
 	void onShortcutTriggered(int);
 
+	//////////////////////////////////////////////////////////////////////////
+	void echoBlockTopHeight(double v);
+	void echoBlockBottomHeight(double v);
+	//////////////////////////////////////////////////////////////////////////
+
 protected:
+
+	//inherited from QObject
+	bool eventFilter(QObject *obj, QEvent *e) override;
 
 	//! Whether to allow or not to exort the current segmentation polyline
 	void allowExecutePolyline(bool state);
 
 	void allowStateChange(bool state);
+
+	void updateWithActive(ccHObject* obj);
 
 	//! Set of entities to be segmented
 	QSet<ccHObject*> m_toSegment;
@@ -133,7 +158,7 @@ protected:
 	{
 		POLYLINE		= 1,
 		RECTANGLE		= 2,
-		//...			= 4,
+		EDITING			= 4,
 		//...			= 8,
 		//...			= 16,
 		PAUSED			= 32,
@@ -161,11 +186,11 @@ protected:
 	//! Whether to delete hidden parts after segmentation
 	bool m_deleteHiddenParts;
 		
-	SegmentMode m_segment_mode;
-
 	ccHObject* m_destination;
 
 	QSet<ccHObject*> m_changed_baseobj;
+
+	std::vector<ccHObject*> m_actives;
 };
 
-#endif //BDR_LABEL_ANNOTATION_PANEL_HEADER
+#endif //BDR_3D_GEOMETRY_EDIT_PANEL_HEADER

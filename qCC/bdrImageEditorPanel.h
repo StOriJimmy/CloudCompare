@@ -38,6 +38,7 @@ protected slots:
 	ccHObject * getTraceBlock(QString image_name);
 	void startEditor();
 	void stopEditor(bool);
+	void showBestImage();
 	
 signals:
 	void imageDisplayed();

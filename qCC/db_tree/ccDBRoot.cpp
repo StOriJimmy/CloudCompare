@@ -314,6 +314,7 @@ ccDBRoot::ccDBRoot(ccCustomQTreeView* dbTreeWidget, QTreeView* propertiesTreeWid
 	m_enableBubbleViewMode = new QAction("Bubble-view", this);
 	m_editLabelScalarValue = new QAction("Edit scalar value", this);
 	m_deselectOtherChildren = new QAction("Deselect Others", this);
+	m_rename = new QAction("rename", this);
 
 	m_contextMenuPos = QPoint(-1,-1);
 
@@ -340,11 +341,14 @@ ccDBRoot::ccDBRoot(ccCustomQTreeView* dbTreeWidget, QTreeView* propertiesTreeWid
 	connect(m_enableBubbleViewMode,				&QAction::triggered,					this, &ccDBRoot::enableBubbleViewMode);
 	connect(m_editLabelScalarValue,				&QAction::triggered,					this, &ccDBRoot::editLabelScalarValue);
 	connect(m_deselectOtherChildren,			&QAction::triggered,					this, &ccDBRoot::deselectOtherChildren);
+	connect(m_rename,							&QAction::triggered,					this, &ccDBRoot::rename);
 
 	//other DB tree signals/slots connection
 	connect(m_dbTreeWidget->selectionModel(), &QItemSelectionModel::selectionChanged, this, &ccDBRoot::changeSelection);
 	connect(m_dbTreeWidget, &QAbstractItemView::clicked, this, &ccDBRoot::clickItem);
 
+	connect(m_dbTreeWidget, &QAbstractItemView::doubleClicked, this, &ccDBRoot::doubleClicked);
+	
 	//Properties Tree
 	assert(propertiesTreeWidget);
 	m_propertiesTreeWidget = propertiesTreeWidget;
@@ -1283,7 +1287,7 @@ Qt::ItemFlags ccDBRoot::flags(const QModelIndex &index) const
 	Qt::ItemFlags defaultFlags = QAbstractItemModel::flags(index);
 
 	//common flags
-	defaultFlags |= (Qt::ItemIsUserCheckable | Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable);
+	defaultFlags |= (Qt::ItemIsUserCheckable | Qt::ItemIsEnabled | Qt::ItemIsSelectable /*| Qt::ItemIsEditable*/);
 
 	//class type based filtering
 	const ccHObject *item = static_cast<const ccHObject*>(index.internalPointer());
@@ -2362,6 +2366,7 @@ void ccDBRoot::showContextMenu(const QPoint& menuPos)
 			}
 			
 			menu.addAction(m_gatherInformation);
+			if (selCount == 1) menu.addAction(m_rename);
 			if (selCount > 0) menu.addAction(m_deselectOtherChildren);
 			menu.addSeparator();
 			menu.addAction(m_toggleSelectedEntities);
@@ -2447,7 +2452,7 @@ void ccDBRoot::deselectOtherChildren()
 	hidePropertiesView();
 
 	ccHObject* item = static_cast<ccHObject*>(selectedIndexes[0].internalPointer());
-	if (!item) return;
+	if (!item || !item->getDisplay()) return;
 
 	ccHObject* parent = item->getParent();
 	if (!parent || parent->getChildrenNumber() < 2) return;
@@ -2464,6 +2469,7 @@ void ccDBRoot::deselectOtherChildren()
 	}
 
 	ccGLWindow* win = static_cast<ccGLWindow*>(item->getDisplay());
+	if (!win) { return; }
 	ccBBox box = item->getDisplayBB_recursive(false, win);
 	win->updateConstellationCenterAndZoom(&box);
 	//we restablish properties view
@@ -2506,6 +2512,42 @@ void ccDBRoot::gotoNextZoom()
 void ccDBRoot::clickItem(const QModelIndex &index)
 {
 	emit itemClicked();
+}
+
+void ccDBRoot::doubleClicked(const QModelIndex & index)
+{
+	ccHObject* item = static_cast<ccHObject*>(index.internalPointer());
+	if (!item || !item->getDisplay()) return;
+	ccGLWindow* win = static_cast<ccGLWindow*>(item->getDisplay());
+	if (!win) {	return; }
+	ccBBox box = item->getDisplayBB_recursive(false, win);
+	win->updateConstellationCenterAndZoom(&box);
+}
+
+void ccDBRoot::rename()
+{
+	QItemSelectionModel* qism = m_dbTreeWidget->selectionModel();
+	QModelIndexList selectedIndexes = qism->selectedIndexes();
+	int selCount = selectedIndexes.size();
+	if (selCount != 1)
+		return;
+	ccHObject* item = static_cast<ccHObject*>(selectedIndexes[0].internalPointer());
+	bool ok;
+	QString name = QInputDialog::getText(nullptr, "rename", "new name: ", QLineEdit::Normal, item->getName(), &ok);
+	if (!ok || (item->getName() == name))
+		return;
+
+	item->setName(name);
+	//particular cases:
+	// - labels name is their title (so we update them)
+	// - name might be displayed in 3D
+	if (item->nameShownIn3D() || item->isKindOf(CC_TYPES::LABEL_2D))
+		if (item->isEnabled() && item->isVisible() && item->getDisplay())
+			item->getDisplay()->redraw();
+
+	reflectObjectPropChange(item);
+
+	emit dataChanged(selectedIndexes[0], selectedIndexes[0]);
 }
 
 StDBMainRoot::StDBMainRoot(ccCustomQTreeView * dbTreeWidget, QTreeView * propertiesTreeWidget, QObject * parent)

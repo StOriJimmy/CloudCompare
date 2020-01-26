@@ -48,7 +48,7 @@ bdrImageEditorPanel::bdrImageEditorPanel(bdr2Point5DimEditor* img, ccDBRoot* roo
 	connect(m_UI->PreviousToolButton, &QAbstractButton::clicked, this, &bdrImageEditorPanel::previous);
 	connect(m_UI->NextToolButton, &QAbstractButton::clicked, this, &bdrImageEditorPanel::next);
 	connect(m_UI->polyEditToolButton, &QAbstractButton::clicked, this, &bdrImageEditorPanel::startEditor);
-
+	connect(m_UI->displayBestToolButton, &QAbstractButton::clicked, this, &bdrImageEditorPanel::showBestImage);
 
 	//imageListWidget
 	m_UI->imageListWidget->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -289,6 +289,11 @@ void bdrImageEditorPanel::stopEditor(bool state)
 	}
 }
 
+void bdrImageEditorPanel::showBestImage()
+{
+	MainWindow::TheInstance()->showBestImage(true);
+}
+
 void bdrImageEditorPanel::updateCursorPos(const CCVector3d & P, bool b3d)
 {
 	if (isLinkToMainView()) {
@@ -384,9 +389,9 @@ void bdrImageEditorPanel::setItems(std::vector<ccHObject*> items, int defaultSel
 		return;
 	}
 	m_UI->imageListWidget->setIconSize(QSize(max_width, m_image_display_height));
-	if (defaultSelectedIndex >= 0 && defaultSelectedIndex < items.size()) {
-		m_UI->imageListWidget->setItemSelected(m_UI->imageListWidget->item(defaultSelectedIndex), true);
-	}
+// 	if (defaultSelectedIndex >= 0 && defaultSelectedIndex < items.size()) {
+// 		m_UI->imageListWidget->setItemSelected(m_UI->imageListWidget->item(defaultSelectedIndex), true);
+// 	}
 }
 
 void bdrImageEditorPanel::setItems(std::vector<ccCameraSensor*> items, int defaultSelectedIndex)
