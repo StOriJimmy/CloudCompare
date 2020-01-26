@@ -259,7 +259,7 @@ void bdr3DGeometryEditPanel::onShortcutTriggered(int key)
  	switch(key)
 	{
 	case Qt::Key_Space:
-		m_UI->pauseButton->toggle();
+		m_UI->editToolButton->toggle();
 		return;
 
 	case Qt::Key_I:
