@@ -400,7 +400,7 @@ public:
 	//! Sets point size
 	/** \param size point size (between MIN_POINT_SIZE_F and MAX_POINT_SIZE_F)
 	**/
-	virtual void setPointSize(float size, bool silent = false);
+	virtual void setPointSize(float size, bool silent = true);
 	
 	//! Minimum line width
 	static constexpr float MIN_LINE_WIDTH_F = 1.0f;
@@ -410,7 +410,7 @@ public:
 	//! Sets line width
 	/** \param width lines width (between MIN_LINE_WIDTH_F and MAX_LINE_WIDTH_F)
 	**/
-	virtual void setLineWidth(float width, bool silent = false);
+	virtual void setLineWidth(float width, bool silent = true);
 
 	//! Returns current font size
 	virtual int getFontPointSize() const;
