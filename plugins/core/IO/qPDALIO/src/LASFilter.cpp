@@ -882,35 +882,34 @@ struct LasCloudChunk
 			LasField::Shared& field = lasFields.back();
 			if (field && field->sf)
 			{
-				if (field->type == LAS_CLASSIFICATION) {
-					field->sf->setMin(0);
-					field->sf->setMax(18);
+				if (field->type == LAS_CLASSIFICATION) { 
+					// this is default in ccPointCloud
+					// field->sf->setMin(0);
+					// field->sf->setMax(18);
+					// field->sf->setColorScale(ccColorScalesManager::GetDefaultScale(ccColorScalesManager::CLASSIFICATION));
+
 					field->sf->computeMinAndMax(false, true);
 				}
-				else
+				else {
 					field->sf->computeMinAndMax();
+					if (//   field->type == LAS_CLASSIFICATION ||
+						field->type == LAS_CLASSIF_VALUE
+						|| field->type == LAS_CLASSIF_SYNTHETIC
+						|| field->type == LAS_CLASSIF_KEYPOINT
+						|| field->type == LAS_CLASSIF_WITHHELD
+						|| field->type == LAS_CLASSIF_OVERLAP
+						|| field->type == LAS_RETURN_NUMBER
+						|| field->type == LAS_NUMBER_OF_RETURNS) 
+					{
+						int cMin = static_cast<int>(field->sf->getMin());
+						int cMax = static_cast<int>(field->sf->getMax());
+						field->sf->setColorRampSteps(std::min<int>(cMax - cMin + 1, 256));
+						//classifSF->setMinSaturation(cMin);
 
-				if (field->type == LAS_CLASSIFICATION) {
-					field->sf->setColorScale(ccColorScalesManager::GetDefaultScale(ccColorScalesManager::CLASSIFICATION));
-				}
-				else if (//   field->type == LAS_CLASSIFICATION ||
-					   field->type == LAS_CLASSIF_VALUE
-				    || field->type == LAS_CLASSIF_SYNTHETIC
-				    || field->type == LAS_CLASSIF_KEYPOINT
-				    || field->type == LAS_CLASSIF_WITHHELD
-				    || field->type == LAS_CLASSIF_OVERLAP
-				    || field->type == LAS_RETURN_NUMBER
-				    || field->type == LAS_NUMBER_OF_RETURNS)
-				{
-					int cMin = static_cast<int>(field->sf->getMin());
-					int cMax = static_cast<int>(field->sf->getMax());
-					field->sf->setColorRampSteps(std::min<int>(cMax - cMin + 1, 256));
-					//classifSF->setMinSaturation(cMin);
-
-				}
-				else if (field->type == LAS_INTENSITY)
-				{
-					field->sf->setColorScale(ccColorScalesManager::GetDefaultScale(ccColorScalesManager::GREY));
+					}
+					else if (field->type == LAS_INTENSITY) {
+						field->sf->setColorScale(ccColorScalesManager::GetDefaultScale(ccColorScalesManager::GREY));
+					}
 				}
 
 				int sfIndex = loadedCloud->addScalarField(field->sf);

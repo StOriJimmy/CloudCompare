@@ -363,6 +363,7 @@ ccColorScalesManager::ccColorScalesManager()
 		addScale(Create(DIP_DIR_REPEAT));
 		addScale(Create(VIRIDIS));
 		addScale(Create(CLASSIFICATION));
+		addScale(Create(SEGMENTATION));
 	}
 }
 
@@ -559,6 +560,8 @@ ccColorScale::Shared ccColorScalesManager::Create(DEFAULT_SCALES scaleType)
 				return QStringLiteral("Viridis");
 			case CLASSIFICATION:
 				return QStringLiteral("Classification");
+			case SEGMENTATION:
+				return QStringLiteral("Segmentation");
 		}
 		return QString();
 	}();
@@ -574,26 +577,26 @@ ccColorScale::Shared ccColorScalesManager::Create(DEFAULT_SCALES scaleType)
 	switch (scaleType)
 	{
 	case BGYR:
-		scale->insert(ccColorScaleElement(      0.0, Qt::blue  ), false);
-		scale->insert(ccColorScaleElement(1.0 / 3.0, Qt::green ), false);
+		scale->insert(ccColorScaleElement(0.0, Qt::blue), false);
+		scale->insert(ccColorScaleElement(1.0 / 3.0, Qt::green), false);
 		scale->insert(ccColorScaleElement(2.0 / 3.0, Qt::yellow), false);
-		scale->insert(ccColorScaleElement(      1.0, Qt::red   ), false);
+		scale->insert(ccColorScaleElement(1.0, Qt::red), false);
 		break;
 	case GREY:
 		scale->insert(ccColorScaleElement(0.0, Qt::black), false);
 		scale->insert(ccColorScaleElement(1.0, Qt::white), false);
 		break;
 	case BWR:
-		scale->insert(ccColorScaleElement(0.0, Qt::blue ), false);
+		scale->insert(ccColorScaleElement(0.0, Qt::blue), false);
 		scale->insert(ccColorScaleElement(0.5, Qt::white), false);
-		scale->insert(ccColorScaleElement(1.0, Qt::red  ), false);
+		scale->insert(ccColorScaleElement(1.0, Qt::red), false);
 		break;
 	case RY:
-		scale->insert(ccColorScaleElement(0.0, Qt::red   ), false);
+		scale->insert(ccColorScaleElement(0.0, Qt::red), false);
 		scale->insert(ccColorScaleElement(1.0, Qt::yellow), false);
 		break;
 	case RW:
-		scale->insert(ccColorScaleElement(0.0, Qt::red  ), false);
+		scale->insert(ccColorScaleElement(0.0, Qt::red), false);
 		scale->insert(ccColorScaleElement(1.0, Qt::white), false);
 		break;
 	case ABS_NORM_GREY:
@@ -605,13 +608,13 @@ ccColorScale::Shared ccColorScalesManager::Create(DEFAULT_SCALES scaleType)
 		scale->customLabels().insert(1.0);
 		break;
 	case HSV_360_DEG:
-		scale->insert(ccColorScaleElement(  0.0/360.0, Qt::red    ), false);
-		scale->insert(ccColorScaleElement( 60.0/360.0, Qt::yellow ), false);
-		scale->insert(ccColorScaleElement(120.0/360.0, Qt::green  ), false);
-		scale->insert(ccColorScaleElement(180.0/360.0, Qt::cyan   ), false);
-		scale->insert(ccColorScaleElement(240.0/360.0, Qt::blue   ), false);
-		scale->insert(ccColorScaleElement(300.0/360.0, Qt::magenta), false);
-		scale->insert(ccColorScaleElement(360.0/360.0, Qt::red    ), false);
+		scale->insert(ccColorScaleElement(0.0 / 360.0, Qt::red), false);
+		scale->insert(ccColorScaleElement(60.0 / 360.0, Qt::yellow), false);
+		scale->insert(ccColorScaleElement(120.0 / 360.0, Qt::green), false);
+		scale->insert(ccColorScaleElement(180.0 / 360.0, Qt::cyan), false);
+		scale->insert(ccColorScaleElement(240.0 / 360.0, Qt::blue), false);
+		scale->insert(ccColorScaleElement(300.0 / 360.0, Qt::magenta), false);
+		scale->insert(ccColorScaleElement(360.0 / 360.0, Qt::red), false);
 		scale->setAbsolute(0.0, 360.0);
 		scale->customLabels().insert(0);
 		scale->customLabels().insert(60);
@@ -621,20 +624,20 @@ ccColorScale::Shared ccColorScalesManager::Create(DEFAULT_SCALES scaleType)
 		scale->customLabels().insert(300);
 		break;
 	case VERTEX_QUALITY:
-		scale->insert(ccColorScaleElement(0.0, Qt::blue ), false);
+		scale->insert(ccColorScaleElement(0.0, Qt::blue), false);
 		scale->insert(ccColorScaleElement(0.5, Qt::green), false);
-		scale->insert(ccColorScaleElement(1.0, Qt::red  ), false);
-		assert(		CCLib::MeshSamplingTools::VERTEX_NORMAL < CCLib::MeshSamplingTools::VERTEX_BORDER
-				&&	CCLib::MeshSamplingTools::VERTEX_BORDER < CCLib::MeshSamplingTools::VERTEX_NON_MANIFOLD );
+		scale->insert(ccColorScaleElement(1.0, Qt::red), false);
+		assert(CCLib::MeshSamplingTools::VERTEX_NORMAL < CCLib::MeshSamplingTools::VERTEX_BORDER
+			&&	CCLib::MeshSamplingTools::VERTEX_BORDER < CCLib::MeshSamplingTools::VERTEX_NON_MANIFOLD);
 		scale->setAbsolute(CCLib::MeshSamplingTools::VERTEX_NORMAL, CCLib::MeshSamplingTools::VERTEX_NON_MANIFOLD);
 		scale->customLabels().insert(0);
 		scale->customLabels().insert(0.5);
 		scale->customLabels().insert(1.0);
 		break;
 	case DIP_BRYW:
-		scale->insert(ccColorScaleElement(0.00, qRgb(129,   0,   0)), false);
-		scale->insert(ccColorScaleElement(0.33, qRgb(255,  68,   0)), false);
-		scale->insert(ccColorScaleElement(0.66, qRgb(255, 255,   0)), false);
+		scale->insert(ccColorScaleElement(0.00, qRgb(129, 0, 0)), false);
+		scale->insert(ccColorScaleElement(0.33, qRgb(255, 68, 0)), false);
+		scale->insert(ccColorScaleElement(0.66, qRgb(255, 255, 0)), false);
 		scale->insert(ccColorScaleElement(1.00, qRgb(255, 255, 255)), false);
 		scale->setAbsolute(0, 90.0);
 		scale->customLabels().insert(0);
@@ -643,19 +646,19 @@ ccColorScale::Shared ccColorScalesManager::Create(DEFAULT_SCALES scaleType)
 		scale->customLabels().insert(90);
 		break;
 	case DIP_DIR_REPEAT:
-		scale->insert(ccColorScaleElement(  0.0/360.0, qRgb(255,   0,   0)), false);
-		scale->insert(ccColorScaleElement( 30.0/360.0, qRgb(255, 255,   0)), false);
-		scale->insert(ccColorScaleElement( 60.0/360.0, qRgb(  0, 255,   0)), false);
-		scale->insert(ccColorScaleElement( 90.0/360.0, qRgb(  0, 255, 255)), false);
-		scale->insert(ccColorScaleElement(120.0/360.0, qRgb(  0,   0, 255)), false);
-		scale->insert(ccColorScaleElement(150.0/360.0, qRgb(255,   0, 255)), false);
-		scale->insert(ccColorScaleElement(180.0/360.0, qRgb(255,   0,   0)), false);
-		scale->insert(ccColorScaleElement(210.0/360.0, qRgb(255, 255,   0)), false);
-		scale->insert(ccColorScaleElement(240.0/360.0, qRgb(  0, 255,   0)), false);
-		scale->insert(ccColorScaleElement(270.0/360.0, qRgb(  0, 255, 255)), false);
-		scale->insert(ccColorScaleElement(300.0/360.0, qRgb(  0,   0, 255)), false);
-		scale->insert(ccColorScaleElement(330.0/360.0, qRgb(255,   0, 255)), false);
-		scale->insert(ccColorScaleElement(360.0/360.0, qRgb(255,   0,   0)), false);
+		scale->insert(ccColorScaleElement(0.0 / 360.0, qRgb(255, 0, 0)), false);
+		scale->insert(ccColorScaleElement(30.0 / 360.0, qRgb(255, 255, 0)), false);
+		scale->insert(ccColorScaleElement(60.0 / 360.0, qRgb(0, 255, 0)), false);
+		scale->insert(ccColorScaleElement(90.0 / 360.0, qRgb(0, 255, 255)), false);
+		scale->insert(ccColorScaleElement(120.0 / 360.0, qRgb(0, 0, 255)), false);
+		scale->insert(ccColorScaleElement(150.0 / 360.0, qRgb(255, 0, 255)), false);
+		scale->insert(ccColorScaleElement(180.0 / 360.0, qRgb(255, 0, 0)), false);
+		scale->insert(ccColorScaleElement(210.0 / 360.0, qRgb(255, 255, 0)), false);
+		scale->insert(ccColorScaleElement(240.0 / 360.0, qRgb(0, 255, 0)), false);
+		scale->insert(ccColorScaleElement(270.0 / 360.0, qRgb(0, 255, 255)), false);
+		scale->insert(ccColorScaleElement(300.0 / 360.0, qRgb(0, 0, 255)), false);
+		scale->insert(ccColorScaleElement(330.0 / 360.0, qRgb(255, 0, 255)), false);
+		scale->insert(ccColorScaleElement(360.0 / 360.0, qRgb(255, 0, 0)), false);
 		scale->setAbsolute(0, 360.0);
 		scale->customLabels().insert(0);
 		scale->customLabels().insert(90);
@@ -683,6 +686,14 @@ ccColorScale::Shared ccColorScalesManager::Create(DEFAULT_SCALES scaleType)
 		scale->setAbsolute(0, 18.0);
 		scale->customLabels().insert(0);
 		scale->customLabels().insert(18);
+		break;
+	}
+	case SEGMENTATION:
+	{
+		for (size_t i = 0; i < 256; ++i) {
+			ccColor::Rgb rgb = ccColor::Generator::Random();
+			scale->insert(ccColorScaleElement(i / 255.0, qRgb((int)rgb.r, (int)rgb.g, (int)rgb.b)), false);
+		}
 		break;
 	}
 	default:
