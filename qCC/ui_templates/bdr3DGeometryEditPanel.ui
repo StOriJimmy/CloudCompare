@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>578</width>
+    <width>617</width>
     <height>255</height>
    </rect>
   </property>
@@ -46,35 +46,6 @@
      <property name="sizeConstraint">
       <enum>QLayout::SetDefaultConstraint</enum>
      </property>
-     <item>
-      <widget class="QToolButton" name="pauseButton">
-       <property name="toolTip">
-        <string>暂停 (Space) / Esc清除所有编辑状态</string>
-       </property>
-       <property name="statusTip">
-        <string>Pause labeling</string>
-       </property>
-       <property name="text">
-        <string>pause</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../icones.qrc">
-         <normaloff>:/CC/Stocker/images/stocker/play.png</normaloff>:/CC/Stocker/images/stocker/play.png</iconset>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>30</width>
-         <height>30</height>
-        </size>
-       </property>
-       <property name="checkable">
-        <bool>true</bool>
-       </property>
-       <property name="checked">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
      <item>
       <widget class="QToolButton" name="blockToolButton">
        <property name="mouseTracking">
@@ -782,7 +753,7 @@
           </property>
           <property name="icon">
            <iconset resource="../icones.qrc">
-            <normaloff>:/CC/Stocker/images/stocker/editor1.png</normaloff>:/CC/Stocker/images/stocker/editor1.png</iconset>
+            <normaloff>:/CC/Stocker/images/stocker/play.png</normaloff>:/CC/Stocker/images/stocker/play.png</iconset>
           </property>
           <property name="iconSize">
            <size>
@@ -967,6 +938,12 @@
        </property>
        <property name="currentIndex">
         <number>0</number>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>30</width>
+         <height>30</height>
+        </size>
        </property>
        <property name="elideMode">
         <enum>Qt::ElideNone</enum>

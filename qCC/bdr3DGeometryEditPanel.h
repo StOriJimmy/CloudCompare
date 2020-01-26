@@ -16,6 +16,7 @@
 class ccPolyline;
 class ccPointCloud;
 class ccGLWindow;
+class QToolButton;
 
 enum GEOMETRY3D
 {
@@ -104,7 +105,9 @@ protected slots:
 	void updatePolyLine(int x, int y, Qt::MouseButtons buttons);
 	void echoSelectChange(ccHObject* obj);
 
-	void pauseLabelingMode(bool);
+	void startEditingMode(bool);
+	void pauseAll();
+	
 	void doBlock();
 	void doBox();
 	void doSphere();
@@ -124,7 +127,7 @@ protected slots:
 	void setLabel();
 	void createEntity();
 
-	void reset();
+	void reset();	// reset current editing state
 	void exit();
 
 	//! To capture overridden shortcuts (pause button, etc.)
@@ -139,6 +142,10 @@ protected:
 
 	//inherited from QObject
 	bool eventFilter(QObject *obj, QEvent *e) override;
+
+	QToolButton* getGeoToolBottun(GEOMETRY3D g);
+
+	void startGeoTool(GEOMETRY3D g);
 
 	//! Whether to allow or not to exort the current segmentation polyline
 	void allowExecutePolyline(bool state);
@@ -158,7 +165,7 @@ protected:
 	{
 		POLYLINE		= 1,
 		RECTANGLE		= 2,
-		EDITING			= 4,
+		//EDITING		= 4,
 		//...			= 8,
 		//...			= 16,
 		PAUSED			= 32,
@@ -191,6 +198,8 @@ protected:
 	QSet<ccHObject*> m_changed_baseobj;
 
 	std::vector<ccHObject*> m_actives;
+
+	GEOMETRY3D m_current_editor;
 };
 
 #endif //BDR_3D_GEOMETRY_EDIT_PANEL_HEADER
