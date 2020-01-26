@@ -13,6 +13,8 @@
 #include "buildercore/StBuilder.h"
 #include "BlockDBaseIO.h"
 
+#define MAX_BUILDING_NUMBER 99999999
+
 #define BDDB_PLANESEG_PREFIX		"Plane"
 #define BDDB_BOUNDARY_PREFIX		"Boundary"
 #define BDDB_INTERSECT_PREFIX		"Intersection"

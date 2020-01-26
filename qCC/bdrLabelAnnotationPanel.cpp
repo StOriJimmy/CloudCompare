@@ -257,7 +257,16 @@ void bdrLabelAnnotationPanel::removeAllEntities(bool unallocateVisibilityArrays)
 	{
 		if (m_segment_mode == SEGMENT_LABELING || m_segment_mode == SEGMENT_BUILD_EIDT) {
 			ccPointCloud* pc = ccHObjectCaster::ToPointCloud(*p);
-			if (pc) pc->setPointSize(0);
+			if (pc) {
+				if (pc->hasColors()) {
+					pc->showColors(true);
+					pc->showSF(false);
+				}
+				else {
+					pc->showColors(false);
+					pc->showSF(true);
+				}
+			}
 			(*p)->setLocked(false);
 		}
 		else if (unallocateVisibilityArrays) {
@@ -348,25 +357,25 @@ bool bdrLabelAnnotationPanel::addEntity(ccHObject* entity)
 			
 			ccPointCloud* cloudObj = ccHObjectCaster::ToPointCloud(cloud);
 			if (cloudObj) {
-				int class_index = cloudObj->getScalarFieldIndexByName("classification");
+				int class_index = cloudObj->getScalarFieldIndexByName("Classification");
 				if (class_index < 0) {
-					class_index = cloudObj->addScalarField("classification");
+					class_index = cloudObj->addScalarField("Classification");
 					if (class_index < 0) return false;
 				}
 				
 				cloudObj->setCurrentScalarField(class_index);
 				cloudObj->setCurrentDisplayedScalarField(class_index);
 
-				ccScalarField* sf = static_cast<ccScalarField*>(cloudObj->getCurrentInScalarField());
-				
-				if (!sf || sf != cloudObj->getCurrentDisplayedScalarField()) {
-					return false;
-				}
-
-				sf->setMax(LAS_LABEL::LABEL_END - 1);
-				sf->setMin(0);				
-				sf->computeMinAndMax(false, false);
-				sf->setColorScale(ccColorScalesManager::GetDefaultScale(ccColorScalesManager::CLASSIFICATION));
+				// default in ccPointCloud
+// 				ccScalarField* sf = static_cast<ccScalarField*>(cloudObj->getCurrentInScalarField());
+// 				
+// 				if (!sf || sf != cloudObj->getCurrentDisplayedScalarField()) {
+// 					return false;
+// 				}
+// 				sf->setMax(LAS_LABEL::LABEL_END - 1);
+// 				sf->setMin(0);				
+// 				sf->computeMinAndMax(false, false);
+// 				sf->setColorScale(ccColorScalesManager::GetDefaultScale(ccColorScalesManager::CLASSIFICATION));
 
 				cloud->showColors(false);
 				cloud->showSF(true);
@@ -907,6 +916,7 @@ void bdrLabelAnnotationPanel::createEntity()
 // #if defined(_OPENMP)
 // #pragma omp parallel for
 // #endif
+		bool use_color = true;
 		for (int i = 0; i < static_cast<int>(cloudSize); ++i)
 		{
 // 			if (visibilityArray.size() == cloudSize && visibilityArray[i] != POINT_VISIBLE) {
@@ -923,12 +933,28 @@ void bdrLabelAnnotationPanel::createEntity()
 			bool pointInside = pointInFrustrum && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
 
 			if (!pointInside) { continue; }
-
 			new_ent->addPoint(*P3D);
+
+			if (use_color) {
+				if (cloud->hasColors() && !new_ent->hasColors()) {
+					use_color = new_ent->reserveTheRGBTable();
+				}
+			}
+			if (use_color)
+				new_ent->addRGBColor(cloud->getPointColor(i));
 		}
-		new_ent->setRGBColor(ccColor::Generator::Random());
-		new_ent->showColors(true);
 		new_ent->setPointSize(2);
+
+		int seg_index = new_ent->addScalarField("Segmentation");
+		if (seg_index >= 0) {
+			new_ent->showColors(false);
+			new_ent->showSF(true);
+			new_ent->setCurrentDisplayedScalarField(seg_index);
+		}
+		else {
+			new_ent->showColors(true);
+			new_ent->showSF(false);
+		}
 		
 		bool created = false;
 		switch (m_UI->typeComboBox->currentIndex())
