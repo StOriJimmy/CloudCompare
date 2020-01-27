@@ -67,9 +67,10 @@ bdrPlaneEditorDlg::bdrPlaneEditorDlg(ccPickingHub* pickingHub, QWidget* parent)
 	connect(cyAxisDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onCenterChanged(double)));
 	connect(czAxisDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onCenterChanged(double)));
 
-	connect(nxDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
-	connect(nyDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
-	connect(nzDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
+	connect(normalConfirmToolButton, &QAbstractButton::clicked, this, [this]() {onNormalChanged(0); });
+// 	connect(nxDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
+// 	connect(nyDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
+// 	connect(nzDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
 
 	connect(wDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onDimensionChanged(double)));
 	connect(hDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onDimensionChanged(double)));
@@ -197,6 +198,9 @@ void bdrPlaneEditorDlg::onNormalChanged(double)
 {
 	CCVector3 Nd = getNormal();
 	Nd.normalize();
+	if (Nd.norm() < 1e-6) {
+		return;
+	}
 	setNormal(Nd);
 
 	if (previewCheckBox->isChecked()) {

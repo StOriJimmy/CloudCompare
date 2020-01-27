@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>396</width>
-    <height>92</height>
+    <width>421</width>
+    <height>94</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -94,7 +94,7 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>50</width>
+            <width>58</width>
             <height>0</height>
            </size>
           </property>
@@ -113,7 +113,7 @@
            <string>Center</string>
           </property>
           <property name="alignment">
-           <set>Qt::AlignCenter</set>
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
@@ -220,7 +220,7 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>50</width>
+            <width>33</width>
             <height>0</height>
            </size>
           </property>
@@ -234,7 +234,18 @@
            <string>Normal</string>
           </property>
           <property name="alignment">
-           <set>Qt::AlignCenter</set>
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QToolButton" name="normalConfirmToolButton">
+          <property name="text">
+           <string>...</string>
+          </property>
+          <property name="icon">
+           <iconset resource="../icones.qrc">
+            <normaloff>:/CC/Stocker/images/stocker/checksolid.png</normaloff>:/CC/Stocker/images/stocker/checksolid.png</iconset>
           </property>
          </widget>
         </item>
@@ -350,7 +361,7 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>50</width>
+            <width>58</width>
             <height>0</height>
            </size>
           </property>
@@ -364,7 +375,7 @@
            <string>Dimension</string>
           </property>
           <property name="alignment">
-           <set>Qt::AlignCenter</set>
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
