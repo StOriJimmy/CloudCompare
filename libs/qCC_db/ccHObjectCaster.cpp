@@ -21,6 +21,7 @@
 #include "cc2DLabel.h"
 #include "cc2DViewportLabel.h"
 #include "cc2DViewportObject.h"
+#include "ccBox.h"
 #include "ccCameraSensor.h"
 #include "ccCone.h"
 #include "ccCylinder.h"
@@ -178,6 +179,11 @@ ccPlanarEntityInterface* ccHObjectCaster::ToPlanarEntity(ccHObject* obj)
 ccGenericPrimitive* ccHObjectCaster::ToPrimitive(ccHObject* obj)
 {
 	return obj && obj->isKindOf(CC_TYPES::PRIMITIVE) ? static_cast<ccGenericPrimitive*>(obj) : nullptr;
+}
+
+ccBox * ccHObjectCaster::ToBox(ccHObject * obj)
+{
+	return obj && obj->isA(CC_TYPES::BOX) ? static_cast<ccBox*>(obj) : nullptr;
 }
 
 ccSphere*	ccHObjectCaster::ToSphere(ccHObject* obj)

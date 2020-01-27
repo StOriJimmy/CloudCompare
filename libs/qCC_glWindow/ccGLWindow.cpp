@@ -2541,7 +2541,12 @@ void ccGLWindow::draw3D(CC_DRAW_CONTEXT& CONTEXT, RenderingParams& renderingPara
 		&&	(!m_stereoModeEnabled || renderingParams.passIndex == MONO_OR_LEFT_RENDERING_PASS))
 	{
 		CCVector3d P;
-		if (getClick3DPos(m_glViewport.width() / 2, m_glViewport.height() / 2, P))
+		if (getClick3DPos(m_glViewport.width() / 2, m_glViewport.height() / 2, P, 5))
+		{
+			renderingParams.autoPivotCandidates[renderingParams.passIndex] = P;
+			renderingParams.hasAutoPivotCandidates[renderingParams.passIndex] = true;
+		}
+		else if (getClick3DPos(m_glViewport.width() / 2, m_glViewport.height() / 2, P, 15))
 		{
 			renderingParams.autoPivotCandidates[renderingParams.passIndex] = P;
 			renderingParams.hasAutoPivotCandidates[renderingParams.passIndex] = true;

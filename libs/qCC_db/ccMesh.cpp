@@ -1674,8 +1674,10 @@ unsigned ccMesh::getUniqueIDForDisplay() const
 
 void ccMesh::drawMeOnly(CC_DRAW_CONTEXT& context)
 {
-	ccGenericMesh::drawMeOnly(context);
-	return;
+	if (size() > 1000) {
+		ccGenericMesh::drawMeOnly(context);
+		return;
+	}
 
 	if (!m_associatedCloud)
 		return;

@@ -254,6 +254,23 @@ void ccCone::setTopRadius(PointCoordinateType radius)
 	applyTransformationToVertices();
 }
 
+void ccCone::getSnout(PointCoordinateType & x, PointCoordinateType & y)
+{
+	x = m_xOff;
+	y = m_yOff;
+}
+
+void ccCone::setSnout(PointCoordinateType x, PointCoordinateType y)
+{
+	if (m_xOff == x && m_yOff == y) {
+		return;
+	}
+	m_xOff = x;
+	m_yOff = y;
+	buildUp();
+	applyTransformationToVertices();
+}
+
 CCVector3 ccCone::getBottomCenter() const
 {
 	CCVector3 bottomCenter = CCVector3(m_xOff, m_yOff, -m_height) / 2;

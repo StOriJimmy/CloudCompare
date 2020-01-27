@@ -4096,6 +4096,18 @@ int ccPointCloud::addScalarField(ccScalarField* sf)
 
 	try
 	{
+		if (strcmpi(sf->getName(), "Classification") == 0) {
+			sf->setMin(0);
+			sf->setMax(18);
+			sf->computeMinAndMax(false, false);
+			sf->setColorScale(ccColorScalesManager::GetDefaultScale(ccColorScalesManager::CLASSIFICATION));
+		}
+		else if (strcmpi(sf->getName(), "Segmentation") == 0) {
+			sf->setMin(0);
+			sf->setMax(99999999);
+			sf->computeMinAndMax(false, false);
+			sf->setColorScale(ccColorScalesManager::GetDefaultScale(ccColorScalesManager::SEGMENTATION));
+		}
 		m_scalarFields.push_back(sf);
 	}
 	catch (const std::bad_alloc&)

@@ -1841,6 +1841,11 @@ ccDBRoot * MainWindow::db(CC_TYPES::DB_SOURCE tp)
 	return nullptr;
 }
 
+ccHObject * MainWindow::getRoot(CC_TYPES::DB_SOURCE tp)
+{
+	return db(tp)->getRootEntity();
+}
+
 ccPointCloud* MainWindow::askUserToSelectACloud(ccHObject* defaultCloudEntity/*=0*/, QString inviteMessage/*=QString()*/)
 {
 	ccHObject::Container clouds;
@@ -13083,7 +13088,7 @@ void MainWindow::doActionBDPrimitives()
 	switchDatabase(CC_TYPES::DB_BUILDING);
 
 	if (!m_pbdrGeoPanel) {
-		m_pbdrGeoPanel = new bdr3DGeometryEditPanel(this);
+		m_pbdrGeoPanel = new bdr3DGeometryEditPanel(this, m_pickingHub);
 		connect(m_pbdrGeoPanel, &ccOverlayDialog::processFinished, this, &MainWindow::deactiveBDPrimitives);
 	}
 
@@ -15539,8 +15544,17 @@ void MainWindow::showBestImage(bool use_area)
 	{
 		float scale_width = glwin->getCenterRadius(m_pbdrImagePanel->getBoxScale());
 		CCVector3 half_box(scale_width, scale_width, scale_width);
-		objBox.add(CCVector3::fromArray(params.pivotPoint.u) + half_box);
-		objBox.add(CCVector3::fromArray(params.pivotPoint.u) - half_box);
+
+		CCVector3d p_center;
+		if (glwin->getClick3DPos(glwin->glWidth() / 2, glwin->glHeight() / 2, p_center, 5)) {
+			p_center = p_center;
+		}
+		else if (glwin->getClick3DPos(glwin->glWidth() / 2, glwin->glHeight() / 2, p_center, 15)) {
+			p_center = p_center;
+		}
+		else p_center = params.pivotPoint;
+		objBox.add(CCVector3::fromArray(p_center.u) + half_box);
+		objBox.add(CCVector3::fromArray(p_center.u) - half_box);
 	}
 	else {
 		//! TODO: mesh.. refer to graphical segmentation
@@ -15579,71 +15593,163 @@ void MainWindow::showBestImage(bool use_area)
 	vcg::Point3f n(view_to_obj.u), u, v;
 	vcg::GetUV(n, u, v);
 
-	CCVector3 obj_o = objCenter - CCVector3::fromArray((u + v).V()) * objBox.getDiagNorm() / 2;
-	CCVector3 obj_u = obj_o + CCVector3::fromArray(u.V()) * objBox.getDiagNorm();
-	CCVector3 obj_v = obj_o + CCVector3::fromArray(v.V()) * objBox.getDiagNorm();
+	CCVector3 obj_1 = objCenter - CCVector3::fromArray((u + v).V()) * objBox.getDiagNorm() / 2;
+	CCVector3 obj_2 = obj_1 + CCVector3::fromArray(u.V()) * objBox.getDiagNorm();
+	CCVector3 obj_3 = obj_1 + CCVector3::fromArray(v.V()) * objBox.getDiagNorm();
+	CCVector3 obj_4 = objCenter + CCVector3::fromArray((u + v).V()) * objBox.getDiagNorm() / 2;
+
+	CCVector3 obj_o(objCenter);
+	CCVector3 obj_u = obj_o + CCVector3::fromArray(u.V());
+	CCVector3 obj_v = obj_o + CCVector3::fromArray(v.V());
+
+#ifdef _DEBUG
+	std::cout << "o: " << obj_o.x << " " << obj_o.y << " " << obj_o.z << std::endl;
+	std::cout << "u: " << obj_u.x << " " << obj_u.y << " " << obj_u.z << std::endl;
+	std::cout << "v: " << obj_v.x << " " << obj_v.y << " " << obj_v.z << std::endl;
+#endif // _DEBUG
+
 
 	//! get all cameras available 
 	ccHObject::Container cameras = GetEnabledObjFromGroup(m_imageRoot->getRootEntity(), CC_TYPES::CAMERA_SENSOR, true, true);
 
 	// sort by dir and distance
 	typedef std::pair<ccCameraSensor*, double> HArea;
-	std::vector<HArea> visible_area;
-	for (ccHObject* cam : cameras) {
-		ccCameraSensor* csObj = ccHObjectCaster::ToCameraSensor(cam); if (!csObj) { continue; }
-		csObj->setDisplayOrder(-1);
-		if (!csObj->isEnabled()) { continue; }
+	Concurrency::concurrent_vector<HArea> visible_area;
+	Concurrency::concurrent_vector<HArea> visible_angle;
 
-		CCVector2 objCenter_img;
-		if (!csObj->fromGlobalCoordToImageCoord(objCenter, objCenter_img))
-			continue;
-		visible_area.push_back({ csObj, 0 });
+	Concurrency::concurrent_vector<HArea> visible_area_all;
+	Concurrency::concurrent_vector<HArea> visible_angle_all;
+
+	Concurrency::parallel_for_each(cameras.begin(), cameras.end(), [&](auto & cam) {
+		ccCameraSensor* csObj = ccHObjectCaster::ToCameraSensor(cam); if (!csObj) { return; }
+		csObj->setDisplayOrder(-1);
+		if (!csObj->isEnabled()) { return; }
+
+		CCVector2 objO_img, objU_img, objV_img;
+		if (!csObj->fromGlobalCoordToImageCoord(obj_o, objO_img) ||
+			!csObj->fromGlobalCoordToImageCoord(obj_u, objU_img) ||
+			!csObj->fromGlobalCoordToImageCoord(obj_v, objV_img)) {
+			return;
+		}
 
 		ccIndexedTransformation trans; csObj->getActiveAbsoluteTransformation(trans);
 		const float* M = trans.data();
 
 		CCVector3 cam_dir(-M[2], -M[6], -M[10]); cam_dir.normalize();
 		CCVector3 cam_center; csObj->getActiveAbsoluteCenter(cam_center);
-		CCVector3 cam_to_obj = (objCenter - cam_center); cam_to_obj.normalize();
+		CCVector3 cam_to_obj = (obj_o - cam_center); cam_to_obj.normalize();
 		CCVector3 obj_to_cam = -cam_to_obj;
 		double obj_angle = obj_to_cam.dot(obj_to_view);
 		double cam_angle = cam_dir.dot(cam_to_obj);
 		if (obj_angle < 0.0f || cam_angle < 0.0f) {
-			continue;
-		}
-		CCVector2 objO_img, objU_img, objV_img;
-		if (!csObj->fromGlobalCoordToImageCoord(obj_o, objO_img) ||
-			!csObj->fromGlobalCoordToImageCoord(obj_u, objU_img) ||
-			!csObj->fromGlobalCoordToImageCoord(obj_v, objV_img)) {
-			continue;	//! skip temporarily
+			return;
 		}
 
-		float double_area = 10000;
-		if (use_area) {
-			//! sort by projection area
-			double_area = (objU_img - objO_img).cross(objV_img - objO_img);
-		}
-		else {
-			double_area = (acos(obj_angle) + acos(cam_angle));
+		double area = (objU_img - objO_img).cross(objV_img - objO_img);
+
+		obj_angle = acos(obj_angle);
+		cam_angle = acos(cam_angle);
+
+		double angle = M_PI - obj_angle - cam_angle;
+
+		HArea h_valid_area, h_valid_angle;
+		h_valid_area.first = h_valid_angle.first = csObj;
+		h_valid_area.second = area;
+		h_valid_angle.second = angle;
+
+		visible_area_all.push_back(h_valid_area);
+		visible_angle_all.push_back(h_valid_angle);
+
+		if (obj_angle > 1.4 || obj_angle > 1.4) return;
+
+		CCVector2 temp;
+		if (!csObj->fromGlobalCoordToImageCoord(obj_1, temp) ||
+			!csObj->fromGlobalCoordToImageCoord(obj_2, temp) ||
+			!csObj->fromGlobalCoordToImageCoord(obj_3, temp) ||
+			!csObj->fromGlobalCoordToImageCoord(obj_4, temp)) {
+			return;	//! skip temporarily
 		}
 
-		visible_area.back().second = double_area;
+		visible_area.push_back(h_valid_area);
+		visible_angle.push_back(h_valid_angle);
+	});
+
+	if (visible_area.empty()) {
+		swap(visible_area, visible_area_all);
+		swap(visible_angle, visible_angle_all);
 	}
+
 	if (visible_area.empty()) {
 		return;
 	}
-	std::sort(visible_area.begin(), visible_area.end(), [](HArea _l, HArea _r) {
+		
+	Concurrency::parallel_sort(visible_area.begin(), visible_area.end(), [](HArea _l, HArea _r) {
+		return _l.second > _r.second;
+	});
+	Concurrency::parallel_sort(visible_angle.begin(), visible_angle.end(), [](HArea _l, HArea _r) {
 		return _l.second > _r.second;
 	});
 
 	ccHObject* best_image = nullptr;
-	for (size_t i = 0; i < visible_area.size(); i++) {
-		ccCameraSensor* camObj = visible_area[i].first;
-		assert(camObj); if (!camObj) return;
-		camObj->setDisplayOrder(i);
+	if (use_area) {
+		best_image = visible_area.front().first;
+		ccHObject* best_image_2 = visible_angle.front().first;
+		if (best_image == best_image_2) {
+			for (size_t i = 0; i < visible_area.size(); i++) {
+				ccCameraSensor* camObj = visible_area[i].first;
+				assert(camObj); if (!camObj) return;
+				camObj->setDisplayOrder(i);
+			}
+		}
+		else {
+			int cnt(2);
+			for (size_t i = 0; i < visible_area.size(); i++) {
+				ccCameraSensor* camObj = visible_area[i].first;
+				assert(camObj); if (!camObj) return;
 
-		if (i == 0) best_image = camObj;
+				if (i == 0) {
+					camObj->setDisplayOrder(0);
+				}
+				else if (camObj == best_image_2) {
+					camObj->setDisplayOrder(1);
+				}
+				else camObj->setDisplayOrder(cnt++);
+			}
+		}
 	}
+	else {
+		best_image = visible_angle.front().first;
+		ccHObject* best_image_2 = visible_area.front().first;
+		if (best_image == best_image_2) {
+			for (size_t i = 0; i < visible_angle.size(); i++) {
+				ccCameraSensor* camObj = visible_angle[i].first;
+				assert(camObj); if (!camObj) return;
+				camObj->setDisplayOrder(i);
+			}
+		}
+		else {			
+			int cnt(2);
+			for (size_t i = 0; i < visible_angle.size(); i++) {
+				ccCameraSensor* camObj = visible_angle[i].first;
+				assert(camObj); if (!camObj) return;
+
+				if (i == 0) {
+					camObj->setDisplayOrder(0);
+				}
+				else if (camObj == best_image_2) {
+					camObj->setDisplayOrder(1);
+				}
+				else camObj->setDisplayOrder(cnt++);
+			}
+		}
+	}
+// 	for (size_t i = 0; i < visible_area.size(); i++) {
+// 		ccCameraSensor* camObj = visible_area[i].first;
+// 		assert(camObj); if (!camObj) return;
+// 		camObj->setDisplayOrder(i);
+// 
+// 		if (i == 0) best_image = camObj;
+// 	}
 	m_pbdrImagePanel->display(false);
 
 	showImage(best_image);
@@ -15686,7 +15792,7 @@ void MainWindow::showImage(ccHObject * imCamera)
 
 void MainWindow::doActionShowBestImage()
 {
-	showBestImage(true);
+	showBestImage(false);
 }
 
 void MainWindow::doActionShowSelectedImage()
@@ -16781,7 +16887,14 @@ void MainWindow::deactivatePointClassEditor(bool state)
 			QSet<ccHObject*> changed = m_pbdrLAPanel->getChangedBaseObj();
 			for (ccHObject* obj : changed) {
 				BDBaseHObject* baseObj = GetRootBDBase(obj);
-				if (baseObj) updateBuildingList(baseObj, false);
+				if (baseObj) { 
+					updateBuildingList(baseObj, false); 
+					ccHObject::Container pcs;
+					baseObj->filterChildren(pcs, true, CC_TYPES::POINT_CLOUD, true);
+					for (ccHObject* pc : pcs) {
+						ccHObjectCaster::ToPointCloud(pc)->setPointSize(0);
+					}
+				}
 			}
 		}
 		m_pbdrLAPanel->clearChangedBaseObj();

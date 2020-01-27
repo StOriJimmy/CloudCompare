@@ -51,6 +51,7 @@ public:
 							DIP_DIR_REPEAT	=	9,		/**< Dip direction (0 - 360 degrees) */
 							VIRIDIS			=	10,		/**< matplotlib library colorscale created by Stéfan van der Walt and Nathaniel Smith */
 							CLASSIFICATION	=	11,		/**< LAS CLASSIFICATION */
+							SEGMENTATION	=	12,		/**< Building Segmentation */
 	};
 
 	//! Returns a pre-defined color scale UUID

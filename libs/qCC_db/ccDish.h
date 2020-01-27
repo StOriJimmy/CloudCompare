@@ -63,6 +63,12 @@ public:
 	virtual bool hasDrawingPrecision() const override { return true; }
 	virtual ccGenericPrimitive* clone() const override;
 
+	void getRadius(PointCoordinateType &r1, PointCoordinateType &r2) const;
+	void setRadius(PointCoordinateType r1, PointCoordinateType r2);
+
+	PointCoordinateType getHeight() const { return m_height; }
+	void setHeight(PointCoordinateType h);
+
 protected:
 
 	//inherited from ccGenericPrimitive

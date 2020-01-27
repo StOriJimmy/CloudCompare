@@ -43,6 +43,7 @@ class ccOctree;
 class ccOctreeProxy;
 class ccPlanarEntityInterface;
 class ccPlane;
+class ccBox;
 class ccPointCloud;
 class ccPolyline;
 class ccSensor;
@@ -100,6 +101,7 @@ public:
 	//! Converts current object to ccGenericPrimitive (if possible)
 	static ccGenericPrimitive* ToPrimitive(ccHObject* obj);
 
+	static ccBox* ToBox(ccHObject* obj);
 	//! Converts current object to ccSphere (if possible)
 	static ccSphere* ToSphere(ccHObject* obj);
 	//! Converts current object to ccCylinder (if possible)

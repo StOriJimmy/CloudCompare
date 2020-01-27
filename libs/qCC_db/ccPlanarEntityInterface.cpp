@@ -360,8 +360,6 @@ bool ccPlanarEntityInterface::move3D(const CCVector3d & u)
 	if (m_activeComponent < NORMAL_TORUS) {
 		return false;
 	}
-	//! 参考 bdrPlaneEditor里apply
-	//! get y , 在move2d里面即可
 
 	return true;
 }

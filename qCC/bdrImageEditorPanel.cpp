@@ -145,7 +145,7 @@ void bdrImageEditorPanel::previous()
 	if (list.empty()) { return; }
 
 	int cur_index = m_UI->imageListWidget->row(list.front());
-	m_UI->imageListWidget->item((cur_index - 1) % m_UI->imageListWidget->count())->setSelected(true);
+	m_UI->imageListWidget->item((cur_index + m_UI->imageListWidget->count() - 1) % m_UI->imageListWidget->count())->setSelected(true);
 	displayImage();
 }
 

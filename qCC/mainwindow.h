@@ -234,6 +234,7 @@ public:
 	virtual StDBMainRoot* db_main() { return m_ccRoot; }
 	virtual StDBBuildingRoot* db_building() { return m_buildingRoot; }
 	virtual StDBImageRoot* db_image() { return m_imageRoot; }
+	ccHObject* getRoot(CC_TYPES::DB_SOURCE tp);
 
 	//! Adds the "Edit Plane" action to the given menu.
 	/**
