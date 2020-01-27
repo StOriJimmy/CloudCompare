@@ -207,10 +207,12 @@ protected:
 
 	GEOMETRY3D m_current_editor;
 
+	ccPlane* m_refPlane;
+
 	ccPickingHub* m_pickingHub;
 
-	bdrPlaneEditorDlg* m_refPlane;
-	bdrPlaneEditorDlg* m_toolPlane;
+	bdrPlaneEditorDlg* m_refPlanePanel;
+	bdrPlaneEditorDlg* m_toolPlanePanel;
 
 };
 

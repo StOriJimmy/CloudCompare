@@ -57,8 +57,9 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 	, m_deleteHiddenParts(false)
 	, m_destination(nullptr)
 	, m_current_editor(GEO_END)
+	, m_refPlanePanel(nullptr)
+	, m_toolPlanePanel(nullptr)
 	, m_refPlane(nullptr)
-	, m_toolPlane(nullptr)
 {
 	m_UI->setupUi(this);
 
@@ -123,6 +124,9 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 // 	importExportMenu->addAction(actionExportSegmentationPolyline);
 // 	loadSaveToolButton->setMenu(importExportMenu);
 // 
+
+	
+
  	m_polyVertices = new ccPointCloud("vertices");
  	m_segmentationPoly = new ccPolyline(m_polyVertices);
  	m_segmentationPoly->setForeground(true);
@@ -154,17 +158,22 @@ void bdr3DGeometryEditPanel::echoUIchange()
 
 void bdr3DGeometryEditPanel::createPlaneEditInterface()
 {
-	m_refPlane = new bdrPlaneEditorDlg(m_pickingHub, this);
-	m_UI->refPlaneHorizontalLayout->addWidget(m_refPlane);
+	m_refPlanePanel = new bdrPlaneEditorDlg(m_pickingHub, this);
+	m_refPlanePanel->confirmGroupBox->setVisible(false);
+	m_UI->refPlaneHorizontalLayout->addWidget(m_refPlanePanel);
 
-	m_toolPlane = new bdrPlaneEditorDlg(m_pickingHub, this);
-	m_UI->toolPlaneHorizontalLayout->addWidget(m_toolPlane);
+	m_refPlane = new ccPlane("master");
+	m_refPlanePanel->updatePlane(m_refPlane);
+	m_refPlane->setColor(ccColor::lightGrey);
+
+	m_toolPlanePanel = new bdrPlaneEditorDlg(m_pickingHub, this);
+	m_UI->toolPlaneHorizontalLayout->addWidget(m_toolPlanePanel);
 }
 
 bool bdr3DGeometryEditPanel::eventFilter(QObject * obj, QEvent * e)
 {
 	if (e->type() == QEvent::Close) {
-		exit();
+		//exit();
 	}
 	else if (e->type() == QEvent::HoverEnter) {
 		if (obj == m_UI->blockToolButton)				{ m_UI->geometryTabWidget->setCurrentIndex(GEO_BLOCK); }
@@ -339,7 +348,7 @@ void bdr3DGeometryEditPanel::updateWithActive(ccHObject * obj)
 	else if (obj->isA(CC_TYPES::PLANE)) {
 		ccPlane* plane = ccHObjectCaster::ToPlane(obj);
 		if (plane) {
-			m_toolPlane->initWithPlane(plane);
+			m_toolPlanePanel->initWithPlane(plane);
 			m_UI->geometryTabWidget->setCurrentIndex(GEO_PLANE);
 		}
 	}
@@ -407,6 +416,9 @@ bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 		{
 			m_segmentationPoly->setDisplay(0);
 		}
+		if (m_refPlane) {
+			m_refPlane->setDisplay(0);
+		}
 	}
 	
 	if (m_associatedWin)
@@ -417,9 +429,11 @@ bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 		connect(m_associatedWin, &ccGLWindow::buttonReleased,		this, &bdr3DGeometryEditPanel::closeRectangle);
 		connect(m_associatedWin, &ccGLWindow::entitySelectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
 
-		if (m_segmentationPoly)
-		{
+		if (m_segmentationPoly)	{
 			m_segmentationPoly->setDisplay(m_associatedWin);
+		}
+		if (m_refPlane)	{
+			m_refPlane->setDisplay(m_associatedWin);
 		}
 	}
 
@@ -428,7 +442,7 @@ bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 
 bool bdr3DGeometryEditPanel::start()
 {
-	assert(m_polyVertices && m_segmentationPoly);
+	assert(m_polyVertices && m_segmentationPoly && m_refPlane);
 
 	if (!m_associatedWin)
 	{
@@ -442,6 +456,7 @@ bool bdr3DGeometryEditPanel::start()
 	//the user must not close this window!
 	m_associatedWin->setUnclosable(true);
 	m_associatedWin->addToOwnDB(m_segmentationPoly);
+	m_associatedWin->addToOwnDB(m_refPlane);
 	m_associatedWin->setPickingMode(ccGLWindow::NO_PICKING);
 	
 	startEditingMode(false);
@@ -486,6 +501,7 @@ void bdr3DGeometryEditPanel::stop(bool accepted)
 		m_associatedWin->lockRotationAxis(false, CCVector3d(0, 0, 1));
 		m_associatedWin->setUnclosable(false);
 		m_associatedWin->removeFromOwnDB(m_segmentationPoly);
+		if (m_refPlane) m_associatedWin->removeFromOwnDB(m_refPlane);
 	}
 
 	ccOverlayDialog::stop(accepted);

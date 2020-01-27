@@ -77,9 +77,9 @@ bdrPlaneEditorDlg::bdrPlaneEditorDlg(ccPickingHub* pickingHub, QWidget* parent)
 		displayMenu->addAction(actionDisplayEditor);
 		displayToolButton->setMenu(displayMenu);
 		
-		connect(actionDisplayHide, &QAction::triggered, this, [this]() {setDisplayState(DISPLAY_NONE); });
-		connect(actionDisplayShow, &QAction::triggered, this, [this]() {setDisplayState(DISPLAY_PLANE); });
-		connect(actionDisplayEditor, &QAction::triggered, this, [this]() {setDisplayState(DISPLAY_EDITOR); });
+ 		connect(actionDisplayHide, &QAction::triggered, this, [this]() {setDisplayState(DISPLAY_NONE); });
+ 		connect(actionDisplayShow, &QAction::triggered, this, [this]() {setDisplayState(DISPLAY_PLANE); });
+ 		connect(actionDisplayEditor, &QAction::triggered, this, [this]() {setDisplayState(DISPLAY_EDITOR); });
 	}
 	
 	//auto disable picking mode on quit
@@ -127,27 +127,20 @@ void bdrPlaneEditorDlg::saveParamsAndAccept()
 	}
 	else //creation
 	{
+		MainWindow* win = MainWindow::TheInstance();
+		if (!win) { return; }
 		ccPlane* plane = new ccPlane();
 		updatePlane(plane);
 		if (m_pickingWin)
 		{
 			plane->setDisplay(m_pickingWin);
 		}
-		if (MainWindow::TheInstance())
-		{
-			MainWindow::TheInstance()->addToDB(plane, MainWindow::TheInstance()->getCurrentDB());
+		else {
+			plane->setDisplay(win->getActiveGLWindow());
 		}
-		else
-		{
-			delete plane;
-			plane = nullptr;
-		}
+		
+		win->addToDB(plane, win->getCurrentDB());
 	}
-
-// 	disconnectPlane();
-// 	accept();
-
-//	deleteLater();
 }
 
 void bdrPlaneEditorDlg::setDisplayState(DisplayState state)
