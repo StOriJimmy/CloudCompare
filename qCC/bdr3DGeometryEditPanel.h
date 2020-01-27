@@ -17,6 +17,10 @@ class ccPolyline;
 class ccPointCloud;
 class ccGLWindow;
 class QToolButton;
+class ccPickingHub;
+class bdrPlaneEditorDlg;
+
+#define GEO_ROUND_FLAG QStringLiteral("ROUND")
 
 enum GEOMETRY3D
 {
@@ -48,7 +52,7 @@ class bdr3DGeometryEditPanel : public ccOverlayDialog
 public:
 
 	//! Default constructor
-	explicit bdr3DGeometryEditPanel(QWidget* parent);
+	explicit bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pickingHub = nullptr);
 	//! Destructor
 	~bdr3DGeometryEditPanel() override;
 
@@ -94,6 +98,8 @@ private:
 	Ui::bdr3DGeometryEditPanel	*m_UI;
 
 	void echoUIchange();
+
+	void createPlaneEditInterface();
 
 protected slots:
 
@@ -200,6 +206,12 @@ protected:
 	std::vector<ccHObject*> m_actives;
 
 	GEOMETRY3D m_current_editor;
+
+	ccPickingHub* m_pickingHub;
+
+	bdrPlaneEditorDlg* m_refPlane;
+	bdrPlaneEditorDlg* m_toolPlane;
+
 };
 
 #endif //BDR_3D_GEOMETRY_EDIT_PANEL_HEADER

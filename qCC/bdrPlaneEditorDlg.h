@@ -42,12 +42,23 @@ public:
 
 	//! Inherited from ccPickingListener
 	virtual void onItemPicked(const PickedItem& pi);
+	
+	void setNormal(CCVector3 n);
+	CCVector3 getNormal() const;
+	void setCenter(CCVector3 c);
+	CCVector3 getCenter() const;
+
+	enum DisplayState {
+		DISPLAY_NONE,
+		DISPLAY_PLANE,
+		DISPLAY_EDITOR,
+	};
+	void setDisplayState(DisplayState state);
+	DisplayState getDisplayState() const { return m_display_state; }
 
 public slots:
 
 	void pickPointAsCenter(bool);
-	void onDipDirChanged(double);
-	void onDipDirModified(bool);
 	void onNormalChanged(double);
 	void saveParamsAndAccept();
 	void restore();
@@ -88,6 +99,8 @@ protected: //members
 
 	//! Picking hub
 	ccPickingHub* m_pickingHub;
+
+	DisplayState m_display_state;
 };
 
 #endif

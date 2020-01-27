@@ -13083,7 +13083,7 @@ void MainWindow::doActionBDPrimitives()
 	switchDatabase(CC_TYPES::DB_BUILDING);
 
 	if (!m_pbdrGeoPanel) {
-		m_pbdrGeoPanel = new bdr3DGeometryEditPanel(this);
+		m_pbdrGeoPanel = new bdr3DGeometryEditPanel(this, m_pickingHub);
 		connect(m_pbdrGeoPanel, &ccOverlayDialog::processFinished, this, &MainWindow::deactiveBDPrimitives);
 	}
 
