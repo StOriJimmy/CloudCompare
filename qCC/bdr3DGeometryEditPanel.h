@@ -16,6 +16,7 @@
 class ccPolyline;
 class ccPointCloud;
 class ccGLWindow;
+class ccPlane;
 class QToolButton;
 class ccPickingHub;
 class bdrPlaneEditorDlg;

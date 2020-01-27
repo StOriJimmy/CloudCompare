@@ -264,8 +264,8 @@ void bdr3DGeometryEditPanel::updateWithActive(ccHObject * obj)
 		if (box) {
 			CCVector3 dim = box->getDimensions();
 			m_UI->boxDxDoubleSpinBox->setValue(dim.x);
-			m_UI->boxDxDoubleSpinBox->setValue(dim.y);
-			m_UI->boxDxDoubleSpinBox->setValue(dim.z);
+			m_UI->boxDyDoubleSpinBox->setValue(dim.y);
+			m_UI->boxDzDoubleSpinBox->setValue(dim.z);
 
 			m_UI->geometryTabWidget->setCurrentIndex(GEO_BOX);
 		}
