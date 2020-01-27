@@ -54,6 +54,35 @@ ccGenericPrimitive* ccTorus::clone() const
 	return finishCloneJob(new ccTorus(m_insideRadius,m_outsideRadius,m_angle_rad,m_rectSection,m_rectSectionHeight,&m_transformation,getName(),m_drawPrecision));
 }
 
+void ccTorus::setInsideRadius(PointCoordinateType r)
+{
+	m_insideRadius = r;
+	buildUp();
+	applyTransformationToVertices();
+}
+
+void ccTorus::setOutsideRadius(PointCoordinateType r)
+{
+	m_outsideRadius = r;
+	buildUp();
+	applyTransformationToVertices();
+}
+
+void ccTorus::setCylinder(bool rect, PointCoordinateType height)
+{
+	m_rectSection = rect;
+	m_rectSectionHeight = height;
+	buildUp();
+	applyTransformationToVertices();
+}
+
+void ccTorus::setAngle(double angle)
+{
+	m_angle_rad = angle;
+	buildUp();
+	applyTransformationToVertices();
+}
+
 bool ccTorus::buildUp()
 {
 	if (m_drawPrecision < MIN_DRAWING_PRECISION)

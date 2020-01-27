@@ -67,6 +67,19 @@ public:
 	virtual bool hasDrawingPrecision() const override { return true; }
 	virtual ccGenericPrimitive* clone() const override;
 
+	PointCoordinateType getInsideRadius() const { return m_insideRadius; }
+	void setInsideRadius(PointCoordinateType r);
+
+	PointCoordinateType getOutsideRadius() const { return m_outsideRadius; }
+	void setOutsideRadius(PointCoordinateType r);
+
+	bool isCylinder() { return m_rectSection; }
+	PointCoordinateType getCylinderHeight() const { return m_rectSectionHeight; }
+	void setCylinder(bool rect, PointCoordinateType height);
+
+	double getAngle() const { return m_angle_rad; }
+	void setAngle(double angle);
+
 protected:
 
 	//inherited from ccGenericPrimitive

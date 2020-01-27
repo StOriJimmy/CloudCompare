@@ -83,6 +83,9 @@ public:
 	**/
 	virtual void setTopRadius(PointCoordinateType radius);
 
+	virtual void getSnout(PointCoordinateType & x, PointCoordinateType & y);
+	virtual void setSnout(PointCoordinateType x, PointCoordinateType y);
+
 	//! Returns cone axis bottom end point after applying transformation
 	virtual CCVector3 getBottomCenter() const;
 	//! Returns cone axis top end point after applying transformation

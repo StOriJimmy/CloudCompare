@@ -50,6 +50,27 @@ ccGenericPrimitive* ccDish::clone() const
 	return finishCloneJob(new ccDish(m_baseRadius,m_height,m_secondRadius,&m_transformation,getName(),m_drawPrecision));
 }
 
+void ccDish::getRadius(PointCoordinateType & r1, PointCoordinateType & r2) const
+{
+	r1 = m_baseRadius;
+	r2 = m_secondRadius;
+}
+
+void ccDish::setRadius(PointCoordinateType r1, PointCoordinateType r2)
+{
+	m_baseRadius = r1;
+	m_secondRadius = r2;
+	buildUp();
+	applyTransformationToVertices();
+}
+
+void ccDish::setHeight(PointCoordinateType h)
+{
+	m_height = h;
+	buildUp();
+	applyTransformationToVertices();
+}
+
 bool ccDish::buildUp()
 {
 	if (m_drawPrecision < MIN_DRAWING_PRECISION)
