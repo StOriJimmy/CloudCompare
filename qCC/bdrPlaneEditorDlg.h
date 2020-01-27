@@ -59,7 +59,9 @@ public:
 public slots:
 
 	void pickPointAsCenter(bool);
+	void onCenterChanged(double);
 	void onNormalChanged(double);
+	void onDimensionChanged(double);
 	void saveParamsAndAccept();
 	void restore();
 

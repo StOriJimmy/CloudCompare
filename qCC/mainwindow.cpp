@@ -1841,6 +1841,11 @@ ccDBRoot * MainWindow::db(CC_TYPES::DB_SOURCE tp)
 	return nullptr;
 }
 
+ccHObject * MainWindow::getRoot(CC_TYPES::DB_SOURCE tp)
+{
+	return db(tp)->getRootEntity();
+}
+
 ccPointCloud* MainWindow::askUserToSelectACloud(ccHObject* defaultCloudEntity/*=0*/, QString inviteMessage/*=QString()*/)
 {
 	ccHObject::Container clouds;

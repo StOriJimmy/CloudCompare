@@ -62,9 +62,17 @@ bdrPlaneEditorDlg::bdrPlaneEditorDlg(ccPickingHub* pickingHub, QWidget* parent)
 	czAxisDoubleSpinBox->setValue(s_center.z);
 
 	connect(pickCenterToolButton,	SIGNAL(toggled(bool)),			this, SLOT(pickPointAsCenter(bool)));
+
+	connect(cxAxisDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onCenterChanged(double)));
+	connect(cyAxisDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onCenterChanged(double)));
+	connect(czAxisDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onCenterChanged(double)));
+
 	connect(nxDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
 	connect(nyDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
 	connect(nzDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
+
+	connect(wDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onDimensionChanged(double)));
+	connect(hDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onDimensionChanged(double)));
 
 	connect(previewCheckBox, &QAbstractButton::clicked, this, &bdrPlaneEditorDlg::preview);
 	connect(restoreToolButton, &QAbstractButton::clicked, this, &bdrPlaneEditorDlg::restore);
@@ -108,14 +116,14 @@ void bdrPlaneEditorDlg::updateParams()
 void bdrPlaneEditorDlg::saveParamsAndAccept()
 {
 	//save semi-persistent parameters
-	if (!m_associatedPlane)
-	{
-		s_width = wDoubleSpinBox->value();
-		s_height = hDoubleSpinBox->value();
-		s_center.x = cxAxisDoubleSpinBox->value();
-		s_center.y = cyAxisDoubleSpinBox->value();
-		s_center.z = czAxisDoubleSpinBox->value();
-	}
+// 	if (!m_associatedPlane)
+// 	{
+// 		s_width = wDoubleSpinBox->value();
+// 		s_height = hDoubleSpinBox->value();
+// 		s_center.x = cxAxisDoubleSpinBox->value();
+// 		s_center.y = cyAxisDoubleSpinBox->value();
+// 		s_center.z = czAxisDoubleSpinBox->value();
+// 	}
 
 	//edition mode
 	if (m_associatedPlane)
@@ -173,15 +181,31 @@ void bdrPlaneEditorDlg::setDisplayState(DisplayState state)
 	default:
 		break;
 	}
+	if (m_associatedPlane && m_associatedPlane->getPlane()) {
+		m_associatedPlane->getPlane()->redrawDisplay();
+	}
+}
 
-	
+void bdrPlaneEditorDlg::onCenterChanged(double)
+{
+	if (previewCheckBox->isChecked()) {
+		updateParams();
+	}
 }
 
 void bdrPlaneEditorDlg::onNormalChanged(double)
 {
 	CCVector3 Nd = getNormal();
 	Nd.normalize();
+	setNormal(Nd);
 
+	if (previewCheckBox->isChecked()) {
+		updateParams();
+	}
+}
+
+void bdrPlaneEditorDlg::onDimensionChanged(double)
+{
 	if (previewCheckBox->isChecked()) {
 		updateParams();
 	}
@@ -459,6 +483,8 @@ void bdrPlaneEditorDlg::initWithPlane(ccPlanarEntityInterface* plane)
 	m_planePara.normal = N;
 	m_planePara.center = C;
 	//m_planePara.size = CCVector2(plane->getXWidth(), plane->getYWidth());
+
+	setDisplayState(m_display_state);
 }
 
 void bdrPlaneEditorDlg::disconnectPlane()

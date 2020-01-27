@@ -84,7 +84,7 @@ void ccPlane::drawMeOnly(CC_DRAW_CONTEXT& context)
 		ccGenericPrimitive::drawMeOnly(context);
 
 		//show normal vector
-		if (MACRO_Draw3D(context) && (normalVectorIsShown() || getNormalEditState()))
+		if (MACRO_Draw3D(context) && normalVectorIsShown())
 		{
 			PointCoordinateType scale = sqrt(m_xWidth * m_yWidth) / 2; //DGM: highly empirical ;)
 			glDrawNormal(context, getUniqueIDForDisplay(), m_transformation.getTranslationAsVec3D(), scale, nullptr);

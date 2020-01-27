@@ -160,13 +160,19 @@ void bdr3DGeometryEditPanel::createPlaneEditInterface()
 {
 	m_refPlanePanel = new bdrPlaneEditorDlg(m_pickingHub, this);
 	m_refPlanePanel->confirmGroupBox->setVisible(false);
+	m_refPlanePanel->setDisplayState(bdrPlaneEditorDlg::DISPLAY_PLANE);
 	m_UI->refPlaneHorizontalLayout->addWidget(m_refPlanePanel);
 
 	m_refPlane = new ccPlane("master");
 	m_refPlanePanel->updatePlane(m_refPlane);
-	m_refPlane->setColor(ccColor::lightGrey);
+	m_refPlane->setColor(ccColor::darkGrey);
+	m_refPlane->showColors(true);
+	m_refPlane->notifyColorUpdate();
+	m_refPlane->enableStippling(true);
+	m_refPlanePanel->initWithPlane(m_refPlane);
 
 	m_toolPlanePanel = new bdrPlaneEditorDlg(m_pickingHub, this);
+	m_toolPlanePanel->setDisplayState(bdrPlaneEditorDlg::DISPLAY_EDITOR);
 	m_UI->toolPlaneHorizontalLayout->addWidget(m_toolPlanePanel);
 }
 
@@ -347,7 +353,7 @@ void bdr3DGeometryEditPanel::updateWithActive(ccHObject * obj)
 	}
 	else if (obj->isA(CC_TYPES::PLANE)) {
 		ccPlane* plane = ccHObjectCaster::ToPlane(obj);
-		if (plane) {
+		if (plane && plane != m_refPlane) {
 			m_toolPlanePanel->initWithPlane(plane);
 			m_UI->geometryTabWidget->setCurrentIndex(GEO_PLANE);
 		}
@@ -458,6 +464,11 @@ bool bdr3DGeometryEditPanel::start()
 	m_associatedWin->addToOwnDB(m_segmentationPoly);
 	m_associatedWin->addToOwnDB(m_refPlane);
 	m_associatedWin->setPickingMode(ccGLWindow::NO_PICKING);
+
+	MainWindow*win = MainWindow::TheInstance();
+	if (win->getRoot(CC_TYPES::DB_BUILDING)->getChildrenNumber() == 0) {
+		m_associatedWin->zoomGlobal();
+	}
 	
 	startEditingMode(false);
 

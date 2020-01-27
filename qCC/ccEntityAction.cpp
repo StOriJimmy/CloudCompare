@@ -134,6 +134,8 @@ namespace ccEntityAction
 				else
 				{
 					ccMesh* mesh = static_cast<ccMesh*>(ent);
+					mesh->notifyColorUpdate();
+
 					ccGenericPointCloud* vertices = mesh->getAssociatedCloud();
 					if (	!vertices
 							||	!vertices->isA(CC_TYPES::POINT_CLOUD)
@@ -175,6 +177,7 @@ namespace ccEntityAction
 				
 				prim->setColor(col);
 				ent->showColors(true);
+				prim->notifyColorUpdate();
 				ent->showSF(false); //just in case
 				ent->prepareDisplayForRefresh();
 			}

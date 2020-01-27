@@ -42,7 +42,7 @@
      </property>
      <property name="icon">
       <iconset resource="../icones.qrc">
-       <normaloff>:/CC/Stocker/images/stocker/viewoff.png</normaloff>:/CC/Stocker/images/stocker/viewoff.png</iconset>
+       <normaloff>:/CC/Stocker/images/stocker/viewon.png</normaloff>:/CC/Stocker/images/stocker/viewon.png</iconset>
      </property>
      <property name="iconSize">
       <size>
