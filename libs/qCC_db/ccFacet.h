@@ -86,7 +86,7 @@ public:
 	void getEquation(CCVector3& N, PointCoordinateType& constVal) const override;
 	
 	//inherited from ccPlanarEntityInterface
-	void notifyPlanarEntityChanged(ccGLMatrix mat) override;
+	void applyPlanarEntityChange(ccGLMatrix mat) override;
 
 	//! Returns associated RMS
 	inline double getRMS() const { return m_rms; }

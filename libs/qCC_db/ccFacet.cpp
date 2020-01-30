@@ -827,7 +827,7 @@ void ccFacet::getEquation(CCVector3 & N, PointCoordinateType & constVal) const
 	constVal = m_planeEquation[3];
 }
 
-void ccFacet::notifyPlanarEntityChanged(ccGLMatrix mat)
+void ccFacet::applyPlanarEntityChange(ccGLMatrix mat)
 {
 	//rotateGL(mat);
 	applyGLTransformation_recursive(&mat);

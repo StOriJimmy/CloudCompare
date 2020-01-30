@@ -462,7 +462,8 @@ void bdrPlaneEditorDlg::initWithPlane(ccPlanarEntityInterface* plane)
 
 	setNormal(N);
 
-	onNormalChanged(0);
+	//onNormalChanged(0);
+
 	//PointCoordinateType dip = 0, dipDir = 0;
 	//ccNormalVectors::ConvertNormalToDipAndDipDir(N, dip, dipDir);
 
@@ -537,7 +538,7 @@ void bdrPlaneEditorDlg::updatePlane(ccPlanarEntityInterface* plane)
 	bool needToApplyTrans = false;
 	bool needToApplyRot = false;
 
-	needToApplyRot = (fabs(N.dot(Nd) - PC_ONE) > std::numeric_limits<PointCoordinateType>::epsilon());
+	needToApplyRot = (fabs(N.dot(Nd) - PC_ONE) > 1e-6/*std::numeric_limits<PointCoordinateType>::epsilon()*/);
 	needToApplyTrans = needToApplyRot || ((C - Cd).norm2d() != 0);
 
 	if (needToApplyTrans)
@@ -571,7 +572,7 @@ void bdrPlaneEditorDlg::updatePlane(ccPlanarEntityInterface* plane)
 	if (needToApplyRot || needToApplyTrans)
 	{
 		//plane->getPlane()->applyGLTransformation_recursive(&trans);
-		plane->notifyPlanarEntityChanged(trans);
+		plane->applyPlanarEntityChange(trans);
 
 		ccLog::Print("[Plane edit] Applied transformation matrix:");
 		ccLog::Print(trans.toString(12, ' ')); //full precision

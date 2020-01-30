@@ -85,9 +85,9 @@ protected: //members
 		bool already_in_db;
 
 		void reset() {
-			normal = CCVector3(0, 0, 0);
+			normal = CCVector3(0, 0, 1);
 			center = CCVector3(0, 0, 0);
-			size = CCVector2(0, 0);
+			size = CCVector2(1, 1);
 			already_in_db = false;
 		}
 	};

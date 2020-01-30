@@ -77,7 +77,7 @@ public:
 	//inherited from ccPlanarEntityInterface
 	CCVector3 getNormal() const override { return m_transformation.getColumnAsVec3D(2); }
 
-	void notifyPlanarEntityChanged(ccGLMatrix mat) override;
+	void applyPlanarEntityChange(ccGLMatrix mat) override;
 
 	//! Sets an image as texture
 	/** \return The created material (if successful)

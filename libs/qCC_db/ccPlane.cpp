@@ -446,7 +446,7 @@ void ccPlane::flip()
 	updateRepresentation();
 }
 
-void ccPlane::notifyPlanarEntityChanged(ccGLMatrix mat)
+void ccPlane::applyPlanarEntityChange(ccGLMatrix mat)
 {
 	applyGLTransformation_recursive(&mat);
 }
