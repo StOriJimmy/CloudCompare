@@ -454,8 +454,6 @@ bool bdr3DGeometryEditPanel::start()
 	{
 		return false;
 	}
-
-	ccBBox box, total_box;
 	int i(0);
 	for (ccHObject* entity : m_ModelObjs) {
 		if (entity->isA(CC_TYPES::ST_BUILDING)) {
@@ -464,40 +462,9 @@ bool bdr3DGeometryEditPanel::start()
 		}
 		else
 			continue;
-
-		if (i == 0) {
-			box = entity->getBB_recursive();
-			total_box += box;
-		}
-
 		++i;
 	}
-	if (!box.isValid()) {
-		box = total_box;
-	}
-	if (box.isValid()) {
-		ccGLMatrix trans;
-		trans.setTranslation(-(box.P(0) + box.P(3)) / 2);
-		ccGLMatrix rotation;
-		//special case: plane parallel to XY
-		CCVector3 N = m_refPlane->getNormal();
-		CCVector3 Nd(0, 0, 1);
-		if (fabs(N.z) > PC_ONE - std::numeric_limits<PointCoordinateType>::epsilon()) {
-			PointCoordinateType dip, dipDir;
-			ccNormalVectors::ConvertNormalToDipAndDipDir(Nd, dip, dipDir);
-			ccGLMatrix rotX; rotX.initFromParameters(-dip * CC_DEG_TO_RAD, CCVector3(1, 0, 0), CCVector3(0, 0, 0)); //plunge
-			ccGLMatrix rotZ; rotZ.initFromParameters(dipDir * CC_DEG_TO_RAD, CCVector3(0, 0, -1), CCVector3(0, 0, 0));
-			rotation = rotZ * rotX;
-		}
-		else //general case
-		{
-			rotation = ccGLMatrix::FromToRotation(N, Nd);
-		}
-		trans = rotation * trans;
-		m_refPlane->applyGLTransformation_recursive(&trans);
-		m_refPlane->setXWidth((box.P(0) - box.P(1)).norm(), false);
-		m_refPlane->setYWidth((box.P(0) - box.P(2)).norm(), true);
-	}
+	if (!m_ModelObjs.empty()) m_UI->currentModelComboBox->setCurrentIndex(0);
 
 	m_segmentationPoly->clear();
 	m_polyVertices->clear();
@@ -999,10 +966,20 @@ void bdr3DGeometryEditPanel::makeFreeMesh()
 
 void bdr3DGeometryEditPanel::onCurrentModelChanged(QString name)
 {
+	if (!m_refPlane->isDisplayedIn(m_associatedWin)) {
+		return;
+	}
 	ccBBox box;
 	for (ccHObject* obj : m_ModelObjs) {
-		if (obj->getName() == name)
+		if (obj->getName() == name) {
 			box = obj->getBB_recursive(false);
+			break;
+		}
+	}
+	if (!box.isValid()) {
+		for (ccHObject* obj : m_ModelObjs) {
+			box += obj->getBB_recursive(false);
+		}
 	}
 
 	if (box.isValid()) {
@@ -1027,6 +1004,7 @@ void bdr3DGeometryEditPanel::onCurrentModelChanged(QString name)
 		m_refPlane->applyGLTransformation_recursive(&trans);
 		m_refPlane->setXWidth((box.P(0) - box.P(1)).norm(), false);
 		m_refPlane->setYWidth((box.P(0) - box.P(2)).norm(), true);
+		m_refPlanePanel->initWithPlane(m_refPlane);
 	}
 }
 
