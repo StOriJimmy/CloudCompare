@@ -459,12 +459,13 @@ bool bdr3DGeometryEditPanel::start()
 		if (entity->isA(CC_TYPES::ST_BUILDING)) {
 			m_UI->currentModelComboBox->addItem(entity->getName());
 			m_UI->currentModelComboBox->setItemIcon(i, QIcon(QStringLiteral(":/CC/Stocker/images/stocker/building.png")));
+			//m_UI->currentModelComboBox->setIconSize(QSize(16, 16));
 		}
 		else
 			continue;
 		++i;
 	}
-	if (!m_ModelObjs.empty()) m_UI->currentModelComboBox->setCurrentIndex(0);
+	m_UI->currentModelComboBox->setCurrentIndex(-1);
 
 	m_segmentationPoly->clear();
 	m_polyVertices->clear();
@@ -475,6 +476,8 @@ bool bdr3DGeometryEditPanel::start()
 	m_associatedWin->addToOwnDB(m_segmentationPoly);
 	m_associatedWin->addToOwnDB(m_refPlane);
 	m_associatedWin->setPickingMode(ccGLWindow::NO_PICKING);
+
+	if (!m_ModelObjs.empty()) m_UI->currentModelComboBox->setCurrentIndex(0);
 
 	MainWindow*win = MainWindow::TheInstance();
 	if (win->getRoot(CC_TYPES::DB_BUILDING)->getChildrenNumber() == 0) {
@@ -984,7 +987,7 @@ void bdr3DGeometryEditPanel::onCurrentModelChanged(QString name)
 
 	if (box.isValid()) {
 		ccGLMatrix trans;
-		trans.setTranslation(-(box.P(0) + box.P(3)) / 2);
+		trans.setTranslation((box.P(0) + box.P(3)) / 2);
 		ccGLMatrix rotation;
 		//special case: plane parallel to XY
 		CCVector3 N = m_refPlane->getNormal();
