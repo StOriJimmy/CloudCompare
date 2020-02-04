@@ -101,6 +101,13 @@ namespace CCLib
 					P.z >= m_bbMin.z && P.z <= m_bbMax.z);
 		}
 
+		/*	   6_______7
+			  /|     /|
+			4/_|____/5|
+			| 2     | /3
+			|/______|/
+			0       1
+		*/
 		inline CCVector3 P(const int & i) const {
 			return CCVector3(
 				m_bbMin.x + (i % 2) * (m_bbMax.x - m_bbMin.x),

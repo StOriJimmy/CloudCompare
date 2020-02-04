@@ -43,8 +43,6 @@
 //System
 #include <assert.h>
 
-static CC_TYPES::DB_SOURCE s_dbSource;
-
 bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pickingHub)
 	: ccOverlayDialog(parent, Qt::Tool | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowStaysOnTopHint)
 	, m_UI(new Ui::bdr3DGeometryEditPanel )
@@ -95,6 +93,8 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 	connect(m_UI->exitButton,					&QToolButton::clicked, this, &bdr3DGeometryEditPanel::exit);
 
 	connect(m_UI->freeMeshToolButton,			&QToolButton::clicked, this, &bdr3DGeometryEditPanel::makeFreeMesh);
+
+	connect(m_UI->currentModelComboBox,			SIGNAL(currentIndexChanged(QString)), this, SLOT(onCurrentModelChanged(QString)));
 
 	m_UI->geometryTabWidget->tabBar()->hide();
 	
@@ -455,6 +455,50 @@ bool bdr3DGeometryEditPanel::start()
 		return false;
 	}
 
+	ccBBox box, total_box;
+	int i(0);
+	for (ccHObject* entity : m_ModelObjs) {
+		if (entity->isA(CC_TYPES::ST_BUILDING)) {
+			m_UI->currentModelComboBox->addItem(entity->getName());
+			m_UI->currentModelComboBox->setItemIcon(i, QIcon(QStringLiteral(":/CC/Stocker/images/stocker/building.png")));
+		}
+		else
+			continue;
+
+		if (i == 0) {
+			box = entity->getBB_recursive();
+			total_box += box;
+		}
+
+		++i;
+	}
+	if (!box.isValid()) {
+		box = total_box;
+	}
+	if (box.isValid()) {
+		ccGLMatrix trans;
+		trans.setTranslation(-(box.P(0) + box.P(3)) / 2);
+		ccGLMatrix rotation;
+		//special case: plane parallel to XY
+		CCVector3 N = m_refPlane->getNormal();
+		CCVector3 Nd(0, 0, 1);
+		if (fabs(N.z) > PC_ONE - std::numeric_limits<PointCoordinateType>::epsilon()) {
+			PointCoordinateType dip, dipDir;
+			ccNormalVectors::ConvertNormalToDipAndDipDir(Nd, dip, dipDir);
+			ccGLMatrix rotX; rotX.initFromParameters(-dip * CC_DEG_TO_RAD, CCVector3(1, 0, 0), CCVector3(0, 0, 0)); //plunge
+			ccGLMatrix rotZ; rotZ.initFromParameters(dipDir * CC_DEG_TO_RAD, CCVector3(0, 0, -1), CCVector3(0, 0, 0));
+			rotation = rotZ * rotX;
+		}
+		else //general case
+		{
+			rotation = ccGLMatrix::FromToRotation(N, Nd);
+		}
+		trans = rotation * trans;
+		m_refPlane->applyGLTransformation_recursive(&trans);
+		m_refPlane->setXWidth((box.P(0) - box.P(1)).norm(), false);
+		m_refPlane->setYWidth((box.P(0) - box.P(2)).norm(), true);
+	}
+
 	m_segmentationPoly->clear();
 	m_polyVertices->clear();
 	allowExecutePolyline(false);
@@ -481,12 +525,13 @@ bool bdr3DGeometryEditPanel::start()
 
 void bdr3DGeometryEditPanel::removeAllEntities(bool unallocateVisibilityArrays)
 {
-	for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
+	for (QSet<ccHObject*>::const_iterator p = m_ModelObjs.constBegin(); p != m_ModelObjs.constEnd(); ++p)
 	{
 		
 	}
 	
-	m_toSegment.clear();
+	m_ModelObjs.clear();
+	m_UI->currentModelComboBox->clear();
 }
 
 void bdr3DGeometryEditPanel::setActiveItem(std::vector<ccHObject*> active)
@@ -498,6 +543,36 @@ void bdr3DGeometryEditPanel::setActiveItem(std::vector<ccHObject*> active)
 
 	if (m_actives.size() == 1 && m_actives.front()) {
 		updateWithActive(m_actives.front());
+	}
+}
+
+void bdr3DGeometryEditPanel::setModelObjects(std::vector<ccHObject*> builds)
+{
+	if (!m_ModelObjs.empty()) {
+		removeAllEntities(true);
+	}
+	m_ModelObjs.clear();
+
+	for (ccHObject* entity : builds) {
+		bool name_exist = false;
+		for (ccHObject* e : m_ModelObjs) {
+			if (e->getName() == entity->getName()) {
+				name_exist = true;
+				break;
+			}
+		}
+		if (name_exist) {
+			continue;
+		}
+		
+		if (entity->isA(CC_TYPES::ST_BUILDING))	{
+			
+		}
+		else {
+			continue;
+		}
+
+		m_ModelObjs.insert(entity);
 	}
 }
 
@@ -538,137 +613,18 @@ void bdr3DGeometryEditPanel::reset()
 // 	loadSaveToolButton->setDefaultAction(actionUseExistingPolyline);
 }
 
-bool bdr3DGeometryEditPanel::addEntity(ccHObject* entity)
+void bdr3DGeometryEditPanel::exit()
 {
-	//FIXME
-	/*if (entity->isLocked())
-		ccLog::Warning(QString("Can't use entity [%1] cause it's locked!").arg(entity->getName()));
-	else */
-	if (!entity->isDisplayedIn(m_associatedWin))
-	{
-		ccLog::Warning(QString("[Graphical Segmentation Tool] Entity [%1] is not visible in the active 3D view!").arg(entity->getName()));
-	}
-
-	bool result = false;
-	if (entity->isKindOf(CC_TYPES::POINT_CLOUD))
-	{
-		ccGenericPointCloud* cloud = ccHObjectCaster::ToGenericPointCloud(entity);
-		//detect if this cloud is in fact a vertex set for at least one mesh
-		{
-			//either the cloud is the child of its parent mesh
-			if (cloud->getParent() && cloud->getParent()->isKindOf(CC_TYPES::MESH) && ccHObjectCaster::ToGenericMesh(cloud->getParent())->getAssociatedCloud() == cloud)
-			{
-				//ccLog::Warning(QString("[Graphical Segmentation Tool] Can't segment mesh vertices '%1' directly! Select its parent mesh instead!").arg(entity->getName()));
-				return false;
-			}
-			//or the parent of its child mesh!
-			ccHObject::Container meshes;
-			if (cloud->filterChildren(meshes,false,CC_TYPES::MESH) != 0)
-			{
-				for (unsigned i=0; i<meshes.size(); ++i)
-					if (ccHObjectCaster::ToGenericMesh(meshes[i])->getAssociatedCloud() == cloud)
-					{
-						//ccLog::Warning(QString("[Graphical Segmentation Tool] Can't segment mesh vertices '%1' directly! Select its child mesh instead!").arg(entity->getName()));
-						return false;
-					}
-			}
-		}
-
-		{
-			//cloud->hasScalarFields()
-			//cloud->geScalarValueColor()
-			
-			ccPointCloud* cloudObj = ccHObjectCaster::ToPointCloud(cloud);
-			if (cloudObj) {
-				int class_index = cloudObj->getScalarFieldIndexByName("classification");
-				if (class_index < 0) {
-					class_index = cloudObj->addScalarField("classification");
-					if (class_index < 0) return false;
-				}
-				
-				cloudObj->setCurrentScalarField(class_index);
-				cloudObj->setCurrentDisplayedScalarField(class_index);
-
-				ccScalarField* sf = static_cast<ccScalarField*>(cloudObj->getCurrentInScalarField());
-				
-				if (!sf || sf != cloudObj->getCurrentDisplayedScalarField()) {
-					return false;
-				}
-
-				sf->setMax(LAS_LABEL::LABEL_END - 1);
-				sf->setMin(0);				
-				sf->computeMinAndMax(false, false);
-				sf->setColorScale(ccColorScalesManager::GetDefaultScale(ccColorScalesManager::CLASSIFICATION));
-
-				cloud->showColors(false);
-				cloud->showSF(true);
-			}
-		}
-		
-
-		cloud->setLocked(true);
-		m_toSegment.insert(cloud);
-
-		//automatically add cloud's children
-		for (unsigned i=0; i<entity->getChildrenNumber(); ++i)
-			result |= addEntity(entity->getChild(i));
-	}
-	else if (0)//(entity->isKindOf(CC_TYPES::MESH))
-	{
-		if (entity->isKindOf(CC_TYPES::PRIMITIVE))
-		{
-			ccLog::Warning("[bdr3DGeometryEditPanel] Can't segment primitives yet! Sorry...");
-			return false;
-		}
-		if (entity->isKindOf(CC_TYPES::SUB_MESH))
-		{
-			ccLog::Warning("[bdr3DGeometryEditPanel] Can't segment sub-meshes! Select the parent mesh...");
-			return false;
-		}
-		else
-		{
-			ccGenericMesh* mesh = ccHObjectCaster::ToGenericMesh(entity);
-
-			//first, we must check that there's no mesh and at least one of its sub-mesh mixed in the current selection!
-			for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
-			{
-				if ((*p)->isKindOf(CC_TYPES::MESH))
-				{
-					ccGenericMesh* otherMesh = ccHObjectCaster::ToGenericMesh(*p);
-					if (otherMesh->getAssociatedCloud() == mesh->getAssociatedCloud())
-					{
-						if ((otherMesh->isA(CC_TYPES::SUB_MESH) && mesh->isA(CC_TYPES::MESH))
-							|| (otherMesh->isA(CC_TYPES::MESH) && mesh->isA(CC_TYPES::SUB_MESH)))
-						{
-							ccLog::Warning("[Graphical Segmentation Tool] Can't mix sub-meshes with their parent mesh!");
-							return false;
-						}
-					}
-				}
-			}
-
-			mesh->getAssociatedCloud()->resetVisibilityArray();
-			m_toSegment.insert(mesh);
-			result = true;
+	if (m_somethingHasChanged) {
+		// TODO: ask for reset
+		if (0) {
+			reset();
+			m_deleteHiddenParts = false;
+			stop(false);
+			return;
 		}
 	}
-	else if (entity->isA(CC_TYPES::HIERARCHY_OBJECT))
-	{
-		//automatically add entity's children
-		for (unsigned i=0;i<entity->getChildrenNumber();++i)
-			result |= addEntity(entity->getChild(i));
-	}
-
-	if (result && getNumberOfValidEntities() == 1) {
-		s_dbSource = entity->getDBSourceType();
-	}
-
-	return result;
-}
-
-unsigned bdr3DGeometryEditPanel::getNumberOfValidEntities() const
-{
-	return static_cast<unsigned>(m_toSegment.size());
+	stop(true);
 }
 
 void bdr3DGeometryEditPanel::updatePolyLine(int x, int y, Qt::MouseButtons buttons)
@@ -900,71 +856,6 @@ void bdr3DGeometryEditPanel::closePolyLine(int, int)
  	}
 }
 
-void bdr3DGeometryEditPanel::segment(bool keepPointsInside)
-{
-	if (!m_associatedWin)
-		return;
-
-	if (!m_segmentationPoly)
-	{
-		ccLog::Error("No polyline defined!");
-		return;
-	}
-
-	if (!m_segmentationPoly->isClosed())
-	{
-		ccLog::Error("Define and/or close the segmentation polygon first! (right click to close)");
-		return;
-	}
-
-	//viewing parameters
-	ccGLCameraParameters camera;
-	m_associatedWin->getGLCameraParameters(camera);
-	const double half_w = camera.viewport[2] / 2.0;
-	const double half_h = camera.viewport[3] / 2.0;
-
-	//for each selected entity
-	for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
-	{
-		ccPointCloud* cloud = ccHObjectCaster::ToPointCloud(*p);
-		if (!cloud) continue;
-		assert(cloud);
-
-		ccGenericPointCloud::VisibilityTableType& visibilityArray = cloud->getTheVisibilityArray();
-		assert(!visibilityArray.empty());
-
-		unsigned cloudSize = cloud->size();
-
-		//we project each point and we check if it falls inside the segmentation polyline
-#if defined(_OPENMP)
-#pragma omp parallel for
-#endif
-		for (int i = 0; i < static_cast<int>(cloudSize); ++i)
-		{
-			
-			if (visibilityArray[i] == POINT_VISIBLE)
-			{
-				const CCVector3* P3D = cloud->getPoint(i);
-
-				CCVector3d Q2D;
-				bool pointInFrustrum = camera.project(*P3D, Q2D, true);
-
-				CCVector2 P2D(	static_cast<PointCoordinateType>(Q2D.x-half_w),
-								static_cast<PointCoordinateType>(Q2D.y-half_h) );
-				
-				bool pointInside = pointInFrustrum && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
-
-				visibilityArray[i] = (keepPointsInside != pointInside ? POINT_HIDDEN : POINT_VISIBLE);
-
-			}
-		}
-	}
-
-	m_somethingHasChanged = true;
- 	m_UI->razButton->setEnabled(true);
-	startEditingMode(false);
-}
-
 void bdr3DGeometryEditPanel::startEditingMode(bool state)
 {
 	assert(m_polyVertices && m_segmentationPoly);
@@ -1106,225 +997,57 @@ void bdr3DGeometryEditPanel::makeFreeMesh()
 {
 }
 
-void bdr3DGeometryEditPanel::setLabel()
+void bdr3DGeometryEditPanel::onCurrentModelChanged(QString name)
 {
-	if (!m_associatedWin)
-		return;
-
-	if (!m_segmentationPoly)
-	{
-		ccLog::Error("No polyline defined!");
-		return;
+	ccBBox box;
+	for (ccHObject* obj : m_ModelObjs) {
+		if (obj->getName() == name)
+			box = obj->getBB_recursive(false);
 	}
 
-	if (!m_segmentationPoly->isClosed())
-	{
-		ccLog::Error("Define and/or close the segmentation polygon first! (right click to close)");
-		return;
-	}
-
-	//viewing parameters
-	ccGLCameraParameters camera;
-	m_associatedWin->getGLCameraParameters(camera);
-	const double half_w = camera.viewport[2] / 2.0;
-	const double half_h = camera.viewport[3] / 2.0;
-
-	int label_index = m_UI->typeComboBox->currentIndex();
-	
-	//for each selected entity
-	for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
-	{
-		ccPointCloud* cloud = ccHObjectCaster::ToPointCloud(*p);
-		if (!cloud) continue;
-		assert(cloud);
-
-// 		ccGenericPointCloud::VisibilityTableType& visibilityArray = cloud->getTheVisibilityArray();
-// 		assert(!visibilityArray.empty());
-
-		unsigned cloudSize = cloud->size();
-
-		//we project each point and we check if it falls inside the segmentation polyline
-#if defined(_OPENMP)
-#pragma omp parallel for
-#endif
-		for (int i = 0; i < static_cast<int>(cloudSize); ++i)
+	if (box.isValid()) {
+		ccGLMatrix trans;
+		trans.setTranslation(-(box.P(0) + box.P(3)) / 2);
+		ccGLMatrix rotation;
+		//special case: plane parallel to XY
+		CCVector3 N = m_refPlane->getNormal();
+		CCVector3 Nd(0, 0, 1);
+		if (fabs(N.z) > PC_ONE - std::numeric_limits<PointCoordinateType>::epsilon()) {
+			PointCoordinateType dip, dipDir;
+			ccNormalVectors::ConvertNormalToDipAndDipDir(Nd, dip, dipDir);
+			ccGLMatrix rotX; rotX.initFromParameters(-dip * CC_DEG_TO_RAD, CCVector3(1, 0, 0), CCVector3(0, 0, 0)); //plunge
+			ccGLMatrix rotZ; rotZ.initFromParameters(dipDir * CC_DEG_TO_RAD, CCVector3(0, 0, -1), CCVector3(0, 0, 0));
+			rotation = rotZ * rotX;
+		}
+		else //general case
 		{
-
-			//if (visibilityArray[i] == POINT_VISIBLE)
-			{
-				const CCVector3* P3D = cloud->getPoint(i);
-
-				CCVector3d Q2D;
-				bool pointInFrustrum = camera.project(*P3D, Q2D, true);
-
-				CCVector2 P2D(static_cast<PointCoordinateType>(Q2D.x - half_w),
-					static_cast<PointCoordinateType>(Q2D.y - half_h));
-
-				bool pointInside = pointInFrustrum && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
-
-				//visibilityArray[i] = (keepPointsInside != pointInside ? POINT_HIDDEN : POINT_VISIBLE);
-
-				if (pointInside) {
-					cloud->setPointScalarValue(i, label_index);
-				}
-
-			}
+			rotation = ccGLMatrix::FromToRotation(N, Nd);
 		}
-		cloud->notifyGeometryUpdate();
-		cloud->prepareDisplayForRefresh();
+		trans = rotation * trans;
+		m_refPlane->applyGLTransformation_recursive(&trans);
+		m_refPlane->setXWidth((box.P(0) - box.P(1)).norm(), false);
+		m_refPlane->setYWidth((box.P(0) - box.P(2)).norm(), true);
 	}
-
-	m_somethingHasChanged = true;
-	m_UI->razButton->setEnabled(true);
-	startEditingMode(false);
-}
-
-void bdr3DGeometryEditPanel::createEntity()
-{
-	if (!m_associatedWin)
-		return;
-
-	if (!m_segmentationPoly)
-	{
-		ccLog::Error("No polyline defined!");
-		return;
-	}
-
-	if (!m_segmentationPoly->isClosed())
-	{
-		ccLog::Error("Define and/or close the segmentation polygon first! (right click to close)");
-		return;
-	}
-
-// 	if (!m_destination) {
-// 		return;
-// 	}
-
-	//viewing parameters
-	ccGLCameraParameters camera;
-	m_associatedWin->getGLCameraParameters(camera);
-	const double half_w = camera.viewport[2] / 2.0;
-	const double half_h = camera.viewport[3] / 2.0;
-
-	//for each selected entity
-	for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
-	{
-		ccGenericPointCloud* cloud = ccHObjectCaster::ToGenericPointCloud(*p);
-		assert(cloud);
-
-//		ccGenericPointCloud::VisibilityTableType& visibilityArray = cloud->getTheVisibilityArray();
-
-		unsigned cloudSize = cloud->size();
-		ccHObject* destination = nullptr;
-		if (m_destination) destination = m_destination;
-		else {
-			destination = GetRootBDBase(*p);
-		}
-		if (!destination) continue;
-		m_changed_baseobj.insert(destination);
-
-		//! create a new point cloud
-		
-		ccPointCloud* new_ent = new ccPointCloud();
-		new_ent->setGlobalScale(cloud->getGlobalScale());
-		new_ent->setGlobalShift(cloud->getGlobalShift());
-
-		//we project each point and we check if it falls inside the segmentation polyline
-// #if defined(_OPENMP)
-// #pragma omp parallel for
-// #endif
-		for (int i = 0; i < static_cast<int>(cloudSize); ++i)
-		{
-// 			if (visibilityArray.size() == cloudSize && visibilityArray[i] != POINT_VISIBLE) {
-// 				continue;
-// 			}
-			const CCVector3* P3D = cloud->getPoint(i);
-
-			CCVector3d Q2D;
-			bool pointInFrustrum = camera.project(*P3D, Q2D, true);
-
-			CCVector2 P2D(static_cast<PointCoordinateType>(Q2D.x - half_w),
-				static_cast<PointCoordinateType>(Q2D.y - half_h));
-
-			bool pointInside = pointInFrustrum && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
-
-			if (!pointInside) { continue; }
-
-			new_ent->addPoint(*P3D);
-		}
-		new_ent->setRGBColor(ccColor::Generator::Random());
-		new_ent->showColors(true);
-		new_ent->setPointSize(2);
-		
-		bool created = false;
-		switch (m_UI->typeComboBox->currentIndex())
-		{
-		case LAS_LABEL::Building:
-		{
-			int number = GetMaxNumberExcludeChildPrefix(destination, BDDB_BUILDING_PREFIX);
-			new_ent->setName(BuildingNameByNumber(number + 1));
-
-			if (new_ent->size() > 15) {
-				ccHObject* new_building_folder = new ccHObject(new_ent->getName() + BDDB_ORIGIN_CLOUD_SUFFIX);
-				new_building_folder->addChild(new_ent);
-				StBuilding* new_building_obj = new StBuilding(new_ent->getName());
-				new_building_obj->addChild(new_building_folder);
-				new_building_obj->setDisplay_recursive(destination->getDisplay());
-				new_building_obj->setDBSourceType_recursive(destination->getDBSourceType());
-
-				destination->addChild(new_building_obj);
-				MainWindow::TheInstance()->addToDB(new_building_obj, destination->getDBSourceType());
-				created = true;
-			}
-			
-			break;
-		}
-		default:
-			break;
-		}
-		
-		if (!created && new_ent) {
-			delete new_ent;
-			new_ent = nullptr;
-			continue;
-		}
-		m_somethingHasChanged = true;
-	}
-
-	m_UI->razButton->setEnabled(true);
-	startEditingMode(false);
-}
-
-void bdr3DGeometryEditPanel::exit()
-{
-	if (m_somethingHasChanged) {
-		// TODO: ask for reset
-		if (0) {
-			reset();
-			m_deleteHiddenParts = false;
-			stop(false);
-			return;
-		}
-	}
-	stop(true);
 }
 
 //////////////////////////////////////////////////////////////////////////
 
 void bdr3DGeometryEditPanel::echoBlockTopHeight(double v)
 {
+	//if (m_current_editor >= GEO_END) return;
 	for (ccHObject* active : m_actives) {
 		StBlock* block = ccHObjectCaster::ToStBlock(active);
-		block->setTopHeight(v);
+		if (block) block->setTopHeight(v);
 	}
 	m_associatedWin->redraw();
 }
 
 void bdr3DGeometryEditPanel::echoBlockBottomHeight(double v)
 {
+	//if (m_current_editor >= GEO_END) return;
 	for (ccHObject* active : m_actives) {
 		StBlock* block = ccHObjectCaster::ToStBlock(active);
-		block->setBottomHeight(v);
+		if (block) block->setBottomHeight(v);
 	}
 	m_associatedWin->redraw();
 }

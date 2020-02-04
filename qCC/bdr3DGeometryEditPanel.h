@@ -20,6 +20,7 @@ class ccPlane;
 class QToolButton;
 class ccPickingHub;
 class bdrPlaneEditorDlg;
+class BDBaseHObject;
 
 #define GEO_ROUND_FLAG QStringLiteral("ROUND")
 
@@ -57,16 +58,6 @@ public:
 	//! Destructor
 	~bdr3DGeometryEditPanel() override;
 
-	//! Adds an entity (and/or its children) to the 'to be segmented' pool
-	/** Warning: some entities may be rejected if they are
-		locked, or can't be segmented this way.
-		\return whether entity has been added to the pool or not
-	**/
-	bool addEntity(ccHObject* anObject);
-	
-	//! Returns the number of entites currently in the the 'to be segmented' pool
-	unsigned getNumberOfValidEntities() const;
-
 	//! Get a pointer to the polyline that has been segmented
 	ccPolyline *getPolyLine() {return m_segmentationPoly;}
 
@@ -95,6 +86,9 @@ public:
 	void setDestinationGroup(ccHObject* obj) { m_destination = obj; }
 
 	void setActiveItem(std::vector<ccHObject*> active);
+
+	void setModelObjects(std::vector<ccHObject*> builds);
+
 private:
 	Ui::bdr3DGeometryEditPanel	*m_UI;
 
@@ -104,8 +98,6 @@ private:
 
 protected slots:
 
-	void segment(bool);
-	
 	void addPointToPolyline(int x, int y);
 	void closePolyLine(int x=0, int y=0); //arguments for compatibility with ccGlWindow::rightButtonClicked signal
 	void closeRectangle();
@@ -131,8 +123,7 @@ protected slots:
 	void startEdit();
 	void makeFreeMesh();
 
-	void setLabel();
-	void createEntity();
+	void onCurrentModelChanged(QString name);
 
 	void reset();	// reset current editing state
 	void exit();
@@ -203,6 +194,8 @@ protected:
 	ccHObject* m_destination;
 
 	QSet<ccHObject*> m_changed_baseobj;
+
+	QSet<ccHObject*> m_ModelObjs;
 
 	std::vector<ccHObject*> m_actives;
 
