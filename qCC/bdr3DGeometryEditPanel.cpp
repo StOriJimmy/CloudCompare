@@ -76,6 +76,7 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 	m_UI->wallToolButton->installEventFilter(this);
 
 	connect(m_UI->editToolButton,				&QToolButton::toggled, this, &bdr3DGeometryEditPanel::startEditingMode);
+	connect(m_UI->confirmToolButton,			&QToolButton::clicked, this, &bdr3DGeometryEditPanel::confirmCreate);
 	connect(m_UI->blockToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doBlock);
 	connect(m_UI->boxToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doBox);
 	connect(m_UI->sphereToolButton,				&QToolButton::clicked, this, &bdr3DGeometryEditPanel::doSphere);
@@ -95,6 +96,9 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 	connect(m_UI->freeMeshToolButton,			&QToolButton::clicked, this, &bdr3DGeometryEditPanel::makeFreeMesh);
 
 	connect(m_UI->currentModelComboBox,			SIGNAL(currentIndexChanged(QString)), this, SLOT(onCurrentModelChanged(QString)));
+
+	connect(m_UI->planeBasedViewToolButton, &QToolButton::clicked, this, &bdr3DGeometryEditPanel::planeBasedView);
+	connect(m_UI->objectBasedViewToolButton, &QToolButton::clicked, this, &bdr3DGeometryEditPanel::objectBasedView);
 
 	m_UI->geometryTabWidget->tabBar()->hide();
 	
@@ -125,7 +129,7 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 // 	loadSaveToolButton->setMenu(importExportMenu);
 // 
 
-	
+	m_UI->editGroupBox->setVisible(false);
 
  	m_polyVertices = new ccPointCloud("vertices");
  	m_segmentationPoly = new ccPolyline(m_polyVertices);
@@ -243,9 +247,10 @@ QToolButton* bdr3DGeometryEditPanel::getGeoToolBottun(GEOMETRY3D g)
 void bdr3DGeometryEditPanel::allowExecutePolyline(bool state)
 {
  	if (state) {
+		m_UI->confirmToolButton->setEnabled(true);
  	}
  	else {
-		
+		m_UI->confirmToolButton->setEnabled(false);
  	}
 }
 
@@ -672,7 +677,9 @@ void bdr3DGeometryEditPanel::echoSelectChange(ccHObject* obj)
 
 void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 {
-	return;
+	if (m_selection_mode != SELECT_2D) {
+		return;
+	}
 
 	if ((m_state & STARTED) == 0)
 	{
@@ -810,9 +817,15 @@ void bdr3DGeometryEditPanel::closePolyLine(int, int)
 	}
 	else
 	{
-		//remove last point!
-		m_segmentationPoly->resize(vertCount-1); //can't fail --> smaller
-		m_segmentationPoly->setClosed(true);
+		if (m_current_editor == GEO_BLOCK) {
+			//remove last point!
+			m_segmentationPoly->resize(vertCount - 1); //can't fail --> smaller
+			m_segmentationPoly->setClosed(true);
+		}
+		else if (m_current_editor == GEO_PARAPET) {
+			m_segmentationPoly->setClosed(false);
+		}
+		
 		allowExecutePolyline(true);
 	}
 
@@ -844,19 +857,20 @@ void bdr3DGeometryEditPanel::startEditingMode(bool state)
 		allowStateChange(true);
 		m_associatedWin->setInteractionMode(ccGLWindow::TRANSFORM_CAMERA());
 		m_associatedWin->setPickingMode(ccGLWindow::DEFAULT_PICKING);
-		MainWindow::TheInstance()->dispToStatus(QString("paused, press space to continue labeling"));
+		MainWindow::TheInstance()->dispToStatus(QString("paused, press space to continue editing"));
 
 		m_UI->editToolButton->setIcon(QIcon(QStringLiteral(":/CC/Stocker/images/stocker/play.png")));
 	}
 	else {
 		m_state = STARTED;
 		allowStateChange(false);
+
 		m_associatedWin->setInteractionMode(ccGLWindow::INTERACT_SHIFT_PAN | ccGLWindow::INTERACT_SEND_ALL_SIGNALS);
 		if (m_selection_mode == SELECT_2D) {
-			MainWindow::TheInstance()->dispToStatus(QString("labeling (2D), left click to add contour points, right click to close"));
+			MainWindow::TheInstance()->dispToStatus(QString("editing (2D), left click to add contour points, right click to close"));
 		}
 		else if (m_selection_mode == SELECT_3D) {
-			MainWindow::TheInstance()->dispToStatus(QString("labeling (3D), left click to add contour points, right click to close"));
+			MainWindow::TheInstance()->dispToStatus(QString("editing (3D), left click to add contour points, right click to close"));
 		}
 		m_UI->editToolButton->setIcon(QIcon(QStringLiteral(":/CC/Stocker/images/stocker/pause.png")));
 	}
@@ -869,6 +883,48 @@ void bdr3DGeometryEditPanel::startEditingMode(bool state)
 	m_associatedWin->redraw(!state);
 }
 
+void bdr3DGeometryEditPanel::confirmCreate()
+{
+	ccHObject* activeModel = nullptr;
+	for (ccHObject* o : m_ModelObjs) {
+		if (o->getName() == m_UI->currentModelComboBox->currentText()) {
+			activeModel = o;
+		}
+	}
+	if (!activeModel) {
+		pauseAll();
+		ccLog::Error("no model to create the primitive");
+	}
+
+	//viewing parameters
+	ccGLCameraParameters camera;
+	m_associatedWin->getGLCameraParameters(camera);
+	const double half_w = camera.viewport[2] / 2.0;
+	const double half_h = camera.viewport[3] / 2.0;
+
+	std::vector<CCVector3> polygon3D;
+	{
+		double refPlaneZ = 0;
+		CCVector3d Q2D;
+		camera.project(m_refPlane->getCenter(), Q2D, false);
+		refPlaneZ = Q2D.z;
+
+		polygon3D = m_segmentationPoly->getPoints(false);
+
+
+	}
+
+	// project the 2d polygon to the ref plane
+	if (m_current_editor == GEO_BLOCK) {
+		
+		ccPlane* mainPlane = new ccPlane();
+		StBlock* block = new StBlock(mainPlane, 1, CCVector3(0, 0, 1), 0, CCVector3(0, 0, -1));
+
+		activeModel->addChild(block);
+		MainWindow::TheInstance()->addToDB_Build(block);
+	}
+}
+
 void bdr3DGeometryEditPanel::pauseAll()
 {
 	startEditingMode(false);
@@ -876,6 +932,7 @@ void bdr3DGeometryEditPanel::pauseAll()
 	QToolButton* ct = getGeoToolBottun(m_current_editor);
 	if (ct) ct->setChecked(false);
 	m_current_editor = GEO_END;
+	m_associatedWin->setPerspectiveState(true, true);
 }
 
 void bdr3DGeometryEditPanel::startGeoTool(GEOMETRY3D g)
@@ -886,6 +943,19 @@ void bdr3DGeometryEditPanel::startGeoTool(GEOMETRY3D g)
 	}
 	if (!same) {
 		m_current_editor = g;
+		m_UI->createGroupBox->setEnabled(true);
+
+		if (m_current_editor == GEO_BLOCK || m_current_editor == GEO_PARAPET) {
+			if (m_refPlane) {
+				m_associatedWin->setPerspectiveState(false, true);
+				CCVector3d normal = CCVector3d::fromArray(m_refPlane->getNormal().u);
+				CCVector3d vertDir = CCVector3d::fromArray(m_refPlane->getTransformation().getColumnAsVec3D(1).u);
+				m_associatedWin->setCustomView(-normal, vertDir);
+			}
+			m_selection_mode = SELECT_2D;
+		}
+		else
+			m_selection_mode = SELECT_3D;
 	}
 }
 
@@ -966,9 +1036,24 @@ void bdr3DGeometryEditPanel::makeFreeMesh()
 {
 }
 
+void bdr3DGeometryEditPanel::planeBasedView()
+{
+	if (m_refPlane) {
+		m_associatedWin->setPerspectiveState(false, true);
+		CCVector3d normal = CCVector3d::fromArray(m_refPlane->getNormal().u);
+		CCVector3d vertDir = CCVector3d::fromArray(m_refPlane->getTransformation().getColumnAsVec3D(1).u);
+		m_associatedWin->setCustomView(-normal, vertDir);
+	}
+}
+
+void bdr3DGeometryEditPanel::objectBasedView()
+{
+	m_associatedWin->setPerspectiveState(true, true);
+}
+
 void bdr3DGeometryEditPanel::onCurrentModelChanged(QString name)
 {
-	if (!m_refPlane->isDisplayedIn(m_associatedWin)) {
+	if (!m_refPlane || !m_refPlane->isDisplayedIn(m_associatedWin)) {
 		return;
 	}
 	ccBBox box;
@@ -986,23 +1071,31 @@ void bdr3DGeometryEditPanel::onCurrentModelChanged(QString name)
 
 	if (box.isValid()) {
 		ccGLMatrix trans;
-		trans.setTranslation((box.P(0) + box.P(3)) / 2);
+		CCVector3 C = (box.P(0) + box.P(3)) / 2;
+		CCVector3 Cd = m_refPlane->getCenter();
+		trans.setTranslation(-C);
 		ccGLMatrix rotation;
 		//special case: plane parallel to XY
 		CCVector3 N = m_refPlane->getNormal();
 		CCVector3 Nd(0, 0, 1);
-		if (fabs(N.z) > PC_ONE - std::numeric_limits<PointCoordinateType>::epsilon()) {
-			PointCoordinateType dip, dipDir;
-			ccNormalVectors::ConvertNormalToDipAndDipDir(Nd, dip, dipDir);
-			ccGLMatrix rotX; rotX.initFromParameters(-dip * CC_DEG_TO_RAD, CCVector3(1, 0, 0), CCVector3(0, 0, 0)); //plunge
-			ccGLMatrix rotZ; rotZ.initFromParameters(dipDir * CC_DEG_TO_RAD, CCVector3(0, 0, -1), CCVector3(0, 0, 0));
-			rotation = rotZ * rotX;
+
+		if ((N-Nd).norm2d() > std::numeric_limits<PointCoordinateType>::epsilon()) {
+			if (fabs(N.z) > PC_ONE - std::numeric_limits<PointCoordinateType>::epsilon()) {
+				PointCoordinateType dip, dipDir;
+				ccNormalVectors::ConvertNormalToDipAndDipDir(Nd, dip, dipDir);
+				ccGLMatrix rotX; rotX.initFromParameters(-dip * CC_DEG_TO_RAD, CCVector3(1, 0, 0), CCVector3(0, 0, 0)); //plunge
+				ccGLMatrix rotZ; rotZ.initFromParameters(dipDir * CC_DEG_TO_RAD, CCVector3(0, 0, -1), CCVector3(0, 0, 0));
+				rotation = rotZ * rotX;
+			}
+			else //general case
+			{
+				rotation = ccGLMatrix::FromToRotation(N, Nd);
+			}
+			trans = rotation * trans;
 		}
-		else //general case
-		{
-			rotation = ccGLMatrix::FromToRotation(N, Nd);
-		}
-		trans = rotation * trans;
+
+		trans.setTranslation(trans.getTranslationAsVec3D() + Cd);
+
 		m_refPlane->applyGLTransformation_recursive(&trans);
 		m_refPlane->setXWidth((box.P(0) - box.P(1)).norm(), false);
 		m_refPlane->setYWidth((box.P(0) - box.P(2)).norm(), true);

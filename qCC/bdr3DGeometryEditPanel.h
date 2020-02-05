@@ -105,6 +105,7 @@ protected slots:
 	void echoSelectChange(ccHObject* obj);
 
 	void startEditingMode(bool);
+	void confirmCreate();
 	void pauseAll();
 	
 	void doBlock();
@@ -122,6 +123,9 @@ protected slots:
 
 	void startEdit();
 	void makeFreeMesh();
+
+	void planeBasedView();
+	void objectBasedView();
 
 	void onCurrentModelChanged(QString name);
 

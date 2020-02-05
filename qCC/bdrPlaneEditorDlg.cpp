@@ -544,7 +544,6 @@ void bdrPlaneEditorDlg::updatePlane(ccPlanarEntityInterface* plane)
 	if (needToApplyTrans)
 	{
 		trans.setTranslation(-C);
-		needToApplyTrans = true;
 	}
 	if (needToApplyRot)
 	{
