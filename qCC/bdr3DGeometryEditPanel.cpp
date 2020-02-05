@@ -459,7 +459,6 @@ bool bdr3DGeometryEditPanel::start()
 		if (entity->isA(CC_TYPES::ST_BUILDING)) {
 			m_UI->currentModelComboBox->addItem(entity->getName());
 			m_UI->currentModelComboBox->setItemIcon(i, QIcon(QStringLiteral(":/CC/Stocker/images/stocker/building.png")));
-			//m_UI->currentModelComboBox->setIconSize(QSize(16, 16));
 		}
 		else
 			continue;

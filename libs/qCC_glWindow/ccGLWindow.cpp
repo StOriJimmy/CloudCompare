@@ -2556,8 +2556,10 @@ void ccGLWindow::draw3D(CC_DRAW_CONTEXT& CONTEXT, RenderingParams& renderingPara
 	bool draw_pivot = false;
 	if (!m_globalDBRoot.empty()) {
 		for (ccHObject* v : m_globalDBRoot)	{
-			if (v->getChildrenNumber())
+			if (v->getChildrenNumber()) {
 				draw_pivot = true;
+				break;
+			}
 		}
 	}
 	if (draw_pivot) {//draw pivot

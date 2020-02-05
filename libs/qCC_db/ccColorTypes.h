@@ -131,6 +131,7 @@ namespace ccColor
 	constexpr Rgb doderBlue					(30, 144, 255);
 	constexpr Rgb skyBlue					(135, 206, 235);
 	constexpr Rgb lightCoral				(240, 128, 128);
+	constexpr Rgb paleCoral					(240, 180, 180);
 	
 	constexpr Rgb magenta					(MAX, 0, MAX);
 	constexpr Rgb cyan						(0, MAX, MAX);
