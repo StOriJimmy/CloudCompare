@@ -1070,15 +1070,16 @@ void bdr3DGeometryEditPanel::onCurrentModelChanged(QString name)
 	}
 
 	if (box.isValid()) {
+		CCVector3 C = m_refPlane->getCenter();
+		CCVector3 Cd = (box.P(0) + box.P(3)) / 2;
 		ccGLMatrix trans;
-		CCVector3 C = (box.P(0) + box.P(3)) / 2;
-		CCVector3 Cd = m_refPlane->getCenter();
 		trans.setTranslation(-C);
-		ccGLMatrix rotation;
+		
 		//special case: plane parallel to XY
 		CCVector3 N = m_refPlane->getNormal();
 		CCVector3 Nd(0, 0, 1);
 
+		ccGLMatrix rotation;
 		if ((N-Nd).norm2d() > std::numeric_limits<PointCoordinateType>::epsilon()) {
 			if (fabs(N.z) > PC_ONE - std::numeric_limits<PointCoordinateType>::epsilon()) {
 				PointCoordinateType dip, dipDir;
