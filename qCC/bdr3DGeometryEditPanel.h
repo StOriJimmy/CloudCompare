@@ -156,6 +156,8 @@ protected:
 
 	void updateWithActive(ccHObject* obj);
 
+	ccHObject* getActiveModel();
+
 	//! Set of entities to be segmented
 	QSet<ccHObject*> m_toSegment;
 

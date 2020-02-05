@@ -43,6 +43,15 @@
 //System
 #include <assert.h>
 
+inline ccPointCloud* getModelPoint(ccHObject* entity)
+{
+	BDBaseHObject* baseObj = GetRootBDBase(entity);
+	if (baseObj) {
+		return baseObj->GetOriginPointCloud(entity->getName(), false);
+	}
+	else return nullptr;
+}
+
 bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pickingHub)
 	: ccOverlayDialog(parent, Qt::Tool | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowStaysOnTopHint)
 	, m_UI(new Ui::bdr3DGeometryEditPanel )
@@ -370,6 +379,18 @@ void bdr3DGeometryEditPanel::updateWithActive(ccHObject * obj)
 	m_UI->geometryTabWidget->blockSignals(false);
 }
 
+ccHObject * bdr3DGeometryEditPanel::getActiveModel()
+{
+	ccHObject* activeModel = nullptr;
+	for (ccHObject* o : m_ModelObjs) {
+		if (o->getName() == m_UI->currentModelComboBox->currentText()) {
+			activeModel = o;
+			break;
+		}
+	}
+	return activeModel;
+}
+
 void bdr3DGeometryEditPanel::onShortcutTriggered(int key)
 {
  	switch(key)
@@ -397,6 +418,7 @@ void bdr3DGeometryEditPanel::onShortcutTriggered(int key)
 		//validAndDeleteButton->click();
 		return;
 	case Qt::Key_Escape:
+		pauseAll();
 		return;
 
 	case Qt::Key_Tab:
@@ -488,6 +510,7 @@ bool bdr3DGeometryEditPanel::start()
 		m_associatedWin->zoomGlobal();
 	}
 	
+	//pauseAll();
 	startEditingMode(false);
 
 	m_somethingHasChanged = false;
@@ -562,7 +585,10 @@ void bdr3DGeometryEditPanel::stop(bool accepted)
 		m_associatedWin->setUnclosable(false);
 		m_associatedWin->removeFromOwnDB(m_segmentationPoly);
 		if (m_refPlane) m_associatedWin->removeFromOwnDB(m_refPlane);
+		m_refPlanePanel->disconnectPlane();
 	}
+
+	pauseAll();
 
 	ccOverlayDialog::stop(accepted);
 }
@@ -810,7 +836,8 @@ void bdr3DGeometryEditPanel::closePolyLine(int, int)
 
 	assert(m_segmentationPoly);
 	unsigned vertCount = m_segmentationPoly->size();
-	if (vertCount < 4)
+	if ((m_current_editor == GEO_BLOCK && vertCount < 4) ||
+		(m_current_editor == GEO_PARAPET && vertCount < 2)) 
 	{
 		m_segmentationPoly->clear();
 		m_polyVertices->clear();
@@ -885,15 +912,17 @@ void bdr3DGeometryEditPanel::startEditingMode(bool state)
 
 void bdr3DGeometryEditPanel::confirmCreate()
 {
-	ccHObject* activeModel = nullptr;
-	for (ccHObject* o : m_ModelObjs) {
-		if (o->getName() == m_UI->currentModelComboBox->currentText()) {
-			activeModel = o;
-		}
-	}
+	ccHObject* activeModel = getActiveModel();
 	if (!activeModel) {
 		pauseAll();
 		ccLog::Error("no model to create the primitive");
+	}
+
+	if (!(m_current_editor == GEO_BLOCK || m_current_editor == GEO_PARAPET))
+		return;
+
+	if (m_current_editor == GEO_BLOCK && !m_segmentationPoly->isClosed()) {
+		return;
 	}
 
 	//viewing parameters
@@ -903,36 +932,82 @@ void bdr3DGeometryEditPanel::confirmCreate()
 	const double half_h = camera.viewport[3] / 2.0;
 
 	std::vector<CCVector3> polygon3D;
+	std::vector<CCVector3> pointsInside;
+	ccPointCloud* cloud = getModelPoint(activeModel);
 	{
-		double refPlaneZ = 0;
-		CCVector3d Q2D;
-		camera.project(m_refPlane->getCenter(), Q2D, false);
-		refPlaneZ = Q2D.z;
+		CCVector3d RQ2D;
+		camera.project(m_refPlane->getCenter(), RQ2D, false);
+		double refPlaneZ = RQ2D.z;
 
 		polygon3D = m_segmentationPoly->getPoints(false);
 
+		for (auto & p : polygon3D) {
+			CCVector3 p2d(p.x + half_w, p.y + half_h, refPlaneZ);
+			CCVector3d p2;
+			camera.unproject(p2d, p2);
+			p = CCVector3::fromArray(p2.u);
+		}
 
+		if (cloud) {
+			const PointCoordinateType* planeEquation = m_refPlane->getEquation();
+
+			for (size_t i = 0; i < cloud->size(); i++) {
+				CCVector3d Q2D;
+				const CCVector3* P3D = cloud->getPoint(i);
+				bool isPointInside = camera.project(*P3D, Q2D, true);
+				if (isPointInside) {
+					CCVector2 P2D(static_cast<PointCoordinateType>(Q2D.x - half_w),
+						static_cast<PointCoordinateType>(Q2D.y - half_h));
+					double d = static_cast<double>(CCVector3::vdotd(P3D->u, planeEquation) - planeEquation[3]);
+
+					isPointInside = (d > 1e-6) && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
+				}
+				if (isPointInside) {
+					pointsInside.push_back(*P3D);
+				}
+			}
+		}
 	}
 
 	// project the 2d polygon to the ref plane
 	if (m_current_editor == GEO_BLOCK) {
 		
-		ccPlane* mainPlane = new ccPlane();
-		StBlock* block = new StBlock(mainPlane, 1, CCVector3(0, 0, 1), 0, CCVector3(0, 0, -1));
-
-		activeModel->addChild(block);
-		MainWindow::TheInstance()->addToDB_Build(block);
+		ccPlane* mainPlane = ccPlane::Fit(polygon3D, m_refPlane->getEquation());
+		if (mainPlane) {
+			StBlock* block = new StBlock(mainPlane, 1, CCVector3(0, 0, 1), 0, CCVector3(0, 0, -1));
+			if (block) {
+				activeModel->addChild(block);
+				MainWindow::TheInstance()->addToDB_Build(block);
+			}
+			else {
+				delete mainPlane;
+				mainPlane = nullptr;
+			}
+		}
 	}
+
+	m_UI->razButton->setEnabled(true);
+	startEditingMode(false);
 }
 
 void bdr3DGeometryEditPanel::pauseAll()
 {
-	startEditingMode(false);
-	m_state = PAUSED;
+	if (m_refPlanePanel->getDisplayState() == bdrPlaneEditorDlg::DISPLAY_EDITOR) {
+		m_refPlanePanel->setDisplayState(bdrPlaneEditorDlg::DISPLAY_PLANE);
+		return;
+	}
+
+	if (m_state & RUNNING) {
+		startEditingMode(false);
+		return;
+	}
+	
 	QToolButton* ct = getGeoToolBottun(m_current_editor);
 	if (ct) ct->setChecked(false);
 	m_current_editor = GEO_END;
 	m_associatedWin->setPerspectiveState(true, true);
+	
+	m_associatedWin->redraw();
 }
 
 void bdr3DGeometryEditPanel::startGeoTool(GEOMETRY3D g)
