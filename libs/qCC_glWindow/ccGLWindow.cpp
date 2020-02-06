@@ -4140,7 +4140,8 @@ void ccGLWindow::mouseMoveEvent(QMouseEvent *event)
 		)
 	{
 		//right button = panning / translating
-		if (m_interactionFlags & INTERACT_PAN)
+		if ((m_interactionFlags & INTERACT_PAN) ||
+			((QApplication::keyboardModifiers() & Qt::ShiftModifier) && (m_interactionFlags & INTERACT_SHIFT_PAN)))
 		{
 			//displacement vector (in "3D")
 			double pixSize = computeActualPixelSize();

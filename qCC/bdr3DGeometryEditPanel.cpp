@@ -893,6 +893,7 @@ void bdr3DGeometryEditPanel::startEditingMode(bool state)
 		allowStateChange(false);
 
 		m_associatedWin->setInteractionMode(ccGLWindow::INTERACT_SHIFT_PAN | ccGLWindow::INTERACT_SEND_ALL_SIGNALS);
+		m_associatedWin->setPickingMode(ccGLWindow::NO_PICKING);
 		if (m_selection_mode == SELECT_2D) {
 			MainWindow::TheInstance()->dispToStatus(QString("editing (2D), left click to add contour points, right click to close"));
 		}
@@ -933,7 +934,15 @@ void bdr3DGeometryEditPanel::confirmCreate()
 
 	std::vector<CCVector3> polygon3D;
 	std::vector<CCVector3> pointsInside;
-	ccPointCloud* cloud = getModelPoint(activeModel);
+	std::vector<double> insideDs;
+	double top_height = m_UI->blockDeduceDefaultDoubleSpinBox->value();
+
+	CCVector3 planeN; PointCoordinateType planeD;
+	m_refPlane->getEquation(planeN, planeD);
+
+	ccPointCloud* cloud = nullptr;
+	if (m_UI->blockDeduceHeightGroupBox->isChecked())
+		cloud = getModelPoint(activeModel);
 	{
 		CCVector3d RQ2D;
 		camera.project(m_refPlane->getCenter(), RQ2D, false);
@@ -948,22 +957,70 @@ void bdr3DGeometryEditPanel::confirmCreate()
 			p = CCVector3::fromArray(p2.u);
 		}
 
-		if (cloud) {
-			const PointCoordinateType* planeEquation = m_refPlane->getEquation();
+		if (cloud && cloud->size() > 0) {
+			double max_d(-FLT_MAX);
+			double min_d(FLT_MAX);
+
+			
 
 			for (size_t i = 0; i < cloud->size(); i++) {
 				CCVector3d Q2D;
 				const CCVector3* P3D = cloud->getPoint(i);
-				bool isPointInside = camera.project(*P3D, Q2D, true);
-				if (isPointInside) {
+				if (!camera.project(*P3D, Q2D, true)) {
+					continue;
+				}
+				
+				{
+					bool isPointInside = true;
+
 					CCVector2 P2D(static_cast<PointCoordinateType>(Q2D.x - half_w),
 						static_cast<PointCoordinateType>(Q2D.y - half_h));
-					double d = static_cast<double>(CCVector3::vdotd(P3D->u, planeEquation) - planeEquation[3]);
+					
+					double d = (*P3D).dot(planeN) - planeD; // static_cast<double>(CCVector3::vdotd(P3D->u, planeEquation) - planeEquation[3]);
 
-					isPointInside = (d > 1e-6) && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
+					{
+						if (m_UI->blockDeducePositiveRadioButton->isChecked()) {
+							isPointInside = d > 1e-6;
+						}
+						else if (m_UI->blockDeduceNegativeRadioButton->isChecked()) {
+							isPointInside = d < -1e-6;
+						}
+						else isPointInside = true;
+					}
+
+					isPointInside = isPointInside && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
+
+					if (isPointInside) {
+						pointsInside.push_back(*P3D);
+						if (d > max_d) { max_d = d; }
+						if (d < min_d) { min_d = d; }
+						insideDs.push_back(d);
+					}
 				}
-				if (isPointInside) {
-					pointsInside.push_back(*P3D);
+			}
+
+			if (!pointsInside.empty()) {
+				if (m_UI->blockDeduceAutoFitCheckBox->isChecked()) {
+				//	stocker::PlaneSegmentation()
+				}
+				else {
+					double dist_spacing = m_UI->blockDeduceDistanceThresholdDoubleSpinBox->value();
+					size_t bin_cnt = std::floor((max_d - min_d) / (2 * dist_spacing)) + 1;
+					std::vector<unsigned> histo;
+					histo.resize(bin_cnt, 0);
+					for (auto d : insideDs)	{
+						size_t bin = static_cast<size_t>(floor((d - min_d) / (2 * dist_spacing)));
+						++histo[std::min(bin, bin_cnt - 1)];
+					}
+					int biggest = 0;
+					int max_hist(0);
+					for (size_t i = 0; i < histo.size(); i++) {
+						if (histo[i] > max_hist) {
+							max_hist = histo[i];
+							biggest = i;
+						}
+					}
+					top_height = min_d + biggest * 2 * dist_spacing + dist_spacing;
 				}
 			}
 		}
@@ -971,10 +1028,11 @@ void bdr3DGeometryEditPanel::confirmCreate()
 
 	// project the 2d polygon to the ref plane
 	if (m_current_editor == GEO_BLOCK) {
-		
-		ccPlane* mainPlane = ccPlane::Fit(polygon3D, m_refPlane->getEquation());
+		/// i don't know why m_refPlane->getEquation() does not work
+		PointCoordinateType planeEquation[4]; planeEquation[0] = planeN.x; planeEquation[1] = planeN.y; planeEquation[2] = planeN.z; planeEquation[3] = planeD;
+		ccPlane* mainPlane = ccPlane::Fit(polygon3D, planeEquation);
 		if (mainPlane) {
-			StBlock* block = new StBlock(mainPlane, 1, CCVector3(0, 0, 1), 0, CCVector3(0, 0, -1));
+			StBlock* block = new StBlock(mainPlane, top_height, CCVector3(0, 0, 1), 0, CCVector3(0, 0, -1));
 			if (block) {
 				activeModel->addChild(block);
 				MainWindow::TheInstance()->addToDB_Build(block);
