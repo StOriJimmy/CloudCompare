@@ -61,11 +61,6 @@ public:
 	//! Get a pointer to the polyline that has been segmented
 	ccPolyline *getPolyLine() {return m_segmentationPoly;}
 
-	//! Returns the active 'to be segmented' set
-	QSet<ccHObject*>& entities() { return m_toSegment; }
-	//! Returns the active 'to be segmented' set (const version)
-	const QSet<ccHObject*>& entities() const { return m_toSegment; }
-
 	//! Returns whether hidden parts should be delete after segmentation
 	bool deleteHiddenParts() const { return m_deleteHiddenParts; }
 	
@@ -88,6 +83,11 @@ public:
 	void setActiveItem(std::vector<ccHObject*> active);
 
 	void setModelObjects(std::vector<ccHObject*> builds);
+
+	//! Returns the active 'to be segmented' set
+	QSet<ccHObject*>& modelObjects() { return m_ModelObjs; }
+	//! Returns the active 'to be segmented' set (const version)
+	const QSet<ccHObject*>& modelObjects() const { return m_ModelObjs; }
 
 private:
 	Ui::bdr3DGeometryEditPanel	*m_UI;
@@ -158,9 +158,6 @@ protected:
 
 	ccHObject* getActiveModel();
 
-	//! Set of entities to be segmented
-	QSet<ccHObject*> m_toSegment;
-
 	//! Whether something has changed or not (for proper 'cancel')
 	bool m_somethingHasChanged;
 
@@ -168,7 +165,9 @@ protected:
 	enum ProcessStates
 	{
 		POLYLINE		= 1,
-		RECTANGLE		= 2,
+		POLYGON			= 2,
+		RECTANGLE		= 4,
+		
 		//EDITING		= 4,
 		//...			= 8,
 		//...			= 16,

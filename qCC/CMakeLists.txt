@@ -183,6 +183,9 @@ if(OPTION_CONSOLE)
 	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS /SUBSYSTEM:CONSOLE)
 endif()
 
+include( ../contrib/CorkSupport.cmake )
+target_link_cork( ${PROJECT_NAME} )
+
 # building reconstruction
 option(OPTION_USE_STOCKER "Building Reconstruction" ON)
 if(OPTION_USE_STOCKER)

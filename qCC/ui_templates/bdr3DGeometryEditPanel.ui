@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>632</width>
-    <height>420</height>
+    <height>301</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -579,187 +579,24 @@
           <string>prism</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_5">
-          <item row="0" column="0" rowspan="2">
-           <widget class="QGroupBox" name="groupBox">
-            <property name="title">
-             <string>Top</string>
-            </property>
-            <layout class="QGridLayout" name="gridLayout_3">
-             <item row="0" column="1">
-              <widget class="QDoubleSpinBox" name="blockTopDoubleSpinBox">
-               <property name="toolTip">
-                <string>顶面高度</string>
-               </property>
-               <property name="suffix">
-                <string> m</string>
-               </property>
-               <property name="decimals">
-                <number>6</number>
-               </property>
-               <property name="minimum">
-                <double>-9999999999999.000000000000000</double>
-               </property>
-               <property name="maximum">
-                <double>9999999999999.000000000000000</double>
-               </property>
-               <property name="singleStep">
-                <double>0.010000000000000</double>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="0">
-              <widget class="QLabel" name="label">
-               <property name="font">
-                <font>
-                 <pointsize>8</pointsize>
-                </font>
-               </property>
-               <property name="text">
-                <string>Height</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0" colspan="2">
-              <widget class="QGroupBox" name="groupBox_3">
-               <property name="title">
-                <string>Normal</string>
-               </property>
-               <property name="flat">
-                <bool>true</bool>
-               </property>
-               <layout class="QGridLayout" name="gridLayout_14">
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <property name="horizontalSpacing">
-                 <number>1</number>
-                </property>
-                <property name="verticalSpacing">
-                 <number>2</number>
-                </property>
-                <item row="1" column="0">
-                 <widget class="QDoubleSpinBox" name="nyDoubleSpinBox_2">
-                  <property name="minimumSize">
-                   <size>
-                    <width>100</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="prefix">
-                   <string notr="true">Ny: </string>
-                  </property>
-                  <property name="decimals">
-                   <number>6</number>
-                  </property>
-                  <property name="minimum">
-                   <double>-1000000.000000000000000</double>
-                  </property>
-                  <property name="maximum">
-                   <double>1000000.000000000000000</double>
-                  </property>
-                  <property name="singleStep">
-                   <double>0.000100000000000</double>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="1">
-                 <widget class="QToolButton" name="blockTopNormalConfirmToolButton">
-                  <property name="text">
-                   <string>...</string>
-                  </property>
-                  <property name="icon">
-                   <iconset resource="../icones.qrc">
-                    <normaloff>:/CC/Stocker/images/stocker/checksolid.png</normaloff>:/CC/Stocker/images/stocker/checksolid.png</iconset>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="0">
-                 <widget class="QDoubleSpinBox" name="nxDoubleSpinBox_2">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>100</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="prefix">
-                   <string notr="true">Nx: </string>
-                  </property>
-                  <property name="decimals">
-                   <number>6</number>
-                  </property>
-                  <property name="minimum">
-                   <double>-1000000.000000000000000</double>
-                  </property>
-                  <property name="maximum">
-                   <double>1000000.000000000000000</double>
-                  </property>
-                  <property name="singleStep">
-                   <double>0.000100000000000</double>
-                  </property>
-                 </widget>
-                </item>
-                <item row="2" column="0">
-                 <widget class="QDoubleSpinBox" name="nzDoubleSpinBox_2">
-                  <property name="minimumSize">
-                   <size>
-                    <width>100</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="prefix">
-                   <string notr="true">Nz: </string>
-                  </property>
-                  <property name="decimals">
-                   <number>6</number>
-                  </property>
-                  <property name="minimum">
-                   <double>-1000000.000000000000000</double>
-                  </property>
-                  <property name="maximum">
-                   <double>1000000.000000000000000</double>
-                  </property>
-                  <property name="singleStep">
-                   <double>0.000100000000000</double>
-                  </property>
-                  <property name="value">
-                   <double>1.000000000000000</double>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item row="0" column="1" rowspan="2">
+          <item row="1" column="0">
            <widget class="QGroupBox" name="groupBox_2">
             <property name="title">
              <string>Bottom</string>
             </property>
             <layout class="QGridLayout" name="gridLayout_4">
-             <item row="0" column="0">
-              <widget class="QLabel" name="label_2">
-               <property name="text">
-                <string>Height</string>
-               </property>
-              </widget>
-             </item>
+             <property name="leftMargin">
+              <number>6</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>6</number>
+             </property>
+             <property name="bottomMargin">
+              <number>6</number>
+             </property>
              <item row="0" column="1">
               <widget class="QDoubleSpinBox" name="blockBottomDoubleSpinBox">
                <property name="toolTip">
@@ -782,155 +619,17 @@
                </property>
               </widget>
              </item>
-             <item row="1" column="0" colspan="2">
-              <widget class="QGroupBox" name="groupBox_4">
-               <property name="title">
-                <string>Normal</string>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_2">
+               <property name="text">
+                <string>Height</string>
                </property>
-               <layout class="QGridLayout" name="gridLayout_15">
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <property name="spacing">
-                 <number>2</number>
-                </property>
-                <item row="1" column="0">
-                 <widget class="QDoubleSpinBox" name="nyDoubleSpinBox">
-                  <property name="minimumSize">
-                   <size>
-                    <width>100</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="prefix">
-                   <string notr="true">Ny: </string>
-                  </property>
-                  <property name="decimals">
-                   <number>6</number>
-                  </property>
-                  <property name="minimum">
-                   <double>-1000000.000000000000000</double>
-                  </property>
-                  <property name="maximum">
-                   <double>1000000.000000000000000</double>
-                  </property>
-                  <property name="singleStep">
-                   <double>0.000100000000000</double>
-                  </property>
-                 </widget>
-                </item>
-                <item row="3" column="0">
-                 <widget class="QDoubleSpinBox" name="nzDoubleSpinBox">
-                  <property name="minimumSize">
-                   <size>
-                    <width>100</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="prefix">
-                   <string notr="true">Nz: </string>
-                  </property>
-                  <property name="decimals">
-                   <number>6</number>
-                  </property>
-                  <property name="minimum">
-                   <double>-1000000.000000000000000</double>
-                  </property>
-                  <property name="maximum">
-                   <double>1000000.000000000000000</double>
-                  </property>
-                  <property name="singleStep">
-                   <double>0.000100000000000</double>
-                  </property>
-                  <property name="value">
-                   <double>-1.000000000000000</double>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="0">
-                 <widget class="QDoubleSpinBox" name="nxDoubleSpinBox">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>100</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="prefix">
-                   <string notr="true">Nx: </string>
-                  </property>
-                  <property name="decimals">
-                   <number>6</number>
-                  </property>
-                  <property name="minimum">
-                   <double>-1000000.000000000000000</double>
-                  </property>
-                  <property name="maximum">
-                   <double>1000000.000000000000000</double>
-                  </property>
-                  <property name="singleStep">
-                   <double>0.000100000000000</double>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="1">
-                 <widget class="QToolButton" name="blockBottomNormalConfirmToolButton">
-                  <property name="text">
-                   <string>...</string>
-                  </property>
-                  <property name="icon">
-                   <iconset resource="../icones.qrc">
-                    <normaloff>:/CC/Stocker/images/stocker/checksolid.png</normaloff>:/CC/Stocker/images/stocker/checksolid.png</iconset>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
               </widget>
              </item>
             </layout>
            </widget>
           </item>
-          <item row="0" column="2">
-           <spacer name="horizontalSpacer_9">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="2" column="2">
-           <spacer name="horizontalSpacer_11">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="2" column="0" colspan="2">
+          <item row="0" column="1" rowspan="2">
            <widget class="QGroupBox" name="blockDeduceTotalGroupBox">
             <property name="maximumSize">
              <size>
@@ -943,13 +642,13 @@
             </property>
             <layout class="QGridLayout" name="gridLayout_17">
              <property name="leftMargin">
-              <number>3</number>
+              <number>6</number>
              </property>
              <property name="topMargin">
               <number>3</number>
              </property>
              <property name="rightMargin">
-              <number>3</number>
+              <number>6</number>
              </property>
              <property name="bottomMargin">
               <number>0</number>
@@ -975,12 +674,6 @@
              </item>
              <item row="0" column="2">
               <widget class="QDoubleSpinBox" name="blockDeduceDefaultDoubleSpinBox">
-               <property name="minimumSize">
-                <size>
-                 <width>100</width>
-                 <height>0</height>
-                </size>
-               </property>
                <property name="decimals">
                 <number>4</number>
                </property>
@@ -1021,6 +714,12 @@
                 </property>
                 <item row="0" column="0">
                  <widget class="QLabel" name="label_26">
+                  <property name="minimumSize">
+                   <size>
+                    <width>58</width>
+                    <height>0</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>Distance T</string>
                   </property>
@@ -1135,6 +834,61 @@
             </layout>
            </widget>
           </item>
+          <item row="0" column="0">
+           <widget class="QGroupBox" name="groupBox">
+            <property name="title">
+             <string>Top</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_3">
+             <property name="leftMargin">
+              <number>6</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>6</number>
+             </property>
+             <property name="bottomMargin">
+              <number>6</number>
+             </property>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label">
+               <property name="font">
+                <font>
+                 <pointsize>8</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Height</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QDoubleSpinBox" name="blockTopDoubleSpinBox">
+               <property name="toolTip">
+                <string>顶面高度</string>
+               </property>
+               <property name="suffix">
+                <string> m</string>
+               </property>
+               <property name="decimals">
+                <number>6</number>
+               </property>
+               <property name="minimum">
+                <double>-9999999999999.000000000000000</double>
+               </property>
+               <property name="maximum">
+                <double>9999999999999.000000000000000</double>
+               </property>
+               <property name="singleStep">
+                <double>0.010000000000000</double>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
          </layout>
         </widget>
         <widget class="QWidget" name="tab_box">
@@ -1142,19 +896,6 @@
           <string>box</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_2">
-          <item row="0" column="1">
-           <spacer name="horizontalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
           <item row="0" column="0">
            <layout class="QFormLayout" name="formLayout_8">
             <property name="horizontalSpacing">
@@ -1234,6 +975,19 @@
             </item>
            </layout>
           </item>
+          <item row="0" column="1">
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
          </layout>
         </widget>
         <widget class="QWidget" name="tab_sphere">
@@ -1281,7 +1035,11 @@
             </widget>
            </item>
            <item row="1" column="1">
-            <widget class="QSpinBox" name="sphereDimensionSpinBox"/>
+            <widget class="QSpinBox" name="sphereDimensionSpinBox">
+             <property name="value">
+              <number>24</number>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -1291,117 +1049,6 @@
           <string>cone</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_7">
-          <item row="0" column="1">
-           <widget class="QGroupBox" name="coneDimGroupBox">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="title">
-             <string>Dimension</string>
-            </property>
-            <property name="flat">
-             <bool>false</bool>
-            </property>
-            <layout class="QFormLayout" name="formLayout_3">
-             <property name="fieldGrowthPolicy">
-              <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-             </property>
-             <property name="horizontalSpacing">
-              <number>0</number>
-             </property>
-             <property name="verticalSpacing">
-              <number>2</number>
-             </property>
-             <property name="leftMargin">
-              <number>2</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <property name="rightMargin">
-              <number>2</number>
-             </property>
-             <property name="bottomMargin">
-              <number>2</number>
-             </property>
-             <item row="0" column="0">
-              <widget class="QRadioButton" name="coneEdgeDimRadioButton">
-               <property name="text">
-                <string>棱边数</string>
-               </property>
-               <property name="checked">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QSpinBox" name="coneEdgeDimSpinBox">
-               <property name="minimumSize">
-                <size>
-                 <width>80</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="minimum">
-                <number>1</number>
-               </property>
-               <property name="value">
-                <number>3</number>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0">
-              <widget class="QRadioButton" name="conePrecisionRadioButton">
-               <property name="text">
-                <string>圆精度</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1">
-              <widget class="QSpinBox" name="conePrecisionSpinBox">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="minimum">
-                <number>1</number>
-               </property>
-               <property name="value">
-                <number>24</number>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <spacer name="verticalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="0" column="2">
-           <spacer name="horizontalSpacer_8">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
           <item row="0" column="0" rowspan="2">
            <layout class="QFormLayout" name="formLayout_2">
             <property name="horizontalSpacing">
@@ -1539,6 +1186,120 @@
             </item>
            </layout>
           </item>
+          <item row="0" column="1">
+           <widget class="QGroupBox" name="coneDimGroupBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="title">
+             <string>Dimension</string>
+            </property>
+            <property name="flat">
+             <bool>false</bool>
+            </property>
+            <layout class="QFormLayout" name="formLayout_3">
+             <property name="fieldGrowthPolicy">
+              <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+             </property>
+             <property name="horizontalSpacing">
+              <number>0</number>
+             </property>
+             <property name="verticalSpacing">
+              <number>2</number>
+             </property>
+             <property name="leftMargin">
+              <number>2</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>2</number>
+             </property>
+             <property name="bottomMargin">
+              <number>2</number>
+             </property>
+             <item row="0" column="0">
+              <widget class="QRadioButton" name="coneEdgeDimRadioButton">
+               <property name="text">
+                <string>棱边数</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QSpinBox" name="coneEdgeDimSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>80</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="minimum">
+                <number>1</number>
+               </property>
+               <property name="value">
+                <number>3</number>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QRadioButton" name="conePrecisionRadioButton">
+               <property name="text">
+                <string>圆精度</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QSpinBox" name="conePrecisionSpinBox">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+               <property name="minimum">
+                <number>1</number>
+               </property>
+               <property name="value">
+                <number>24</number>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <spacer name="horizontalSpacer_8">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="1" column="1">
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::MinimumExpanding</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
          </layout>
         </widget>
         <widget class="QWidget" name="tab_cylinder">
@@ -1546,20 +1307,7 @@
           <string>cylinder</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout">
-          <item row="2" column="1" rowspan="2">
-           <spacer name="verticalSpacer_3">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="0" column="0" rowspan="4">
+          <item row="0" column="0" rowspan="3">
            <layout class="QFormLayout" name="formLayout_4">
             <property name="horizontalSpacing">
              <number>3</number>
@@ -1691,7 +1439,7 @@
             </item>
            </layout>
           </item>
-          <item row="0" column="2" rowspan="4">
+          <item row="0" column="1" rowspan="3">
            <spacer name="horizontalSpacer_3">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -2426,7 +2174,33 @@
          <property name="spacing">
           <number>0</number>
          </property>
-         <item row="2" column="1">
+         <item row="1" column="0">
+          <widget class="QToolButton" name="showBeshImageToolButton">
+           <property name="toolTip">
+            <string>显示最佳视角影像(i)</string>
+           </property>
+           <property name="text">
+            <string>影像&amp;i</string>
+           </property>
+           <property name="icon">
+            <iconset resource="../icones.qrc">
+             <normaloff>:/CC/Stocker/images/stocker/image.png</normaloff>:/CC/Stocker/images/stocker/image.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonTextBesideIcon</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
           <widget class="QToolButton" name="projectToImageToolButton">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -2469,33 +2243,7 @@
            </property>
           </widget>
          </item>
-         <item row="2" column="0">
-          <widget class="QToolButton" name="showBeshImageToolButton">
-           <property name="toolTip">
-            <string>显示最佳视角影像(i)</string>
-           </property>
-           <property name="text">
-            <string>影像&amp;i</string>
-           </property>
-           <property name="icon">
-            <iconset resource="../icones.qrc">
-             <normaloff>:/CC/Stocker/images/stocker/image.png</normaloff>:/CC/Stocker/images/stocker/image.png</iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>30</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="checkable">
-            <bool>true</bool>
-           </property>
-           <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="0" colspan="2">
+         <item row="2" column="0" colspan="2">
           <widget class="QToolButton" name="freeMeshToolButton">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -2526,37 +2274,6 @@
            </property>
            <property name="toolButtonStyle">
             <enum>Qt::ToolButtonTextBesideIcon</enum>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0" colspan="2">
-          <widget class="QComboBox" name="typeComboBox">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>25</height>
-            </size>
-           </property>
-           <property name="toolTip">
-            <string>切换编辑方式(Tab)</string>
-           </property>
-           <property name="editable">
-            <bool>false</bool>
-           </property>
-           <property name="currentText">
-            <string/>
-           </property>
-           <property name="currentIndex">
-            <number>-1</number>
-           </property>
-           <property name="maxVisibleItems">
-            <number>20</number>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>23</width>
-             <height>23</height>
-            </size>
            </property>
           </widget>
          </item>

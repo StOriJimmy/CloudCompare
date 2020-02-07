@@ -30,6 +30,8 @@
 #include "ccDish.h"
 #include "ccPlane.h"
 
+#include "ccDBRoot.h"
+
 //qCC_gl
 #include <ccGLWindow.h>
 
@@ -39,6 +41,7 @@
 #include <QPushButton>
 
 #include "stocker_parser.h"
+#include "mesh/corkMesh.h"
 
 //System
 #include <assert.h>
@@ -270,6 +273,9 @@ void bdr3DGeometryEditPanel::allowStateChange(bool state)
 
 void bdr3DGeometryEditPanel::updateWithActive(ccHObject * obj)
 {
+	if (!obj) {
+		return;
+	}
 	m_UI->geometryTabWidget->blockSignals(true);
 	if (obj->isA(CC_TYPES::ST_BLOCK)) {
 		StBlock* block = ccHObjectCaster::ToStBlock(obj);
@@ -536,10 +542,16 @@ void bdr3DGeometryEditPanel::setActiveItem(std::vector<ccHObject*> active)
 	if (m_state & RUNNING) {
 		return;
 	}
+	for (ccHObject* obj : m_actives) {
+		if (obj) obj->setLocked(false);
+	}
+	for (ccHObject* obj : active) {
+		if (obj) obj->setLocked(true);
+	}
 	m_actives = active;
 
-	if (m_actives.size() == 1 && m_actives.front()) {
-		updateWithActive(m_actives.front());
+	for (ccHObject* obj : m_actives) {
+		updateWithActive(obj);
 	}
 }
 
@@ -589,6 +601,7 @@ void bdr3DGeometryEditPanel::stop(bool accepted)
 	}
 
 	pauseAll();
+	setDestinationGroup(nullptr);
 
 	ccOverlayDialog::stop(accepted);
 }
@@ -597,10 +610,10 @@ void bdr3DGeometryEditPanel::reset()
 {
 	if (m_somethingHasChanged)
 	{
-		for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
-		{
-			
-		}
+// 		for (QSet<ccHObject*>::const_iterator p = m_toSegment.constBegin(); p != m_toSegment.constEnd(); ++p)
+// 		{
+// 			
+// 		}
 
 		if (m_associatedWin)
 			m_associatedWin->redraw(false);
@@ -608,6 +621,7 @@ void bdr3DGeometryEditPanel::reset()
 	}
 
  	m_UI->razButton->setEnabled(false);
+
 // 	validButton->setEnabled(false);
 // 	validAndDeleteButton->setEnabled(false);
 // 	loadSaveToolButton->setDefaultAction(actionUseExistingPolyline);
@@ -677,7 +691,7 @@ void bdr3DGeometryEditPanel::updatePolyLine(int x, int y, Qt::MouseButtons butto
 			m_segmentationPoly->setClosed(true);
 		}
 	}
-	else if (m_state & POLYLINE)
+	else if (m_state & POLYGON)
 	{
 		if (vertCount < 2)
 			return;
@@ -694,11 +708,12 @@ void bdr3DGeometryEditPanel::echoSelectChange(ccHObject* obj)
 	if (m_state & RUNNING) {
 		return;
 	}
-	if (!(QApplication::keyboardModifiers() & Qt::ControlModifier)) {
-		m_actives.clear();
+	ccHObject::Container actives;
+	if (QApplication::keyboardModifiers() & Qt::ControlModifier) {
+		actives = m_actives;
 	}
-	m_actives.push_back(obj);
-	setActiveItem(m_actives);
+	if (obj) actives.push_back(obj);
+	setActiveItem(actives);
 }
 
 void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
@@ -738,7 +753,17 @@ void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 	if (((m_state & RUNNING) == 0) || vertCount == 0 || ctrlKeyPressed)
 	{
 		//reset state
-		m_state = (ctrlKeyPressed ? RECTANGLE : POLYLINE);
+		if (ctrlKeyPressed) {
+			m_state = RECTANGLE;
+		}
+		else if (m_current_editor == GEO_BLOCK) {
+			m_state = POLYGON;
+		}
+		else if (m_current_editor == GEO_PARAPET) {
+			m_state = POLYLINE;
+		}
+		//m_state = (ctrlKeyPressed ? RECTANGLE : POLYLINE);
+
 		m_state |= (STARTED | RUNNING);
 		//reset polyline
 		m_polyVertices->clear();
@@ -762,7 +787,7 @@ void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 	else //next points in "polyline mode" only
 	{
 		//we were already in 'polyline' mode?
-		if (m_state & POLYLINE)
+		if (m_state & POLYGON || m_state & POLYLINE)
 		{
 			if (!m_polyVertices->reserve(vertCount+1))
 			{
@@ -781,7 +806,8 @@ void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 				ccLog::Error("Out of memory!");
 				return;
 			}
-			m_segmentationPoly->setClosed(true);
+			if (m_state & POLYGON)
+				m_segmentationPoly->setClosed(true);
 		}
 		else //we must change mode
 		{
@@ -827,7 +853,7 @@ void bdr3DGeometryEditPanel::closeRectangle()
 void bdr3DGeometryEditPanel::closePolyLine(int, int)
 {
 	//only for polyline in RUNNING mode
-	if ((m_state & POLYLINE) == 0 || (m_state & RUNNING) == 0)
+	if (((m_state & POLYGON) == 0 && (m_state & POLYLINE) == 0) || (m_state & RUNNING) == 0)
 		return;
 
 	if ((QApplication::keyboardModifiers() & Qt::ShiftModifier)) {
@@ -844,12 +870,12 @@ void bdr3DGeometryEditPanel::closePolyLine(int, int)
 	}
 	else
 	{
-		if (m_current_editor == GEO_BLOCK) {
+		if (m_state & POLYGON) {
 			//remove last point!
 			m_segmentationPoly->resize(vertCount - 1); //can't fail --> smaller
 			m_segmentationPoly->setClosed(true);
 		}
-		else if (m_current_editor == GEO_PARAPET) {
+		else if (m_state & POLYLINE) {
 			m_segmentationPoly->setClosed(false);
 		}
 		
@@ -949,7 +975,13 @@ void bdr3DGeometryEditPanel::confirmCreate()
 		double refPlaneZ = RQ2D.z;
 
 		polygon3D = m_segmentationPoly->getPoints(false);
-
+		stocker::Polyline2d polyline;
+		if (!m_segmentationPoly->isClosed()) {
+			for (size_t i = 0; i < polygon3D.size() - 1; i++) {
+				polyline.push_back(stocker::Seg2d(stocker::parse_xy(polygon3D[i]), stocker::parse_xy(polygon3D[i + 1])));
+			}
+		}
+		
 		for (auto & p : polygon3D) {
 			CCVector3 p2d(p.x + half_w, p.y + half_h, refPlaneZ);
 			CCVector3d p2;
@@ -962,7 +994,7 @@ void bdr3DGeometryEditPanel::confirmCreate()
 			double min_d(FLT_MAX);
 
 			
-
+			
 			for (size_t i = 0; i < cloud->size(); i++) {
 				CCVector3d Q2D;
 				const CCVector3* P3D = cloud->getPoint(i);
@@ -988,7 +1020,15 @@ void bdr3DGeometryEditPanel::confirmCreate()
 						else isPointInside = true;
 					}
 
-					isPointInside = isPointInside && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
+					if (!isPointInside) { continue; }
+
+					if (m_segmentationPoly->isClosed()) {
+						isPointInside = CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
+					}
+					else {
+						isPointInside = !polyline.empty() &&
+							stocker::DistancePointPolygon(stocker::parse_xy(P2D), polyline) < m_UI->parapetWidthDoubleSpinBox->value();
+					}
 
 					if (isPointInside) {
 						pointsInside.push_back(*P3D);
@@ -1043,6 +1083,15 @@ void bdr3DGeometryEditPanel::confirmCreate()
 			}
 		}
 	}
+	else if (m_current_editor == GEO_PARAPET) {
+
+	}
+	else if (m_current_editor == GEO_POLYGON) {
+
+	}
+	else if (m_current_editor == GEO_POLYLINE) {
+
+	}
 
 	m_UI->razButton->setEnabled(true);
 	startEditingMode(false);
@@ -1063,6 +1112,9 @@ void bdr3DGeometryEditPanel::pauseAll()
 	QToolButton* ct = getGeoToolBottun(m_current_editor);
 	if (ct) ct->setChecked(false);
 	m_current_editor = GEO_END;
+
+	MainWindow::TheInstance()->db_building()->selectEntity(nullptr);
+		
 	m_associatedWin->setPerspectiveState(true, true);
 	
 	m_associatedWin->redraw();
@@ -1168,6 +1220,204 @@ void bdr3DGeometryEditPanel::startEdit()
 void bdr3DGeometryEditPanel::makeFreeMesh()
 {
 }
+
+struct BoolOpParameters
+{
+	BoolOpParameters()
+		: operation(CSG_UNION)
+		, corkA(0)
+		, corkB(0)
+		, meshesAreOk(false)
+	{}
+
+	enum CSG_OPERATION { CSG_UNION, CSG_INTERSECT, CSG_DIFF, CSG_SYM_DIFF };
+
+	CSG_OPERATION operation;
+	CorkMesh* corkA;
+	CorkMesh* corkB;
+	QString nameA;
+	QString nameB;
+	bool meshesAreOk;
+};
+
+bool ToCorkMesh(const ccMesh* in, CorkMesh& out)
+{
+	if (!in || !in->getAssociatedCloud()) {
+		return false;
+	}
+
+	ccGenericPointCloud* vertices = in->getAssociatedCloud();
+	assert(vertices);
+
+	unsigned triCount = in->size();
+	unsigned vertCount = vertices ? vertices->size() : 0;
+
+	std::vector<CorkMesh::Tri>& outTris = out.getTris();
+	std::vector<CorkVertex>& outVerts = out.getVerts();
+	try {
+		outVerts.resize(vertCount);
+		outTris.resize(triCount);
+	}
+	catch (const std::bad_alloc&) {
+		return false;
+	}
+
+	if (outVerts.empty() || outTris.empty()) {
+		return false;
+	}
+
+	//import triangle indexes
+	{
+		for (unsigned i = 0; i < triCount; i++)
+		{
+			const CCLib::VerticesIndexes* tsi = in->getTriangleVertIndexes(i);
+			CorkTriangle corkTri;
+			corkTri.a = tsi->i1;
+			corkTri.b = tsi->i2;
+			corkTri.c = tsi->i3;
+			outTris[i].data = corkTri;
+			//DGM: it seems that Cork doubles this information?!
+			outTris[i].a = tsi->i1;
+			outTris[i].b = tsi->i2;
+			outTris[i].c = tsi->i3;
+		}
+	}
+
+	//import vertices
+	{
+		for (unsigned i = 0; i < vertCount; i++)
+		{
+			const CCVector3* P = vertices->getPoint(i);
+			outVerts[i].pos.x = static_cast<double>(P->x);
+			outVerts[i].pos.y = static_cast<double>(P->y);
+			outVerts[i].pos.z = static_cast<double>(P->z);
+		}
+	}
+
+	return true;
+}
+
+ccMesh* FromCorkMesh(const CorkMesh& in)
+{
+	const std::vector<CorkMesh::Tri>& inTris = in.getTris();
+	const std::vector<CorkVertex>& inVerts = in.getVerts();
+
+	if (inTris.empty() || inVerts.empty()) {
+		return 0;
+	}
+
+	unsigned triCount = static_cast<unsigned>(inTris.size());
+	unsigned vertCount = static_cast<unsigned>(inVerts.size());
+
+	ccPointCloud* vertices = new ccPointCloud("vertices");
+	if (!vertices->reserve(vertCount)) {
+		delete vertices;
+		return 0;
+	}
+
+	ccMesh* mesh = new ccMesh(vertices);
+	mesh->addChild(vertices);
+	if (!mesh->reserve(triCount)) {
+		delete mesh;
+		return 0;
+	}
+
+	//import vertices
+	{
+		for (unsigned i = 0; i < vertCount; i++)
+		{
+			const CorkVertex& P = inVerts[i];
+			CCVector3 Pout(static_cast<PointCoordinateType>(P.pos.x),
+				static_cast<PointCoordinateType>(P.pos.y),
+				static_cast<PointCoordinateType>(P.pos.z));
+			vertices->addPoint(Pout);
+		}
+	}
+
+	//import triangle indexes
+	{
+		for (unsigned i = 0; i < triCount; i++)
+		{
+			const CorkMesh::Tri& tri = inTris[i];
+			mesh->addTriangle(tri.a, tri.b, tri.c);
+		}
+	}
+
+	mesh->setVisible(true);
+	vertices->setEnabled(false);
+
+	return mesh;
+}
+
+static BoolOpParameters s_params;
+
+bool doPerformBooleanOp()
+{
+	//invalid parameters
+	if (!s_params.corkA || !s_params.corkB)
+		return false;
+
+	try
+	{
+		//check meshes
+		s_params.meshesAreOk = true;
+		if (false)
+		{
+			if (s_params.corkA->isSelfIntersecting())
+			{
+				std::cerr << "[Cork ERROR] - Mesh " << s_params.nameA.toStdString() << "is self-intersecting! Result may be jeopardized!" << std::endl;
+				s_params.meshesAreOk = false;
+			}
+			else if (!s_params.corkA->isClosed())
+			{
+				std::cerr << "[Cork ERROR] - Mesh " << s_params.nameA.toStdString() << "is not closed! Result may be jeopardized!" << std::endl;
+				s_params.meshesAreOk = false;
+			}
+			if (s_params.corkB->isSelfIntersecting())
+			{
+				std::cerr << "[Cork ERROR] - Mesh " << s_params.nameB.toStdString() << "is self-intersecting! Result may be jeopardized!" << std::endl;
+				s_params.meshesAreOk = false;
+			}
+			else if (!s_params.corkB->isClosed())
+			{
+				std::cerr << "[Cork ERROR] - Mesh " << s_params.nameB.toStdString() << "is not closed! Result may be jeopardized!" << std::endl;
+				s_params.meshesAreOk = false;
+			}
+		}
+
+		//perform the boolean operation
+		switch (s_params.operation)
+		{
+		case BoolOpParameters::CSG_UNION:
+			s_params.corkA->boolUnion(*s_params.corkB);
+			break;
+
+		case BoolOpParameters::CSG_INTERSECT:
+			s_params.corkA->boolIsct(*s_params.corkB);
+			break;
+
+		case BoolOpParameters::CSG_DIFF:
+			s_params.corkA->boolDiff(*s_params.corkB);
+			break;
+
+		case BoolOpParameters::CSG_SYM_DIFF:
+			s_params.corkA->boolXor(*s_params.corkB);
+			break;
+
+		default:
+			assert(false);
+			break;
+		}
+	}
+	catch (const std::exception& e)	{
+		std::cerr << "[CORK ERROR] - " << e.what() << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+
 
 void bdr3DGeometryEditPanel::planeBasedView()
 {
