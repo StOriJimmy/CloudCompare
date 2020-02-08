@@ -21,6 +21,7 @@ class QToolButton;
 class ccPickingHub;
 class bdrPlaneEditorDlg;
 class BDBaseHObject;
+class ccDBRoot;
 
 #define GEO_ROUND_FLAG QStringLiteral("ROUND")
 
@@ -104,11 +105,13 @@ protected slots:
 	void closePolyLine(int x=0, int y=0); //arguments for compatibility with ccGlWindow::rightButtonClicked signal
 	void closeRectangle();
 	void updatePolyLine(int x, int y, Qt::MouseButtons buttons);
-	void echoSelectChange(ccHObject* obj);
+	void echoSelectChange(/*ccHObject* obj*/);
 
 	void startEditingMode(bool);
 	void confirmCreate();
 	void pauseAll();
+
+	
 	
 	void doBlock();
 	void doBox();
@@ -151,14 +154,16 @@ protected:
 
 	QToolButton* getGeoToolBottun(GEOMETRY3D g);
 
-	void startGeoTool(GEOMETRY3D g);
+	void pauseGeoTool();
+
+	void startGeoTool(GEOMETRY3D g, bool uncheck = true);
 
 	//! Whether to allow or not to exort the current segmentation polyline
 	void allowExecutePolyline(bool state);
 
 	void allowStateChange(bool state);
 
-	void updateWithActive(ccHObject* obj);
+	void updateWithActive(ccHObject* obj, bool onlyone);
 
 	ccHObject* getActiveModel();
 
@@ -216,7 +221,6 @@ protected:
 
 	bdrPlaneEditorDlg* m_refPlanePanel;
 	bdrPlaneEditorDlg* m_toolPlanePanel;
-
 };
 
 #endif //BDR_3D_GEOMETRY_EDIT_PANEL_HEADER

@@ -120,6 +120,7 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 	connect(m_UI->csgXorToolButton,				&QAbstractButton::clicked, this, [=]() { doCSGoperation(CSG_SYM_DIFF); });
 
 	m_UI->geometryTabWidget->tabBar()->hide();
+	m_UI->geometryTabWidget->setEnabled(false);
 	
  	//add shortcuts
  	addOverridenShortcut(Qt::Key_Space);  //space bar for the "pause" button
@@ -201,29 +202,26 @@ void bdr3DGeometryEditPanel::createPlaneEditInterface()
 
 bool bdr3DGeometryEditPanel::eventFilter(QObject * obj, QEvent * e)
 {
-	if (e->type() == QEvent::Close) {
-		//exit();
-	}
-	else if (e->type() == QEvent::HoverEnter) {
-		if (obj == m_UI->blockToolButton)				{ m_UI->geometryTabWidget->setCurrentIndex(GEO_BLOCK); }
-		else if (obj == m_UI->boxToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_BOX); }
-		else if (obj == m_UI->sphereToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_SPHERE); }
-		else if (obj == m_UI->coneToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_CONE); }
-		else if (obj == m_UI->cylinderToolButton)		{ m_UI->geometryTabWidget->setCurrentIndex(GEO_CYLINDER); }
-		else if (obj == m_UI->parapetToolButton)		{ m_UI->geometryTabWidget->setCurrentIndex(GEO_PARAPET); }
+	if (e->type() == QEvent::HoverEnter && m_current_editor == GEO_END) {
+		if (obj == m_UI->blockToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_BLOCK); }
+		else if (obj == m_UI->boxToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_BOX); }
+		else if (obj == m_UI->sphereToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_SPHERE); }
+		else if (obj == m_UI->coneToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_CONE); }
+		else if (obj == m_UI->cylinderToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_CYLINDER); }
+		else if (obj == m_UI->parapetToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_PARAPET); }
 		else if (obj == m_UI->toroidCylinderToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_TORCYLINDER); }
-		else if (obj == m_UI->torusToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_TORUS); }
-		else if (obj == m_UI->dishToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_DISH); }
-		else if (obj == m_UI->planeToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_PLANE); }
-		else if (obj == m_UI->polygonToolButton)		{ m_UI->geometryTabWidget->setCurrentIndex(GEO_POLYGON); }
-		else if (obj == m_UI->polylineToolButton)		{ m_UI->geometryTabWidget->setCurrentIndex(GEO_POLYLINE); }
-		else if (obj == m_UI->wallToolButton)			{ m_UI->geometryTabWidget->setCurrentIndex(GEO_WALL); }
+		else if (obj == m_UI->torusToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_TORUS); }
+		else if (obj == m_UI->dishToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_DISH); }
+		else if (obj == m_UI->planeToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_PLANE); }
+		else if (obj == m_UI->polygonToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_POLYGON); }
+		else if (obj == m_UI->polylineToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_POLYLINE); }
+		else if (obj == m_UI->wallToolButton) { m_UI->geometryTabWidget->setCurrentIndex(GEO_WALL); }		
 	}
-	else if (e->type() == QEvent::Leave) {
-		if (m_current_editor < GEO_END) {
-			m_UI->geometryTabWidget->setCurrentIndex(m_current_editor);
-		}
-	}
+// 	else if (e->type() == QEvent::Leave) {
+// 		if (m_current_editor < GEO_END) {
+// 			m_UI->geometryTabWidget->setCurrentIndex(m_current_editor);
+// 		}
+// 	}
 	return ccOverlayDialog::eventFilter(obj, e);
 }
 
@@ -278,7 +276,7 @@ void bdr3DGeometryEditPanel::allowStateChange(bool state)
 
 }
 
-void bdr3DGeometryEditPanel::updateWithActive(ccHObject * obj)
+void bdr3DGeometryEditPanel::updateWithActive(ccHObject * obj, bool onlyone)
 {
 	if (!obj) {
 		return;
@@ -287,34 +285,38 @@ void bdr3DGeometryEditPanel::updateWithActive(ccHObject * obj)
 	if (obj->isA(CC_TYPES::ST_BLOCK)) {
 		StBlock* block = ccHObjectCaster::ToStBlock(obj);
 		if (block) {
+			m_UI->blockNameLineEdit->setText(obj->getName());
 			m_UI->blockTopDoubleSpinBox->setValue(block->getTopHeight());
 			m_UI->blockBottomDoubleSpinBox->setValue(block->getBottomHeight());
-			m_UI->geometryTabWidget->setCurrentIndex(GEO_BLOCK);
+			if (onlyone) { m_UI->geometryTabWidget->setCurrentIndex(GEO_BLOCK); startGeoTool(GEO_BLOCK, false); }
 		}
 	}
 	else if (obj->isA(CC_TYPES::BOX)) {
 		ccBox* box = ccHObjectCaster::ToBox(obj);
 		if (box) {
+			m_UI->boxNameLineEdit->setText(obj->getName());
+
 			CCVector3 dim = box->getDimensions();
 			m_UI->boxDxDoubleSpinBox->setValue(dim.x);
 			m_UI->boxDyDoubleSpinBox->setValue(dim.y);
 			m_UI->boxDzDoubleSpinBox->setValue(dim.z);
 
-			m_UI->geometryTabWidget->setCurrentIndex(GEO_BOX);
+			if (onlyone) { m_UI->geometryTabWidget->setCurrentIndex(GEO_BOX); startGeoTool(GEO_BOX, false); }
 		}
 	}
 	else if (obj->isA(CC_TYPES::SPHERE)) {
 		ccSphere* sphere = ccHObjectCaster::ToSphere(obj);
 		if (sphere)	{
+			m_UI->sphereNameLineEdit->setText(obj->getName());
 			m_UI->sphereRadiusDoubleSpinBox->setValue(sphere->getRadius());
 			m_UI->sphereDimensionSpinBox->setValue(sphere->getDrawingPrecision());
-			
-			m_UI->geometryTabWidget->setCurrentIndex(GEO_SPHERE);
+			if (onlyone) { m_UI->geometryTabWidget->setCurrentIndex(GEO_SPHERE); startGeoTool(GEO_SPHERE, false); }
 		}
 	}
 	else if (obj->isA(CC_TYPES::CONE)) {
 		ccCone* cone = ccHObjectCaster::ToCone(obj);
 		if (cone) {
+			m_UI->coneNameLineEdit->setText(obj->getName());
 			m_UI->coneTopRadiusDoubleSpinBox->setValue(cone->getTopRadius());
 			m_UI->coneBottomRadiusDoubleSpinBox->setValue(cone->getBottomRadius());
 			m_UI->coneHeightDoubleSpinBox->setValue(cone->getHeight());
@@ -330,12 +332,14 @@ void bdr3DGeometryEditPanel::updateWithActive(ccHObject * obj)
 				m_UI->coneEdgeDimRadioButton->setChecked(true);
 				m_UI->coneEdgeDimSpinBox->setValue(cone->getDrawingPrecision());
 			}
-			m_UI->geometryTabWidget->setCurrentIndex(GEO_CONE);
+
+			if (onlyone) { m_UI->geometryTabWidget->setCurrentIndex(GEO_CONE); startGeoTool(GEO_CONE, false); }
 		}
 	}
 	else if (obj->isA(CC_TYPES::CYLINDER)) {
 		ccCylinder* cylinder = ccHObjectCaster::ToCylinder(obj);
 		if (cylinder) {
+			m_UI->cylinderNameLineEdit->setText(obj->getName());
 			m_UI->cylinderRadiusDoubleSpinBox->setValue(cylinder->getTopRadius());
 			m_UI->cylinderHeightDoubleSpinBox->setValue(cylinder->getHeight());
 			if (cylinder->hasMetaData(GEO_ROUND_FLAG) && cylinder->getMetaData(GEO_ROUND_FLAG).toBool()) {
@@ -346,48 +350,57 @@ void bdr3DGeometryEditPanel::updateWithActive(ccHObject * obj)
 				m_UI->cylinderEdgeDimRadioButton->setChecked(true);
 				m_UI->cylinderEdgeDimSpinBox->setValue(cylinder->getDrawingPrecision());
 			}
-			m_UI->geometryTabWidget->setCurrentIndex(GEO_CYLINDER);
+
+			if (onlyone) { m_UI->geometryTabWidget->setCurrentIndex(GEO_CYLINDER); startGeoTool(GEO_CYLINDER, false); }
 		}
 	}
 	else if (obj->isA(CC_TYPES::TORUS)) {
 		ccTorus* torus = ccHObjectCaster::ToTorus(obj);
 		if (torus) {
 			if (torus->isCylinder()) {
+				m_UI->tcylinderNameLineEdit->setText(obj->getName());
 				m_UI->toroidCylinderInsideRadiusDoubleSpinBox->setValue(torus->getInsideRadius());
 				m_UI->toroidCylinderOutsideRadiusDoubleSpinBox->setValue(torus->getOutsideRadius());
 				m_UI->toroidCylinderAngleDoubleSpinBox->setValue(torus->getAngle());
 				m_UI->toroidCylinderRectSectionHeightDoubleSpinBox->setValue(torus->getCylinderHeight());
-				m_UI->geometryTabWidget->setCurrentIndex(GEO_TORCYLINDER);
+
+				if (onlyone) { m_UI->geometryTabWidget->setCurrentIndex(GEO_TORCYLINDER); startGeoTool(GEO_TORCYLINDER, false); }
 			}
 			else {
+				m_UI->torusNameLineEdit->setText(obj->getName());
 				m_UI->torusInsideRadiusDoubleSpinBox->setValue(torus->getInsideRadius());
 				m_UI->torusOutsideRadiusDoubleSpinBox->setValue(torus->getOutsideRadius());
 				m_UI->torusAngleDoubleSpinBox->setValue(torus->getAngle());
-				m_UI->geometryTabWidget->setCurrentIndex(GEO_TORUS);
+
+				if (onlyone) { m_UI->geometryTabWidget->setCurrentIndex(GEO_TORUS); startGeoTool(GEO_TORUS, false); }
 			}
 		}
 	}
 	else if (obj->isA(CC_TYPES::DISH)) {
 		ccDish* dish = ccHObjectCaster::ToDish(obj);
 		if (dish) {
+			m_UI->dishNameLineEdit->setText(obj->getName());
 			PointCoordinateType r1, r2;
 			dish->getRadius(r1, r2);
 			m_UI->dishRadiusDoubleSpinBox->setValue(r1);
 			m_UI->dishRadius2DoubleSpinBox->setValue(r2);
 			m_UI->dishHeightDoubleSpinBox->setValue(dish->getHeight());
-			m_UI->geometryTabWidget->setCurrentIndex(GEO_DISH);
+
+			if (onlyone) { m_UI->geometryTabWidget->setCurrentIndex(GEO_DISH); startGeoTool(GEO_DISH, false); }
 		}
 	}
 	else if (obj->isA(CC_TYPES::PLANE)) {
+		m_UI->planeNameLineEdit->setText(obj->getName());
 		ccPlane* plane = ccHObjectCaster::ToPlane(obj);
 		if (plane && plane != m_refPlane) {
 			m_toolPlanePanel->initWithPlane(plane);
-			m_UI->geometryTabWidget->setCurrentIndex(GEO_PLANE);
+
+			if (onlyone) { m_UI->geometryTabWidget->setCurrentIndex(GEO_PLANE); startGeoTool(GEO_PLANE, false); }
 		}
 	}
 	else if (obj->isA(CC_TYPES::POLY_LINE)) {
 
-		m_UI->geometryTabWidget->setCurrentIndex(GEO_POLYLINE);
+		if (onlyone) { m_UI->geometryTabWidget->setCurrentIndex(GEO_POLYLINE); startGeoTool(GEO_POLYLINE, false); }
 	}
 	m_UI->geometryTabWidget->blockSignals(false);
 }
@@ -473,7 +486,7 @@ bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 		connect(m_associatedWin, &ccGLWindow::rightButtonClicked,	this, &bdr3DGeometryEditPanel::closePolyLine);
 		connect(m_associatedWin, &ccGLWindow::mouseMoved,			this, &bdr3DGeometryEditPanel::updatePolyLine);
 		connect(m_associatedWin, &ccGLWindow::buttonReleased,		this, &bdr3DGeometryEditPanel::closeRectangle);
-		connect(m_associatedWin, &ccGLWindow::entitySelectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
+		//connect(m_associatedWin, &ccGLWindow::entitySelectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
 
 		if (m_segmentationPoly)	{
 			m_segmentationPoly->setDisplay(m_associatedWin);
@@ -489,6 +502,9 @@ bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 bool bdr3DGeometryEditPanel::start()
 {
 	assert(m_polyVertices && m_segmentationPoly && m_refPlane);
+
+	connect(MainWindow::TheInstance()->db_building(), &ccDBRoot::selectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
+
 
 	if (!m_associatedWin)
 	{
@@ -557,8 +573,12 @@ void bdr3DGeometryEditPanel::setActiveItem(std::vector<ccHObject*> active)
 	}
 	m_actives = active;
 
+	if (m_actives.size() != 1) {
+		pauseGeoTool();
+	}
+
 	for (ccHObject* obj : m_actives) {
-		updateWithActive(obj);
+		updateWithActive(obj, m_actives.size() == 1);
 	}
 }
 
@@ -595,6 +615,8 @@ void bdr3DGeometryEditPanel::setModelObjects(std::vector<ccHObject*> builds)
 void bdr3DGeometryEditPanel::stop(bool accepted)
 {
 	assert(m_segmentationPoly);
+		
+	disconnect(MainWindow::TheInstance()->db_building(), &ccDBRoot::selectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
 
 	if (m_associatedWin) {
 		m_associatedWin->setInteractionMode(ccGLWindow::TRANSFORM_CAMERA());
@@ -710,16 +732,14 @@ void bdr3DGeometryEditPanel::updatePolyLine(int x, int y, Qt::MouseButtons butto
 	m_associatedWin->redraw(true, false);
 }
 
-void bdr3DGeometryEditPanel::echoSelectChange(ccHObject* obj)
+void bdr3DGeometryEditPanel::echoSelectChange(/*ccHObject* obj*/)
 {
 	if (m_state & RUNNING) {
 		return;
 	}
+
 	ccHObject::Container actives;
-	if (QApplication::keyboardModifiers() & Qt::ControlModifier) {
-		actives = m_actives;
-	}
-	if (obj) actives.push_back(obj);
+	MainWindow::TheInstance()->db_building()->getSelectedEntities(actives, CC_TYPES::MESH);
 	setActiveItem(actives);
 }
 
@@ -928,6 +948,12 @@ void bdr3DGeometryEditPanel::startEditingMode(bool state)
 		m_associatedWin->setInteractionMode(ccGLWindow::INTERACT_SHIFT_PAN | ccGLWindow::INTERACT_SEND_ALL_SIGNALS);
 		m_associatedWin->setPickingMode(ccGLWindow::NO_PICKING);
 		if (m_selection_mode == SELECT_2D) {
+			if (m_refPlane) {
+				m_associatedWin->setPerspectiveState(false, true);
+				CCVector3d normal = CCVector3d::fromArray(m_refPlane->getNormal().u);
+				CCVector3d vertDir = CCVector3d::fromArray(m_refPlane->getTransformation().getColumnAsVec3D(1).u);
+				m_associatedWin->setCustomView(-normal, vertDir);
+			}
 			MainWindow::TheInstance()->dispToStatus(QString("editing (2D), left click to add contour points, right click to close"));
 		}
 		else if (m_selection_mode == SELECT_3D) {
@@ -947,10 +973,6 @@ void bdr3DGeometryEditPanel::startEditingMode(bool state)
 void bdr3DGeometryEditPanel::confirmCreate()
 {
 	ccHObject* activeModel = getActiveModel();
-	if (!activeModel) {
-		pauseAll();
-		ccLog::Error("no model to create the primitive");
-	}
 
 	if (!(m_current_editor == GEO_BLOCK || m_current_editor == GEO_PARAPET))
 		return;
@@ -974,8 +996,10 @@ void bdr3DGeometryEditPanel::confirmCreate()
 	m_refPlane->getEquation(planeN, planeD);
 
 	ccPointCloud* cloud = nullptr;
-	if (m_UI->blockDeduceHeightGroupBox->isChecked())
+	if (m_UI->blockDeduceHeightGroupBox->isChecked() && activeModel) {
 		cloud = getModelPoint(activeModel);
+	}
+		
 	{
 		CCVector3d RQ2D;
 		camera.project(m_refPlane->getCenter(), RQ2D, false);
@@ -999,8 +1023,6 @@ void bdr3DGeometryEditPanel::confirmCreate()
 		if (cloud && cloud->size() > 0) {
 			double max_d(-FLT_MAX);
 			double min_d(FLT_MAX);
-
-			
 			
 			for (size_t i = 0; i < cloud->size(); i++) {
 				CCVector3d Q2D;
@@ -1081,8 +1103,12 @@ void bdr3DGeometryEditPanel::confirmCreate()
 		if (mainPlane) {
 			StBlock* block = new StBlock(mainPlane, top_height, CCVector3(0, 0, 1), 0, CCVector3(0, 0, -1));
 			if (block) {
-				activeModel->addChild(block);
-				MainWindow::TheInstance()->addToDB_Build(block);
+				if (activeModel) {
+					block->setName(GetNextChildName(activeModel, block->getTypeName()));
+					activeModel->addChild(block);
+				}
+				
+				MainWindow::TheInstance()->addToDB(block, CC_TYPES::DB_BUILDING, false, false);
 			}
 			else {
 				delete mainPlane;
@@ -1108,6 +1134,7 @@ void bdr3DGeometryEditPanel::pauseAll()
 {
 	if (m_refPlanePanel->getDisplayState() == bdrPlaneEditorDlg::DISPLAY_EDITOR) {
 		m_refPlanePanel->setDisplayState(bdrPlaneEditorDlg::DISPLAY_PLANE);
+		m_associatedWin->redraw();
 		return;
 	}
 
@@ -1116,39 +1143,47 @@ void bdr3DGeometryEditPanel::pauseAll()
 		return;
 	}
 	
-	QToolButton* ct = getGeoToolBottun(m_current_editor);
-	if (ct) ct->setChecked(false);
-	m_current_editor = GEO_END;
+	pauseGeoTool();
 
 	MainWindow::TheInstance()->db_building()->selectEntity(nullptr);
-		
-	m_associatedWin->setPerspectiveState(true, true);
-	
+	for (ccHObject* obj : m_actives) {
+		if (obj) obj->setLocked(false);
+	}
+	m_actives.clear();
+
 	m_associatedWin->redraw();
 }
 
-void bdr3DGeometryEditPanel::startGeoTool(GEOMETRY3D g)
+void bdr3DGeometryEditPanel::pauseGeoTool()
 {
-	bool same = (m_current_editor == g);
+	QToolButton* ct = getGeoToolBottun(m_current_editor);
+	if (ct) ct->setChecked(false);
+	m_current_editor = GEO_END;
+	m_UI->geometryTabWidget->setEnabled(false);
+	m_UI->createGroupBox->setEnabled(false);
+	m_associatedWin->setPerspectiveState(true, true);
+}
+
+void bdr3DGeometryEditPanel::startGeoTool(GEOMETRY3D g, bool uncheck)
+{
+	bool same = uncheck ? (m_current_editor == g) : false;
 	if (m_current_editor < GEO_END) {
-		pauseAll();
+		startEditingMode(false);
+		pauseGeoTool();
 	}
 	if (!same) {
 		m_current_editor = g;
 		m_UI->createGroupBox->setEnabled(true);
 
 		if (m_current_editor == GEO_BLOCK || m_current_editor == GEO_PARAPET) {
-			if (m_refPlane) {
-				m_associatedWin->setPerspectiveState(false, true);
-				CCVector3d normal = CCVector3d::fromArray(m_refPlane->getNormal().u);
-				CCVector3d vertDir = CCVector3d::fromArray(m_refPlane->getTransformation().getColumnAsVec3D(1).u);
-				m_associatedWin->setCustomView(-normal, vertDir);
-			}
 			m_selection_mode = SELECT_2D;
 		}
 		else
 			m_selection_mode = SELECT_3D;
+
+		m_UI->geometryTabWidget->setEnabled(true);
 	}
+	m_associatedWin->redraw();
 }
 
 void bdr3DGeometryEditPanel::doBlock()
@@ -1489,20 +1524,20 @@ void bdr3DGeometryEditPanel::onCurrentModelChanged(QString name)
 
 void bdr3DGeometryEditPanel::echoBlockTopHeight(double v)
 {
-	//if (m_current_editor >= GEO_END) return;
+	if (m_current_editor >= GEO_END) return;
 	for (ccHObject* active : m_actives) {
 		StBlock* block = ccHObjectCaster::ToStBlock(active);
-		if (block) block->setTopHeight(v);
+		if (block && block->getName() == m_UI->blockNameLineEdit->text()) block->setTopHeight(v);
 	}
 	m_associatedWin->redraw();
 }
 
 void bdr3DGeometryEditPanel::echoBlockBottomHeight(double v)
 {
-	//if (m_current_editor >= GEO_END) return;
+	if (m_current_editor >= GEO_END) return;
 	for (ccHObject* active : m_actives) {
 		StBlock* block = ccHObjectCaster::ToStBlock(active);
-		if (block) block->setBottomHeight(v);
+		if (block && block->getName() == m_UI->blockNameLineEdit->text()) block->setBottomHeight(v);
 	}
 	m_associatedWin->redraw();
 }
