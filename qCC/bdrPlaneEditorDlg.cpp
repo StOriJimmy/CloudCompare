@@ -362,8 +362,8 @@ void bdrPlaneEditorDlg::onItemPicked(const PickedItem& pi)
 	}
 
 	if (!m_associatedPlane) {
-		if (pi.entity->isA(CC_TYPES::ST_BLOCK)) {
-			StBlock* block = ccHObjectCaster::ToStBlock(pi.entity);
+		if (pi.entity->isKindOf(CC_TYPES::MESH)) {
+			ccGenericMesh* block = ccHObjectCaster::ToGenericMesh(pi.entity);
 			ccHObject* footprint = block->getParent();
 			CCVector3 Na, Nb, Nc;
 			block->getTriangleNormals(pi.itemIndex, Na, Nb, Nc);

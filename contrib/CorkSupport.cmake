@@ -9,6 +9,11 @@
 		set( CORK_DEBUG_LIBRARY_FILE "" CACHE FILEPATH "Cork library file (debug mode)" )
 	endif()
 
+	set( CORK_RELEASE_DLL_FILE "" CACHE FILEPATH "Cork dll file (release mode)" )
+	if (WIN32)
+		set( CORK_DEBUG_DLL_FILE "" CACHE FILEPATH "Cork dll file (debug mode)" )
+	endif()
+
 	if ( NOT CORK_INCLUDE_DIR )
 		message( SEND_ERROR "No Cork include dir specified (CORK_INCLUDE_DIR)" )
 	else()
@@ -30,15 +35,10 @@
 # Link project with Cork + MPIR library
 function( target_link_cork ) # 1 argument: ARGV0 = project name
 
-	if( CORK_RELEASE_LIBRARY_FILE AND MPIR_RELEASE_LIBRARY_FILE )
+	if( CORK_RELEASE_LIBRARY_FILE)# AND MPIR_RELEASE_LIBRARY_FILE )
 	
 		#Release mode only by default
 		target_link_libraries( ${ARGV0} optimized ${CORK_RELEASE_LIBRARY_FILE} ${MPIR_RELEASE_LIBRARY_FILE} )
-		
-		#optional: debug mode
-		if ( CORK_DEBUG_LIBRARY_FILE AND MPIR_DEBUG_LIBRARY_FILE )
-			target_link_libraries( ${ARGV0} debug ${CORK_DEBUG_LIBRARY_FILE} ${MPIR_DEBUG_LIBRARY_FILE} )
-		endif()
 		
 		# DGM: CC_CORK_SUPPORT preproc is not used
 		#if ( CMAKE_CONFIGURATION_TYPES )
@@ -61,5 +61,16 @@ function( target_link_cork ) # 1 argument: ARGV0 = project name
 		message( SEND_ERROR "No Cork or MPIR release library files specified (CORK_RELEASE_LIBRARY_FILE / MPIR_RELEASE_LIBRARY_FILE)" )
 	
 	endif()
+
+	#optional: debug mode
+	if ( CORK_DEBUG_LIBRARY_FILE)# AND MPIR_DEBUG_LIBRARY_FILE )
+		target_link_libraries( ${ARGV0} debug ${CORK_DEBUG_LIBRARY_FILE} ${MPIR_DEBUG_LIBRARY_FILE} )
+	endif()
+
+	file(COPY ${CORK_DEBUG_DLL_FILE} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/debug/)
+	install( FILES ${CORK_DEBUG_DLL_FILE} CONFIGURATIONS Debug DESTINATION ${CLOUDCOMPARE_DEST_FOLDER}_debug)
+		
+	file(COPY ${CORK_RELEASE_DLL_FILE} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/release/)
+	install( FILES ${CORK_RELEASE_DLL_FILE} CONFIGURATIONS Release DESTINATION ${CLOUDCOMPARE_DEST_FOLDER} )
 
 endfunction()

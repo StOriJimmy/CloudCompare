@@ -39,9 +39,11 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QFuture>
+#include <QtConcurrent>
 
 #include "stocker_parser.h"
-#include "mesh/corkMesh.h"
+#include "cork_parser.hpp"
 
 //System
 #include <assert.h>
@@ -109,8 +111,13 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 
 	connect(m_UI->currentModelComboBox,			SIGNAL(currentIndexChanged(QString)), this, SLOT(onCurrentModelChanged(QString)));
 
-	connect(m_UI->planeBasedViewToolButton, &QToolButton::clicked, this, &bdr3DGeometryEditPanel::planeBasedView);
-	connect(m_UI->objectBasedViewToolButton, &QToolButton::clicked, this, &bdr3DGeometryEditPanel::objectBasedView);
+	connect(m_UI->planeBasedViewToolButton,		&QToolButton::clicked, this, &bdr3DGeometryEditPanel::planeBasedView);
+	connect(m_UI->objectBasedViewToolButton,	&QToolButton::clicked, this, &bdr3DGeometryEditPanel::objectBasedView);
+
+	connect(m_UI->csgUnionToolButton,			&QAbstractButton::clicked, this, [=]() { doCSGoperation(CSG_UNION); });
+	connect(m_UI->csgIntersectToolButton,		&QAbstractButton::clicked, this, [=]() { doCSGoperation(CSG_INTERSECT); });
+	connect(m_UI->csgDiffToolButton,			&QAbstractButton::clicked, this, [=]() { doCSGoperation(CSG_DIFF); });
+	connect(m_UI->csgXorToolButton,				&QAbstractButton::clicked, this, [=]() { doCSGoperation(CSG_SYM_DIFF); });
 
 	m_UI->geometryTabWidget->tabBar()->hide();
 	
@@ -1221,135 +1228,7 @@ void bdr3DGeometryEditPanel::makeFreeMesh()
 {
 }
 
-struct BoolOpParameters
-{
-	BoolOpParameters()
-		: operation(CSG_UNION)
-		, corkA(0)
-		, corkB(0)
-		, meshesAreOk(false)
-	{}
-
-	enum CSG_OPERATION { CSG_UNION, CSG_INTERSECT, CSG_DIFF, CSG_SYM_DIFF };
-
-	CSG_OPERATION operation;
-	CorkMesh* corkA;
-	CorkMesh* corkB;
-	QString nameA;
-	QString nameB;
-	bool meshesAreOk;
-};
-
-bool ToCorkMesh(const ccMesh* in, CorkMesh& out)
-{
-	if (!in || !in->getAssociatedCloud()) {
-		return false;
-	}
-
-	ccGenericPointCloud* vertices = in->getAssociatedCloud();
-	assert(vertices);
-
-	unsigned triCount = in->size();
-	unsigned vertCount = vertices ? vertices->size() : 0;
-
-	std::vector<CorkMesh::Tri>& outTris = out.getTris();
-	std::vector<CorkVertex>& outVerts = out.getVerts();
-	try {
-		outVerts.resize(vertCount);
-		outTris.resize(triCount);
-	}
-	catch (const std::bad_alloc&) {
-		return false;
-	}
-
-	if (outVerts.empty() || outTris.empty()) {
-		return false;
-	}
-
-	//import triangle indexes
-	{
-		for (unsigned i = 0; i < triCount; i++)
-		{
-			const CCLib::VerticesIndexes* tsi = in->getTriangleVertIndexes(i);
-			CorkTriangle corkTri;
-			corkTri.a = tsi->i1;
-			corkTri.b = tsi->i2;
-			corkTri.c = tsi->i3;
-			outTris[i].data = corkTri;
-			//DGM: it seems that Cork doubles this information?!
-			outTris[i].a = tsi->i1;
-			outTris[i].b = tsi->i2;
-			outTris[i].c = tsi->i3;
-		}
-	}
-
-	//import vertices
-	{
-		for (unsigned i = 0; i < vertCount; i++)
-		{
-			const CCVector3* P = vertices->getPoint(i);
-			outVerts[i].pos.x = static_cast<double>(P->x);
-			outVerts[i].pos.y = static_cast<double>(P->y);
-			outVerts[i].pos.z = static_cast<double>(P->z);
-		}
-	}
-
-	return true;
-}
-
-ccMesh* FromCorkMesh(const CorkMesh& in)
-{
-	const std::vector<CorkMesh::Tri>& inTris = in.getTris();
-	const std::vector<CorkVertex>& inVerts = in.getVerts();
-
-	if (inTris.empty() || inVerts.empty()) {
-		return 0;
-	}
-
-	unsigned triCount = static_cast<unsigned>(inTris.size());
-	unsigned vertCount = static_cast<unsigned>(inVerts.size());
-
-	ccPointCloud* vertices = new ccPointCloud("vertices");
-	if (!vertices->reserve(vertCount)) {
-		delete vertices;
-		return 0;
-	}
-
-	ccMesh* mesh = new ccMesh(vertices);
-	mesh->addChild(vertices);
-	if (!mesh->reserve(triCount)) {
-		delete mesh;
-		return 0;
-	}
-
-	//import vertices
-	{
-		for (unsigned i = 0; i < vertCount; i++)
-		{
-			const CorkVertex& P = inVerts[i];
-			CCVector3 Pout(static_cast<PointCoordinateType>(P.pos.x),
-				static_cast<PointCoordinateType>(P.pos.y),
-				static_cast<PointCoordinateType>(P.pos.z));
-			vertices->addPoint(Pout);
-		}
-	}
-
-	//import triangle indexes
-	{
-		for (unsigned i = 0; i < triCount; i++)
-		{
-			const CorkMesh::Tri& tri = inTris[i];
-			mesh->addTriangle(tri.a, tri.b, tri.c);
-		}
-	}
-
-	mesh->setVisible(true);
-	vertices->setEnabled(false);
-
-	return mesh;
-}
-
-static BoolOpParameters s_params;
+static CSGBoolOpParameters s_params;
 
 bool doPerformBooleanOp()
 {
@@ -1361,7 +1240,7 @@ bool doPerformBooleanOp()
 	{
 		//check meshes
 		s_params.meshesAreOk = true;
-		if (false)
+/*		if (true)
 		{
 			if (s_params.corkA->isSelfIntersecting())
 			{
@@ -1384,24 +1263,24 @@ bool doPerformBooleanOp()
 				s_params.meshesAreOk = false;
 			}
 		}
-
+*/
 		//perform the boolean operation
 		switch (s_params.operation)
 		{
-		case BoolOpParameters::CSG_UNION:
+		case CSG_UNION:
 			s_params.corkA->boolUnion(*s_params.corkB);
 			break;
 
-		case BoolOpParameters::CSG_INTERSECT:
-			s_params.corkA->boolIsct(*s_params.corkB);
+		case CSG_INTERSECT:
+			//s_params.corkA->boolIsct(*s_params.corkB);
 			break;
 
-		case BoolOpParameters::CSG_DIFF:
-			s_params.corkA->boolDiff(*s_params.corkB);
+		case CSG_DIFF:
+			//s_params.corkA->boolDiff(*s_params.corkB);
 			break;
 
-		case BoolOpParameters::CSG_SYM_DIFF:
-			s_params.corkA->boolXor(*s_params.corkB);
+		case CSG_SYM_DIFF:
+			//s_params.corkA->boolXor(*s_params.corkB);
 			break;
 
 		default:
@@ -1413,11 +1292,126 @@ bool doPerformBooleanOp()
 		std::cerr << "[CORK ERROR] - " << e.what() << std::endl;
 		return false;
 	}
-
+	
 	return true;
 }
 
+void bdr3DGeometryEditPanel::doCSGoperation(CSG_OPERATION operation)
+{
+	const ccHObject::Container& selectedEntities = m_actives;
+	size_t selNum = m_actives.size();
+	if (selNum != 2
+		|| !selectedEntities[0]->isKindOf(CC_TYPES::MESH)
+		|| !selectedEntities[1]->isKindOf(CC_TYPES::MESH))
+	{
+		return;
+	}
 
+	ccMesh* meshA = static_cast<ccMesh*>(selectedEntities[0]);
+	ccMesh* meshB = static_cast<ccMesh*>(selectedEntities[1]);
+
+	//try to convert both meshes to CorkMesh structures
+	CorkMesh corkA;
+	if (!ToCorkMesh(meshA, corkA))
+		return;
+	CorkMesh corkB;
+	if (!ToCorkMesh(meshB, corkB))
+		return;
+
+	//launch process
+	{
+		//run in a separate thread
+		QProgressDialog pDlg("Operation in progress", QString(), 0, 0, this);
+		pDlg.setWindowTitle("Cork");
+		pDlg.show();
+		QApplication::processEvents();
+
+		s_params.corkA = &corkA;
+		s_params.corkB = &corkB;
+		s_params.nameA = meshA->getName();
+		s_params.nameB = meshB->getName();
+		s_params.operation = operation;
+
+		QFuture<bool> future = QtConcurrent::run(doPerformBooleanOp);
+
+		//wait until process is finished!
+		while (!future.isFinished())
+		{
+#if defined(CC_WINDOWS)
+			::Sleep(500);
+#else
+			usleep(500 * 1000);
+#endif
+
+			pDlg.setValue(pDlg.value() + 1);
+			QApplication::processEvents();
+		}
+
+		//just to be sure
+		s_params.corkA = s_params.corkB = 0;
+
+		pDlg.hide();
+		QApplication::processEvents();
+
+		if (!future.result())
+		{
+			std::cerr << (s_params.meshesAreOk ? "Computation failed!" : "Computation failed! (check console)") << std::endl;
+			return;
+		}
+	}
+
+	//convert the updated mesh (A) to a new ccMesh structure
+	ccMesh* result = FromCorkMesh(corkA);
+
+	if (result)
+	{
+		meshA->setEnabled(false);
+		if (meshB->getDisplay() == meshA->getDisplay())
+			meshB->setEnabled(false);
+
+		//set name
+		QString opName;
+		switch (operation)
+		{
+		case CSG_UNION:
+			opName = "union";
+			break;
+		case CSG_INTERSECT:
+			opName = "ints";
+			break;
+		case CSG_DIFF:
+			opName = "diff";
+			break;
+		case CSG_SYM_DIFF:
+			opName = "symd";
+			break;
+		default:
+			assert(false);
+			break;
+		}
+		result->setName(QString("(%1).%2.(%3)").arg(meshA->getName()).arg(opName).arg(meshB->getName()));
+
+		ccHObject*destination = m_destination ? m_destination : getActiveModel();
+		if (destination) {
+			destination->addChild(result);
+		}
+
+		//normals
+		bool hasNormals = false;
+		if (meshA->hasTriNormals())
+			hasNormals = result->computePerTriangleNormals();
+		else if (meshA->hasNormals())
+			hasNormals = result->computePerVertexNormals();
+		meshA->showNormals(hasNormals && meshA->normalsShown());
+
+		result->setDisplay(meshA->getDisplay());
+		MainWindow::TheInstance()->addToDB_Build(result);
+		result->redrawDisplay();
+	}
+
+	//currently selected entities appearance may have changed!
+	m_associatedWin->redraw();
+}
 
 void bdr3DGeometryEditPanel::planeBasedView()
 {

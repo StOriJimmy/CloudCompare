@@ -42,6 +42,8 @@ enum GEOMETRY3D
 	GEO_END,
 };
 
+enum CSG_OPERATION { CSG_UNION, CSG_INTERSECT, CSG_DIFF, CSG_SYM_DIFF };
+
 namespace Ui
 {
 	class bdr3DGeometryEditPanel;
@@ -123,6 +125,8 @@ protected slots:
 
 	void startEdit();
 	void makeFreeMesh();
+
+	void doCSGoperation(CSG_OPERATION operation);
 
 	void planeBasedView();
 	void objectBasedView();

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>632</width>
-    <height>301</height>
+    <height>299</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -1290,12 +1290,12 @@
              <enum>Qt::Vertical</enum>
             </property>
             <property name="sizeType">
-             <enum>QSizePolicy::MinimumExpanding</enum>
+             <enum>QSizePolicy::Expanding</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
               <width>20</width>
-              <height>20</height>
+              <height>0</height>
              </size>
             </property>
            </spacer>
@@ -1996,7 +1996,7 @@
         <property name="sizeHint" stdset="0">
          <size>
           <width>20</width>
-          <height>30</height>
+          <height>0</height>
          </size>
         </property>
        </spacer>
@@ -2031,6 +2031,123 @@
         <property name="toolButtonStyle">
          <enum>Qt::ToolButtonTextBesideIcon</enum>
         </property>
+       </widget>
+      </item>
+      <item row="2" column="0" colspan="3">
+       <widget class="QGroupBox" name="editGroupBox">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="title">
+         <string>Edit</string>
+        </property>
+        <property name="flat">
+         <bool>true</bool>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_5">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QToolButton" name="editExistToolButton">
+           <property name="toolTip">
+            <string>进入编辑状态 (E)</string>
+           </property>
+           <property name="text">
+            <string>进入编辑状态(E)</string>
+           </property>
+           <property name="icon">
+            <iconset resource="../icones.qrc">
+             <normaloff>:/CC/Stocker/images/stocker/play.png</normaloff>:/CC/Stocker/images/stocker/play.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>29</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonIconOnly</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="razExistButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="toolTip">
+            <string>清除操作</string>
+           </property>
+           <property name="statusTip">
+            <string>Clear</string>
+           </property>
+           <property name="text">
+            <string>raz</string>
+           </property>
+           <property name="icon">
+            <iconset resource="../icones.qrc">
+             <normaloff>:/CC/Stocker/images/stocker/undo.png</normaloff>
+             <disabledoff>:/CC/Stocker/images/stocker/undo_dis.png</disabledoff>:/CC/Stocker/images/stocker/undo.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="confirmExistToolButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>8</pointsize>
+            </font>
+           </property>
+           <property name="toolTip">
+            <string>确认 (Enter)</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset resource="../icones.qrc">
+             <normaloff>:/CC/Stocker/images/stocker/checksolid.png</normaloff>:/CC/Stocker/images/stocker/checksolid.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="checkable">
+            <bool>false</bool>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonIconOnly</enum>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </item>
       <item row="1" column="0" colspan="3">
@@ -2158,7 +2275,7 @@
         <property name="flat">
          <bool>true</bool>
         </property>
-        <layout class="QGridLayout" name="gridLayout_16">
+        <layout class="QGridLayout" name="gridLayout_14">
          <property name="leftMargin">
           <number>0</number>
          </property>
@@ -2174,7 +2291,7 @@
          <property name="spacing">
           <number>0</number>
          </property>
-         <item row="1" column="0">
+         <item row="0" column="0">
           <widget class="QToolButton" name="showBeshImageToolButton">
            <property name="toolTip">
             <string>显示最佳视角影像(i)</string>
@@ -2200,7 +2317,7 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
+         <item row="0" column="1">
           <widget class="QToolButton" name="projectToImageToolButton">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -2243,7 +2360,7 @@
            </property>
           </widget>
          </item>
-         <item row="2" column="0" colspan="2">
+         <item row="1" column="0" colspan="2">
           <widget class="QToolButton" name="freeMeshToolButton">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -2277,122 +2394,92 @@
            </property>
           </widget>
          </item>
-        </layout>
-       </widget>
-      </item>
-      <item row="2" column="0" colspan="3">
-       <widget class="QGroupBox" name="editGroupBox">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="title">
-         <string>Edit</string>
-        </property>
-        <property name="flat">
-         <bool>true</bool>
-        </property>
-        <layout class="QHBoxLayout" name="horizontalLayout_5">
-         <property name="spacing">
-          <number>0</number>
-         </property>
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <widget class="QToolButton" name="editExistToolButton">
-           <property name="toolTip">
-            <string>进入编辑状态 (E)</string>
+         <item row="2" column="0" colspan="2">
+          <layout class="QHBoxLayout" name="horizontalLayout_6">
+           <property name="spacing">
+            <number>0</number>
            </property>
-           <property name="text">
-            <string>进入编辑状态(E)</string>
-           </property>
-           <property name="icon">
-            <iconset resource="../icones.qrc">
-             <normaloff>:/CC/Stocker/images/stocker/play.png</normaloff>:/CC/Stocker/images/stocker/play.png</iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>29</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="checkable">
-            <bool>true</bool>
-           </property>
-           <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonIconOnly</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QToolButton" name="razExistButton">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="toolTip">
-            <string>清除操作</string>
-           </property>
-           <property name="statusTip">
-            <string>Clear</string>
-           </property>
-           <property name="text">
-            <string>raz</string>
-           </property>
-           <property name="icon">
-            <iconset resource="../icones.qrc">
-             <normaloff>:/CC/Stocker/images/stocker/undo.png</normaloff>
-             <disabledoff>:/CC/Stocker/images/stocker/undo_dis.png</disabledoff>:/CC/Stocker/images/stocker/undo.png</iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>30</width>
-             <height>30</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QToolButton" name="confirmExistToolButton">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="font">
-            <font>
-             <pointsize>8</pointsize>
-            </font>
-           </property>
-           <property name="toolTip">
-            <string>确认 (Enter)</string>
-           </property>
-           <property name="text">
-            <string/>
-           </property>
-           <property name="icon">
-            <iconset resource="../icones.qrc">
-             <normaloff>:/CC/Stocker/images/stocker/checksolid.png</normaloff>:/CC/Stocker/images/stocker/checksolid.png</iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>30</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="checkable">
-            <bool>false</bool>
-           </property>
-           <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonIconOnly</enum>
-           </property>
-          </widget>
+           <item>
+            <widget class="QToolButton" name="csgUnionToolButton">
+             <property name="toolTip">
+              <string>CSG union</string>
+             </property>
+             <property name="text">
+              <string>u</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/plane.png</normaloff>:/CC/Stocker/images/stocker/plane.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="csgIntersectToolButton">
+             <property name="toolTip">
+              <string>CSG intersection</string>
+             </property>
+             <property name="text">
+              <string>i</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/plane.png</normaloff>:/CC/Stocker/images/stocker/plane.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="csgDiffToolButton">
+             <property name="toolTip">
+              <string>CSG difference</string>
+             </property>
+             <property name="text">
+              <string>d</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/plane.png</normaloff>:/CC/Stocker/images/stocker/plane.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="csgXorToolButton">
+             <property name="toolTip">
+              <string>CSG symmetric difference</string>
+             </property>
+             <property name="text">
+              <string>x</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/plane.png</normaloff>:/CC/Stocker/images/stocker/plane.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
         </layout>
        </widget>
