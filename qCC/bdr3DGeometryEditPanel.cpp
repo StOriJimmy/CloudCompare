@@ -947,13 +947,7 @@ void bdr3DGeometryEditPanel::startEditingMode(bool state)
 
 		m_associatedWin->setInteractionMode(ccGLWindow::INTERACT_SHIFT_PAN | ccGLWindow::INTERACT_SEND_ALL_SIGNALS);
 		m_associatedWin->setPickingMode(ccGLWindow::NO_PICKING);
-		if (m_selection_mode == SELECT_2D) {
-			if (m_refPlane) {
-				m_associatedWin->setPerspectiveState(false, true);
-				CCVector3d normal = CCVector3d::fromArray(m_refPlane->getNormal().u);
-				CCVector3d vertDir = CCVector3d::fromArray(m_refPlane->getTransformation().getColumnAsVec3D(1).u);
-				m_associatedWin->setCustomView(-normal, vertDir);
-			}
+		if (m_selection_mode == SELECT_2D) {			
 			MainWindow::TheInstance()->dispToStatus(QString("editing (2D), left click to add contour points, right click to close"));
 		}
 		else if (m_selection_mode == SELECT_3D) {
@@ -1189,6 +1183,9 @@ void bdr3DGeometryEditPanel::startGeoTool(GEOMETRY3D g, bool uncheck)
 void bdr3DGeometryEditPanel::doBlock()
 {
 	startGeoTool(GEO_BLOCK);
+	if (m_current_editor == GEO_BLOCK) {
+		planeBasedView();
+	}
 }
 
 void bdr3DGeometryEditPanel::doBox()
