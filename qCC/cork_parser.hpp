@@ -1,5 +1,6 @@
 #pragma once
 #include "mesh/corkMesh.h"
+#include "cork.h"
 #include "ccPointCloud.h"
 #include "ccMesh.h"
 #include "bdr3DGeometryEditPanel.h"

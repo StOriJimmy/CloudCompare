@@ -1268,18 +1268,22 @@ bool doPerformBooleanOp()
 		switch (s_params.operation)
 		{
 		case CSG_UNION:
-			s_params.corkA->boolUnion(*s_params.corkB);
+			computeUnion(*s_params.corkA, *s_params.corkB);
+			//s_params.corkA->boolUnion(*s_params.corkB);
 			break;
 
 		case CSG_INTERSECT:
+			computeDifference(*s_params.corkA, *s_params.corkB);
 			//s_params.corkA->boolIsct(*s_params.corkB);
 			break;
 
 		case CSG_DIFF:
+			computeIntersection(*s_params.corkA, *s_params.corkB);
 			//s_params.corkA->boolDiff(*s_params.corkB);
 			break;
 
 		case CSG_SYM_DIFF:
+			computeSymmetricDifference(*s_params.corkA, *s_params.corkB);
 			//s_params.corkA->boolXor(*s_params.corkB);
 			break;
 

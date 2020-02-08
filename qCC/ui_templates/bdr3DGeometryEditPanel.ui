@@ -2409,7 +2409,7 @@
              </property>
              <property name="icon">
               <iconset resource="../icones.qrc">
-               <normaloff>:/CC/Stocker/images/stocker/plane.png</normaloff>:/CC/Stocker/images/stocker/plane.png</iconset>
+               <normaloff>:/CC/Stocker/images/stocker/csg_union.png</normaloff>:/CC/Stocker/images/stocker/csg_union.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -2429,7 +2429,7 @@
              </property>
              <property name="icon">
               <iconset resource="../icones.qrc">
-               <normaloff>:/CC/Stocker/images/stocker/plane.png</normaloff>:/CC/Stocker/images/stocker/plane.png</iconset>
+               <normaloff>:/CC/Stocker/images/stocker/csg_ints.png</normaloff>:/CC/Stocker/images/stocker/csg_ints.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -2449,7 +2449,7 @@
              </property>
              <property name="icon">
               <iconset resource="../icones.qrc">
-               <normaloff>:/CC/Stocker/images/stocker/plane.png</normaloff>:/CC/Stocker/images/stocker/plane.png</iconset>
+               <normaloff>:/CC/Stocker/images/stocker/csg_diff.png</normaloff>:/CC/Stocker/images/stocker/csg_diff.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -2469,7 +2469,7 @@
              </property>
              <property name="icon">
               <iconset resource="../icones.qrc">
-               <normaloff>:/CC/Stocker/images/stocker/plane.png</normaloff>:/CC/Stocker/images/stocker/plane.png</iconset>
+               <normaloff>:/CC/Stocker/images/stocker/csg_symd.png</normaloff>:/CC/Stocker/images/stocker/csg_symd.png</iconset>
              </property>
              <property name="iconSize">
               <size>

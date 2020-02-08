@@ -20,17 +20,17 @@
 		include_directories( ${CORK_INCLUDE_DIR} )
 	endif()
 
-	set( MPIR_INCLUDE_DIR "" CACHE PATH "MPIR include directory" )
-	set( MPIR_RELEASE_LIBRARY_FILE "" CACHE FILEPATH "MPIR library file (release mode)" )
-	if (WIN32)
-		set( MPIR_DEBUG_LIBRARY_FILE "" CACHE FILEPATH "MPIR library file (debug mode)" )
-	endif()
-
-	if ( NOT MPIR_INCLUDE_DIR )
-		message( SEND_ERROR "No MPIR include dir specified (MPIR_INCLUDE_DIR)" )
-	else()
-		include_directories( ${MPIR_INCLUDE_DIR} )
-	endif()
+	#set( MPIR_INCLUDE_DIR "" CACHE PATH "MPIR include directory" )
+	#set( MPIR_RELEASE_LIBRARY_FILE "" CACHE FILEPATH "MPIR library file (release mode)" )
+	#if (WIN32)
+	#	set( MPIR_DEBUG_LIBRARY_FILE "" CACHE FILEPATH "MPIR library file (debug mode)" )
+	#endif()
+#
+	#if ( NOT MPIR_INCLUDE_DIR )
+	#	message( SEND_ERROR "No MPIR include dir specified (MPIR_INCLUDE_DIR)" )
+	#else()
+	#	include_directories( ${MPIR_INCLUDE_DIR} )
+	#endif()
 
 # Link project with Cork + MPIR library
 function( target_link_cork ) # 1 argument: ARGV0 = project name
@@ -38,7 +38,7 @@ function( target_link_cork ) # 1 argument: ARGV0 = project name
 	if( CORK_RELEASE_LIBRARY_FILE)# AND MPIR_RELEASE_LIBRARY_FILE )
 	
 		#Release mode only by default
-		target_link_libraries( ${ARGV0} optimized ${CORK_RELEASE_LIBRARY_FILE} ${MPIR_RELEASE_LIBRARY_FILE} )
+		target_link_libraries( ${ARGV0} optimized ${CORK_RELEASE_LIBRARY_FILE})# ${MPIR_RELEASE_LIBRARY_FILE} )
 		
 		# DGM: CC_CORK_SUPPORT preproc is not used
 		#if ( CMAKE_CONFIGURATION_TYPES )
@@ -64,7 +64,7 @@ function( target_link_cork ) # 1 argument: ARGV0 = project name
 
 	#optional: debug mode
 	if ( CORK_DEBUG_LIBRARY_FILE)# AND MPIR_DEBUG_LIBRARY_FILE )
-		target_link_libraries( ${ARGV0} debug ${CORK_DEBUG_LIBRARY_FILE} ${MPIR_DEBUG_LIBRARY_FILE} )
+		target_link_libraries( ${ARGV0} debug ${CORK_DEBUG_LIBRARY_FILE})# ${MPIR_DEBUG_LIBRARY_FILE} )
 	endif()
 
 	file(COPY ${CORK_DEBUG_DLL_FILE} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/debug/)
