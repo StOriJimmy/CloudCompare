@@ -62,7 +62,7 @@ public:
 	~bdr3DGeometryEditPanel() override;
 
 	//! Get a pointer to the polyline that has been segmented
-	ccPolyline *getPolyLine() {return m_segmentationPoly;}
+	ccPolyline *getPolyLine() {return m_editPoly;}
 
 	//! Returns whether hidden parts should be delete after segmentation
 	bool deleteHiddenParts() const { return m_deleteHiddenParts; }
@@ -110,9 +110,7 @@ protected slots:
 	void startEditingMode(bool);
 	void confirmCreate();
 	void pauseAll();
-
-	
-	
+		
 	void doBlock();
 	void doBox();
 	void doSphere();
@@ -189,9 +187,9 @@ protected:
 	unsigned m_state;
 
 	//! Segmentation polyline
-	ccPolyline* m_segmentationPoly;
+	ccPolyline* m_editPoly;
 	//! Segmentation polyline vertices
-	ccPointCloud* m_polyVertices;
+	ccPointCloud* m_editPolyVer;
 
 	//! Selection mode
 	enum SelectionMode

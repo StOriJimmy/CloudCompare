@@ -65,8 +65,8 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 	, m_pickingHub(pickingHub)
 	, m_somethingHasChanged(false)
 	, m_state(0)
-	, m_segmentationPoly(0)
-	, m_polyVertices(0)
+	, m_editPoly(0)
+	, m_editPolyVer(0)
 	, m_rectangularSelection(false)
 	, m_deleteHiddenParts(false)
 	, m_destination(nullptr)
@@ -153,12 +153,12 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 
 	m_UI->editGroupBox->setVisible(false);
 
- 	m_polyVertices = new ccPointCloud("vertices");
- 	m_segmentationPoly = new ccPolyline(m_polyVertices);
- 	m_segmentationPoly->setForeground(true);
- 	m_segmentationPoly->setColor(ccColor::green);
- 	m_segmentationPoly->showColors(true);
- 	m_segmentationPoly->set2DMode(true);
+ 	m_editPolyVer = new ccPointCloud("vertices");
+ 	m_editPoly = new ccPolyline(m_editPolyVer);
+ 	m_editPoly->setForeground(true);
+ 	m_editPoly->setColor(ccColor::green);
+ 	m_editPoly->showColors(true);
+ 	m_editPoly->set2DMode(true);
  	allowExecutePolyline(false);
 
 	m_selection_mode = SELECT_3D;
@@ -166,13 +166,13 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 
 bdr3DGeometryEditPanel::~bdr3DGeometryEditPanel()
 {
-	if (m_segmentationPoly)
-		delete m_segmentationPoly;
-	m_segmentationPoly = 0;
+	if (m_editPoly)
+		delete m_editPoly;
+	m_editPoly = 0;
 
-	if (m_polyVertices)
-		delete m_polyVertices;
-	m_polyVertices = 0;
+	if (m_editPolyVer)
+		delete m_editPolyVer;
+	m_editPolyVer = 0;
 }
 
 void bdr3DGeometryEditPanel::echoUIchange()
@@ -462,7 +462,7 @@ void bdr3DGeometryEditPanel::onShortcutTriggered(int key)
 
 bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 {
-	assert(m_segmentationPoly);
+	assert(m_editPoly);
 
 	ccGLWindow* oldWin = m_associatedWin;
 
@@ -474,9 +474,9 @@ bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 	if (oldWin)
 	{
 		oldWin->disconnect(this);
-		if (m_segmentationPoly)
+		if (m_editPoly)
 		{
-			m_segmentationPoly->setDisplay(0);
+			m_editPoly->setDisplay(0);
 		}
 		if (m_refPlane) {
 			m_refPlane->setDisplay(0);
@@ -491,8 +491,8 @@ bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 		connect(m_associatedWin, &ccGLWindow::buttonReleased,		this, &bdr3DGeometryEditPanel::closeRectangle);
 		//connect(m_associatedWin, &ccGLWindow::entitySelectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
 
-		if (m_segmentationPoly)	{
-			m_segmentationPoly->setDisplay(m_associatedWin);
+		if (m_editPoly)	{
+			m_editPoly->setDisplay(m_associatedWin);
 		}
 		if (m_refPlane)	{
 			m_refPlane->setDisplay(m_associatedWin);
@@ -504,7 +504,7 @@ bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 
 bool bdr3DGeometryEditPanel::start()
 {
-	assert(m_polyVertices && m_segmentationPoly && m_refPlane);
+	assert(m_editPolyVer && m_editPoly && m_refPlane);
 
 	connect(MainWindow::TheInstance()->db_building(), &ccDBRoot::selectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
 
@@ -525,13 +525,13 @@ bool bdr3DGeometryEditPanel::start()
 	}
 	m_UI->currentModelComboBox->setCurrentIndex(-1);
 
-	m_segmentationPoly->clear();
-	m_polyVertices->clear();
+	m_editPoly->clear();
+	m_editPolyVer->clear();
 	allowExecutePolyline(false);
 
 	//the user must not close this window!
 	m_associatedWin->setUnclosable(true);
-	m_associatedWin->addToOwnDB(m_segmentationPoly);
+	m_associatedWin->addToOwnDB(m_editPoly);
 	m_associatedWin->addToOwnDB(m_refPlane);
 	m_associatedWin->setPickingMode(ccGLWindow::NO_PICKING);
 
@@ -617,7 +617,7 @@ void bdr3DGeometryEditPanel::setModelObjects(std::vector<ccHObject*> builds)
 
 void bdr3DGeometryEditPanel::stop(bool accepted)
 {
-	assert(m_segmentationPoly);
+	assert(m_editPoly);
 		
 	disconnect(MainWindow::TheInstance()->db_building(), &ccDBRoot::selectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
 
@@ -627,7 +627,7 @@ void bdr3DGeometryEditPanel::stop(bool accepted)
 		m_associatedWin->setPerspectiveState(true, true);
 		m_associatedWin->lockRotationAxis(false, CCVector3d(0, 0, 1));
 		m_associatedWin->setUnclosable(false);
-		m_associatedWin->removeFromOwnDB(m_segmentationPoly);
+		m_associatedWin->removeFromOwnDB(m_editPoly);
 		if (m_refPlane) m_associatedWin->removeFromOwnDB(m_refPlane);
 		m_refPlanePanel->disconnectPlane();
 	}
@@ -696,9 +696,9 @@ void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 		return;
 	}
 
-	assert(m_polyVertices);
-	assert(m_segmentationPoly);
-	unsigned vertCount = m_polyVertices->size();
+	assert(m_editPolyVer);
+	assert(m_editPoly);
+	unsigned vertCount = m_editPolyVer->size();
 
 	//particular case: we close the rectangular selection by a 2nd click
 	if (m_rectangularSelection && vertCount == 4 && (m_state & RUNNING))
@@ -730,18 +730,18 @@ void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 
 		m_state |= (STARTED | RUNNING);
 		//reset polyline
-		m_polyVertices->clear();
-		if (!m_polyVertices->reserve(2))
+		m_editPolyVer->clear();
+		if (!m_editPolyVer->reserve(2))
 		{
 			ccLog::Error("Out of memory!");
 			allowExecutePolyline(false);
 			return;
 		}
 		//we add the same point twice (the last point will be used for display only)
-		m_polyVertices->addPoint(P);
-		m_polyVertices->addPoint(P);
-		m_segmentationPoly->clear();
-		if (!m_segmentationPoly->addPointIndex(0, 2))
+		m_editPolyVer->addPoint(P);
+		m_editPolyVer->addPoint(P);
+		m_editPoly->clear();
+		if (!m_editPoly->addPointIndex(0, 2))
 		{
 			ccLog::Error("Out of memory!");
 			allowExecutePolyline(false);
@@ -753,7 +753,7 @@ void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 		//we were already in 'polyline' mode?
 		if (m_state & POLYGON || m_state & POLYLINE)
 		{
-			if (!m_polyVertices->reserve(vertCount+1))
+			if (!m_editPolyVer->reserve(vertCount+1))
 			{
 				ccLog::Error("Out of memory!");
 				allowExecutePolyline(false);
@@ -761,22 +761,22 @@ void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 			}
 
 			//we replace last point by the current one
-			CCVector3* lastP = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(vertCount - 1));
-			CCVector3* lastQ = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(vertCount - 2));
+			CCVector3* lastP = const_cast<CCVector3*>(m_editPolyVer->getPointPersistentPtr(vertCount - 1));
+			CCVector3* lastQ = const_cast<CCVector3*>(m_editPolyVer->getPointPersistentPtr(vertCount - 2));
 			PointCoordinateType tipLength = (*lastQ - *lastP).norm();
 			*lastP = P;
 			//and add a new (equivalent) one
-			m_polyVertices->addPoint(P);
-			if (!m_segmentationPoly->addPointIndex(vertCount))
+			m_editPolyVer->addPoint(P);
+			if (!m_editPoly->addPointIndex(vertCount))
 			{
 				ccLog::Error("Out of memory!");
 				return;
 			}
 			if (m_state & POLYGON) {
-				m_segmentationPoly->setClosed(true);
+				m_editPoly->setClosed(true);
 			}
 			else {
-				m_segmentationPoly->showArrow(true, vertCount - 1, std::min(20.f, tipLength / 2));
+				m_editPoly->showArrow(true, vertCount - 1, std::min(20.f, tipLength / 2));
 			}
 		}
 		else //we must change mode
@@ -804,10 +804,10 @@ void bdr3DGeometryEditPanel::updatePolyLine(int x, int y, Qt::MouseButtons butto
 		return;
 	}
 
-	assert(m_polyVertices);
-	assert(m_segmentationPoly);
+	assert(m_editPolyVer);
+	assert(m_editPoly);
 
-	unsigned vertCount = m_polyVertices->size();
+	unsigned vertCount = m_editPolyVer->size();
 
 	//new point (expressed relatively to the screen center)
 	QPointF pos2D = m_associatedWin->toCenteredGLCoordinates(x, y);
@@ -819,26 +819,26 @@ void bdr3DGeometryEditPanel::updatePolyLine(int x, int y, Qt::MouseButtons butto
 	{
 		//we need 4 points for the rectangle!
 		if (vertCount != 4)
-			m_polyVertices->resize(4);
+			m_editPolyVer->resize(4);
 
-		const CCVector3* A = m_polyVertices->getPointPersistentPtr(0);
-		CCVector3* B = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(1));
-		CCVector3* C = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(2));
-		CCVector3* D = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(3));
+		const CCVector3* A = m_editPolyVer->getPointPersistentPtr(0);
+		CCVector3* B = const_cast<CCVector3*>(m_editPolyVer->getPointPersistentPtr(1));
+		CCVector3* C = const_cast<CCVector3*>(m_editPolyVer->getPointPersistentPtr(2));
+		CCVector3* D = const_cast<CCVector3*>(m_editPolyVer->getPointPersistentPtr(3));
 		*B = CCVector3(A->x, P.y, 0);
 		*C = P;
 		*D = CCVector3(P.x, A->y, 0);
 
 		if (vertCount != 4)
 		{
-			m_segmentationPoly->clear();
-			if (!m_segmentationPoly->addPointIndex(0, 4))
+			m_editPoly->clear();
+			if (!m_editPoly->addPointIndex(0, 4))
 			{
 				ccLog::Error("Out of memory!");
 				allowExecutePolyline(false);
 				return;
 			}
-			m_segmentationPoly->setClosed(true);
+			m_editPoly->setClosed(true);
 		}
 	}
 	else if (m_state & POLYGON || m_state & POLYLINE)
@@ -846,7 +846,7 @@ void bdr3DGeometryEditPanel::updatePolyLine(int x, int y, Qt::MouseButtons butto
 		if (vertCount < 2)
 			return;
 		//we replace last point by the current one
-		CCVector3* lastP = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(vertCount - 1));
+		CCVector3* lastP = const_cast<CCVector3*>(m_editPolyVer->getPointPersistentPtr(vertCount - 1));
 		*lastP = P;
 	}
 
@@ -859,15 +859,15 @@ void bdr3DGeometryEditPanel::closeRectangle()
 	if ((m_state & RECTANGLE) == 0 || (m_state & RUNNING) == 0)
 		return;
 
-	assert(m_segmentationPoly);
-	unsigned vertCount = m_segmentationPoly->size();
+	assert(m_editPoly);
+	unsigned vertCount = m_editPoly->size();
 	if (vertCount < 4)
 	{
 		//first point only? we keep the real time update mechanism
 		if (m_rectangularSelection)
 			return;
-		m_segmentationPoly->clear();
-		m_polyVertices->clear();
+		m_editPoly->clear();
+		m_editPolyVer->clear();
 		allowExecutePolyline(false);
 	}
 	else
@@ -892,23 +892,23 @@ void bdr3DGeometryEditPanel::closePolyLine(int, int)
 		return;
 	}
 
-	assert(m_segmentationPoly);
-	unsigned vertCount = m_segmentationPoly->size();
+	assert(m_editPoly);
+	unsigned vertCount = m_editPoly->size();
 	if (((m_state & POLYGON) && vertCount < 4) ||
 		((m_state & POLYLINE) && vertCount < 2))
 	{
-		m_segmentationPoly->clear();
-		m_polyVertices->clear();
+		m_editPoly->clear();
+		m_editPolyVer->clear();
 	}
 	else
 	{
 		if (m_state & POLYGON) {
 			//remove last point!
-			m_segmentationPoly->resize(vertCount - 1); //can't fail --> smaller
-			m_segmentationPoly->setClosed(true);
+			m_editPoly->resize(vertCount - 1); //can't fail --> smaller
+			m_editPoly->setClosed(true);
 		}
 		else if (m_state & POLYLINE) {
-			m_segmentationPoly->setClosed(false);
+			m_editPoly->setClosed(false);
 		}
 		
 		allowExecutePolyline(true);
@@ -925,7 +925,7 @@ void bdr3DGeometryEditPanel::closePolyLine(int, int)
 
 void bdr3DGeometryEditPanel::startEditingMode(bool state)
 {
-	assert(m_polyVertices && m_segmentationPoly);
+	assert(m_editPolyVer && m_editPoly);
 
 	if (!m_associatedWin)
 		return;
@@ -933,10 +933,10 @@ void bdr3DGeometryEditPanel::startEditingMode(bool state)
 	if (!state/*=activate start mode*/) {
 		m_state = PAUSED;
 		
-		if (m_polyVertices->size() != 0)
+		if (m_editPolyVer->size() != 0)
 		{
-			m_segmentationPoly->clear();
-			m_polyVertices->clear();
+			m_editPoly->clear();
+			m_editPolyVer->clear();
 		}
 		allowExecutePolyline(false);
 		allowStateChange(true);
@@ -976,7 +976,7 @@ void bdr3DGeometryEditPanel::confirmCreate()
 // 	if (!(m_current_editor == GEO_BLOCK || m_current_editor == GEO_PARAPET))
 // 		return;
 
-	if ((m_state & POLYGON) && !m_segmentationPoly->isClosed()) {
+	if ((m_state & POLYGON) && !m_editPoly->isClosed()) {
 		return;
 	}
 
@@ -1004,9 +1004,9 @@ void bdr3DGeometryEditPanel::confirmCreate()
 		camera.project(m_refPlane->getCenter(), RQ2D, false);
 		double refPlaneZ = RQ2D.z;
 
-		polygon3D = m_segmentationPoly->getPoints(false);
+		polygon3D = m_editPoly->getPoints(false);
 		stocker::Polyline2d polyline;
-		if (!m_segmentationPoly->isClosed()) {
+		if (!m_editPoly->isClosed()) {
 			for (size_t i = 0; i < polygon3D.size() - 1; i++) {
 				polyline.push_back(stocker::Seg2d(stocker::parse_xy(polygon3D[i]), stocker::parse_xy(polygon3D[i + 1])));
 			}
@@ -1062,8 +1062,8 @@ void bdr3DGeometryEditPanel::confirmCreate()
 
 					if (!isPointInside) { continue; }
 
-					if (m_segmentationPoly->isClosed()) {
-						isPointInside = CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
+					if (m_editPoly->isClosed()) {
+						isPointInside = CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_editPoly);
 					}
 					else {
 						isPointInside = !polyline.empty() &&
