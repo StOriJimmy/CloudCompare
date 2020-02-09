@@ -584,35 +584,44 @@
             <property name="title">
              <string>Top</string>
             </property>
+            <property name="flat">
+             <bool>true</bool>
+            </property>
             <layout class="QGridLayout" name="gridLayout_3">
              <property name="leftMargin">
-              <number>6</number>
+              <number>0</number>
              </property>
              <property name="topMargin">
               <number>0</number>
              </property>
              <property name="rightMargin">
-              <number>6</number>
+              <number>0</number>
              </property>
              <property name="bottomMargin">
-              <number>6</number>
+              <number>0</number>
+             </property>
+             <property name="spacing">
+              <number>0</number>
              </property>
              <item row="0" column="0">
-              <widget class="QLabel" name="label">
-               <property name="font">
-                <font>
-                 <pointsize>8</pointsize>
-                </font>
-               </property>
-               <property name="text">
-                <string>Height</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
               <widget class="QDoubleSpinBox" name="blockTopDoubleSpinBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>100</width>
+                 <height>16777215</height>
+                </size>
+               </property>
                <property name="toolTip">
                 <string>顶面高度</string>
+               </property>
+               <property name="prefix">
+                <string>H: </string>
                </property>
                <property name="suffix">
                 <string> m</string>
@@ -631,6 +640,13 @@
                </property>
               </widget>
              </item>
+             <item row="0" column="1">
+              <widget class="QToolButton" name="blockTopNormalEditToolButton">
+               <property name="text">
+                <string>Normal Editor</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </widget>
           </item>
@@ -639,23 +655,44 @@
             <property name="title">
              <string>Bottom</string>
             </property>
+            <property name="flat">
+             <bool>true</bool>
+            </property>
             <layout class="QGridLayout" name="gridLayout_4">
              <property name="leftMargin">
-              <number>6</number>
+              <number>0</number>
              </property>
              <property name="topMargin">
               <number>0</number>
              </property>
              <property name="rightMargin">
-              <number>6</number>
+              <number>0</number>
              </property>
              <property name="bottomMargin">
-              <number>6</number>
+              <number>0</number>
              </property>
-             <item row="0" column="1">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <item row="0" column="0">
               <widget class="QDoubleSpinBox" name="blockBottomDoubleSpinBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>100</width>
+                 <height>16777215</height>
+                </size>
+               </property>
                <property name="toolTip">
                 <string>底面高度</string>
+               </property>
+               <property name="prefix">
+                <string>H: </string>
                </property>
                <property name="suffix">
                 <string> m</string>
@@ -674,10 +711,10 @@
                </property>
               </widget>
              </item>
-             <item row="0" column="0">
-              <widget class="QLabel" name="label_2">
+             <item row="0" column="1">
+              <widget class="QToolButton" name="blockBottomNormalEditToolButton">
                <property name="text">
-                <string>Height</string>
+                <string>Normal Editor</string>
                </property>
               </widget>
              </item>
@@ -786,10 +823,13 @@
                 <number>4</number>
                </property>
                <property name="minimum">
-                <double>-9999.000000000000000</double>
+                <double>0.001000000000000</double>
                </property>
                <property name="maximum">
                 <double>9999.000000000000000</double>
+               </property>
+               <property name="value">
+                <double>10.000000000000000</double>
                </property>
               </widget>
              </item>

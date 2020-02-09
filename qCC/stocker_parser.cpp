@@ -447,6 +447,9 @@ ccHObject* GetPlaneEntityFromPrimGroup(ccHObject* prim, QString name)
 vcg::Plane3d GetVcgPlane(ccHObject* planeObj)
 {
 	ccPlane* ccPlane = ccHObjectCaster::ToPlane(planeObj);
+	if (!ccPlane) {
+		return vcg::Plane3d(NAN, { 0,0,0 });
+	}
 	CCVector3 N; float constVal;
 	ccPlane->getEquation(N, constVal);
 	vcg::Plane3d vcgPlane;
@@ -732,6 +735,9 @@ ccPolyline* AddPolygonAsPolyline(stocker::Contour3d points, QString name, ccColo
 // 	}
 	polylineObj->setClosed(close);
 	polylineObj->addChild(cloudObj);
+	polylineObj->setColor(col);
+	polylineObj->showColors(true);
+	polylineObj->showSF(false);
 	cloudObj->setEnabled(false);
 
 	return polylineObj;

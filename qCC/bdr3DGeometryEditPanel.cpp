@@ -48,6 +48,8 @@
 //System
 #include <assert.h>
 
+#define MESHPrefix "Mesh"
+
 inline ccPointCloud* getModelPoint(ccHObject* entity)
 {
 	BDBaseHObject* baseObj = GetRootBDBase(entity);
@@ -422,7 +424,8 @@ void bdr3DGeometryEditPanel::onShortcutTriggered(int key)
  	switch(key)
 	{
 	case Qt::Key_Space:
-		m_UI->editToolButton->toggle();
+		if (m_UI->editToolButton->isEnabled())
+			m_UI->editToolButton->toggle();
 		return;
 
 	case Qt::Key_I:
@@ -670,68 +673,6 @@ void bdr3DGeometryEditPanel::exit()
 	stop(true);
 }
 
-void bdr3DGeometryEditPanel::updatePolyLine(int x, int y, Qt::MouseButtons buttons)
-{
-	//process not started yet?
-	if ((m_state & RUNNING) == 0)
-	{
-		return;
-	}
-	if (!m_associatedWin)
-	{
-		assert(false);
-		return;
-	}
-
-	assert(m_polyVertices);
-	assert(m_segmentationPoly);
-
-	unsigned vertCount = m_polyVertices->size();
-
-	//new point (expressed relatively to the screen center)
-	QPointF pos2D = m_associatedWin->toCenteredGLCoordinates(x, y);
-	CCVector3 P(static_cast<PointCoordinateType>(pos2D.x()),
-				static_cast<PointCoordinateType>(pos2D.y()),
-				0);
-
-	if (m_state & RECTANGLE)
-	{
-		//we need 4 points for the rectangle!
-		if (vertCount != 4)
-			m_polyVertices->resize(4);
-
-		const CCVector3* A = m_polyVertices->getPointPersistentPtr(0);
-		CCVector3* B = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(1));
-		CCVector3* C = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(2));
-		CCVector3* D = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(3));
-		*B = CCVector3(A->x,P.y,0);
-		*C = P;
-		*D = CCVector3(P.x,A->y,0);
-
-		if (vertCount != 4)
-		{
-			m_segmentationPoly->clear();
-			if (!m_segmentationPoly->addPointIndex(0,4))
-			{
-				ccLog::Error("Out of memory!");
-				allowExecutePolyline(false);
-				return;
-			}
-			m_segmentationPoly->setClosed(true);
-		}
-	}
-	else if (m_state & POLYGON)
-	{
-		if (vertCount < 2)
-			return;
-		//we replace last point by the current one
-		CCVector3* lastP = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(vertCount-1));
-		*lastP = P;
-	}
-
-	m_associatedWin->redraw(true, false);
-}
-
 void bdr3DGeometryEditPanel::echoSelectChange(/*ccHObject* obj*/)
 {
 	if (m_state & RUNNING) {
@@ -745,10 +686,6 @@ void bdr3DGeometryEditPanel::echoSelectChange(/*ccHObject* obj*/)
 
 void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 {
-	if (m_selection_mode != SELECT_2D) {
-		return;
-	}
-
 	if ((m_state & STARTED) == 0)
 	{
 		return;
@@ -786,7 +723,7 @@ void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 		else if (m_current_editor == GEO_BLOCK) {
 			m_state = POLYGON;
 		}
-		else if (m_current_editor == GEO_PARAPET) {
+		else if (m_current_editor == GEO_PARAPET || m_current_editor == GEO_POLYLINE) {
 			m_state = POLYLINE;
 		}
 		//m_state = (ctrlKeyPressed ? RECTANGLE : POLYLINE);
@@ -824,7 +761,9 @@ void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 			}
 
 			//we replace last point by the current one
-			CCVector3* lastP = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(vertCount-1));
+			CCVector3* lastP = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(vertCount - 1));
+			CCVector3* lastQ = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(vertCount - 2));
+			PointCoordinateType tipLength = (*lastQ - *lastP).norm();
 			*lastP = P;
 			//and add a new (equivalent) one
 			m_polyVertices->addPoint(P);
@@ -833,8 +772,12 @@ void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 				ccLog::Error("Out of memory!");
 				return;
 			}
-			if (m_state & POLYGON)
+			if (m_state & POLYGON) {
 				m_segmentationPoly->setClosed(true);
+			}
+			else {
+				m_segmentationPoly->showArrow(true, vertCount - 1, std::min(20.f, tipLength / 2));
+			}
 		}
 		else //we must change mode
 		{
@@ -843,6 +786,68 @@ void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
 			addPointToPolyline(x,y);
 			return;
 		}
+	}
+
+	m_associatedWin->redraw(true, false);
+}
+
+void bdr3DGeometryEditPanel::updatePolyLine(int x, int y, Qt::MouseButtons buttons)
+{
+	//process not started yet?
+	if ((m_state & RUNNING) == 0)
+	{
+		return;
+	}
+	if (!m_associatedWin)
+	{
+		assert(false);
+		return;
+	}
+
+	assert(m_polyVertices);
+	assert(m_segmentationPoly);
+
+	unsigned vertCount = m_polyVertices->size();
+
+	//new point (expressed relatively to the screen center)
+	QPointF pos2D = m_associatedWin->toCenteredGLCoordinates(x, y);
+	CCVector3 P(static_cast<PointCoordinateType>(pos2D.x()),
+		static_cast<PointCoordinateType>(pos2D.y()),
+		0);
+
+	if (m_state & RECTANGLE)
+	{
+		//we need 4 points for the rectangle!
+		if (vertCount != 4)
+			m_polyVertices->resize(4);
+
+		const CCVector3* A = m_polyVertices->getPointPersistentPtr(0);
+		CCVector3* B = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(1));
+		CCVector3* C = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(2));
+		CCVector3* D = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(3));
+		*B = CCVector3(A->x, P.y, 0);
+		*C = P;
+		*D = CCVector3(P.x, A->y, 0);
+
+		if (vertCount != 4)
+		{
+			m_segmentationPoly->clear();
+			if (!m_segmentationPoly->addPointIndex(0, 4))
+			{
+				ccLog::Error("Out of memory!");
+				allowExecutePolyline(false);
+				return;
+			}
+			m_segmentationPoly->setClosed(true);
+		}
+	}
+	else if (m_state & POLYGON || m_state & POLYLINE)
+	{
+		if (vertCount < 2)
+			return;
+		//we replace last point by the current one
+		CCVector3* lastP = const_cast<CCVector3*>(m_polyVertices->getPointPersistentPtr(vertCount - 1));
+		*lastP = P;
 	}
 
 	m_associatedWin->redraw(true, false);
@@ -889,8 +894,8 @@ void bdr3DGeometryEditPanel::closePolyLine(int, int)
 
 	assert(m_segmentationPoly);
 	unsigned vertCount = m_segmentationPoly->size();
-	if ((m_current_editor == GEO_BLOCK && vertCount < 4) ||
-		(m_current_editor == GEO_PARAPET && vertCount < 2)) 
+	if (((m_state & POLYGON) && vertCount < 4) ||
+		((m_state & POLYLINE) && vertCount < 2))
 	{
 		m_segmentationPoly->clear();
 		m_polyVertices->clear();
@@ -968,10 +973,10 @@ void bdr3DGeometryEditPanel::confirmCreate()
 {
 	ccHObject* activeModel = getActiveModel();
 
-	if (!(m_current_editor == GEO_BLOCK || m_current_editor == GEO_PARAPET))
-		return;
+// 	if (!(m_current_editor == GEO_BLOCK || m_current_editor == GEO_PARAPET))
+// 		return;
 
-	if (m_current_editor == GEO_BLOCK && !m_segmentationPoly->isClosed()) {
+	if ((m_state & POLYGON) && !m_segmentationPoly->isClosed()) {
 		return;
 	}
 
@@ -988,7 +993,7 @@ void bdr3DGeometryEditPanel::confirmCreate()
 
 	CCVector3 planeN; PointCoordinateType planeD;
 	m_refPlane->getEquation(planeN, planeD);
-
+	vcg::Plane3d vcgPlane = GetVcgPlane(m_refPlane);
 	ccPointCloud* cloud = nullptr;
 	if (m_UI->blockDeduceHeightGroupBox->isChecked() && activeModel) {
 		cloud = getModelPoint(activeModel);
@@ -1009,9 +1014,21 @@ void bdr3DGeometryEditPanel::confirmCreate()
 		
 		for (auto & p : polygon3D) {
 			CCVector3 p2d(p.x + half_w, p.y + half_h, refPlaneZ);
-			CCVector3d p2;
+			CCVector3d p1, p2;
+			camera.unproject(p2d, p1);
+			
+			p2d.z += 1;
 			camera.unproject(p2d, p2);
-			p = CCVector3::fromArray(p2.u);
+			vcg::Line3d line(stocker::parse_xyz(p1), stocker::parse_xyz(p2) - stocker::parse_xyz(p1));
+			vcg::Point3d ints_pt;
+			if (vcg::IntersectionLinePlane(line, vcgPlane, ints_pt)) {
+				p = CCVector3(vcgXYZ(ints_pt));
+			}
+			else {
+				// ccMesh* plane_mesh = ccHObjectCaster::ToMesh(m_refPlane); //triangle picking
+				
+				p = CCVector3::fromArray(p1.u);
+			}
 		}
 
 		if (cloud && cloud->size() > 0) {
@@ -1089,6 +1106,8 @@ void bdr3DGeometryEditPanel::confirmCreate()
 		}
 	}
 
+	ccHObject* created_obj = nullptr;
+
 	// project the 2d polygon to the ref plane
 	if (m_current_editor == GEO_BLOCK) {
 		/// i don't know why m_refPlane->getEquation() does not work
@@ -1097,12 +1116,8 @@ void bdr3DGeometryEditPanel::confirmCreate()
 		if (mainPlane) {
 			StBlock* block = new StBlock(mainPlane, top_height, CCVector3(0, 0, 1), 0, CCVector3(0, 0, -1));
 			if (block) {
-				if (activeModel) {
-					block->setName(GetNextChildName(activeModel, block->getTypeName()));
-					activeModel->addChild(block);
-				}
-				
-				MainWindow::TheInstance()->addToDB(block, CC_TYPES::DB_BUILDING, false, false);
+				block->setName(block->getTypeName());
+				created_obj = block;
 			}
 			else {
 				delete mainPlane;
@@ -1117,7 +1132,23 @@ void bdr3DGeometryEditPanel::confirmCreate()
 
 	}
 	else if (m_current_editor == GEO_POLYLINE) {
+		stocker::Contour3d pts;
+		for (auto & pt : polygon3D) {
+			pts.emplace_back(pt.x, pt.y, pt.z);
+		}
+		ccPolyline* duplicatedPoly = AddPolygonAsPolyline(pts, "Polyline", ccColor::doderBlue, false);
+		if (duplicatedPoly)	{
+			created_obj = duplicatedPoly;
+		}
+	}
 
+	if (created_obj) {
+		if (activeModel) {
+			created_obj->setName(GetNextChildName(activeModel, created_obj->getName()));
+			activeModel->addChild(created_obj);
+		}
+
+		MainWindow::TheInstance()->addToDB(created_obj, CC_TYPES::DB_BUILDING, false, false);
 	}
 
 	m_UI->razButton->setEnabled(true);
@@ -1169,7 +1200,7 @@ void bdr3DGeometryEditPanel::startGeoTool(GEOMETRY3D g, bool uncheck)
 		m_current_editor = g;
 		m_UI->createGroupBox->setEnabled(true);
 
-		if (m_current_editor == GEO_BLOCK || m_current_editor == GEO_PARAPET) {
+		if (m_current_editor == GEO_BLOCK || m_current_editor == GEO_PARAPET || m_current_editor == GEO_POLYLINE) {
 			m_selection_mode = SELECT_2D;
 		}
 		else
@@ -1235,7 +1266,7 @@ void bdr3DGeometryEditPanel::doPlane()
 
 void bdr3DGeometryEditPanel::doPolyline()
 {
-	startGeoTool(GEO_BOX);
+	startGeoTool(GEO_POLYLINE);
 }
 
 void bdr3DGeometryEditPanel::doWall()
@@ -1258,6 +1289,20 @@ void bdr3DGeometryEditPanel::startEdit()
 
 void bdr3DGeometryEditPanel::makeFreeMesh()
 {
+	ccHObject* activeModel = getActiveModel();
+	for (ccHObject* obj : m_actives) {
+		if (obj && obj->isKindOf(CC_TYPES::MESH) && !obj->isA(CC_TYPES::MESH)) {
+			ccMesh* mesh = ccHObjectCaster::ToMesh(obj); 
+
+			ccHObject* cloneMesh = mesh->cloneMesh();
+			if (activeModel) {
+				cloneMesh->setName(GetNextChildName(activeModel, MESHPrefix));
+				activeModel->addChild(activeModel);
+			}
+			MainWindow::TheInstance()->addToDB(cloneMesh, CC_TYPES::DB_BUILDING, false, false);
+		}
+	}
+	m_associatedWin->redraw();
 }
 
 static CSGBoolOpParameters s_params;
@@ -1425,11 +1470,14 @@ void bdr3DGeometryEditPanel::doCSGoperation(CSG_OPERATION operation)
 			assert(false);
 			break;
 		}
-		result->setName(QString("(%1).%2.(%3)").arg(meshA->getName()).arg(opName).arg(meshB->getName()));
 
-		ccHObject*destination = m_destination ? m_destination : getActiveModel();
+		ccHObject * destination = m_destination ? m_destination : getActiveModel();
 		if (destination) {
+			result->setName(GetNextChildName(destination, MESHPrefix));
 			destination->addChild(result);
+		}
+		else {
+			result->setName(QString("(%1).%2.(%3)").arg(meshA->getName()).arg(opName).arg(meshB->getName()));
 		}
 
 		//normals
