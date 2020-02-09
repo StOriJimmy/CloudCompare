@@ -716,11 +716,21 @@ void bdr3DGeometryEditPanel::changePickingCursor()
 }
 
 void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons buttons)
-{
+{	
 	if (m_state & RUNNING) {
 		updatePolyLine(x, y, buttons);
+
+		m_mouseMoved = true;
+		m_lastMousePos = CCVector2i(x, y);
+		return;
 	}
-	else if (buttons == Qt::LeftButton) {
+
+	int dx = x - m_lastMousePos.x;
+	int dy = y - m_lastMousePos.y;
+
+	bool needRedraw = false;
+
+	if (buttons == Qt::LeftButton) {
 		if (BUTTON_STATE_CTRL_PUSHED) {
 			//! clone
 			if (!m_mouseMoved) {
@@ -772,15 +782,12 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 				m_movingObjs = m_actives;
 			}
 		}
-		//! rotate
-		else if (BUTTON_STATE_ALT_PUSHED) {
-		}
 
 		// execute the moving process
 		if ((BUTTON_STATE_CTRL_PUSHED || BUTTON_STATE_SHIFT_PUSHED) && !m_movingObjs.empty()) {
 
 			double pixSize = m_associatedWin->computeActualPixelSize();
-			CCVector3d u((x - m_lastMousePos.x) * pixSize, -(y - m_lastMousePos.y) * pixSize, 0.0);
+			CCVector3d u(dx * pixSize, -dy * pixSize, 0.0);
 			if (!m_associatedWin->viewerPerspectiveEnabled()) {
 				u.y *= m_associatedWin->getViewportParameters().orthoAspectRatio;
 			}
@@ -795,12 +802,109 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 			for (ccHObject* obj : m_movingObjs) {
 				obj->setGLTransformation(trans);
 				obj->applyGLTransformation_recursive();
-				obj->prepareDisplayForRefresh_recursive();
+				needRedraw = true;
+			}
+		}
+	}
+	else if ((buttons == Qt::RightButton) && BUTTON_STATE_ALT_PUSHED) {
+		ccGLMatrixd rotMat;
+		//! rotation mode
+		if (BUTTON_STATE_CTRL_PUSHED) {
+			CCVector3d axis = CCVector3d::fromArray(m_refPlane->getNormal().u);
+			CCVector3d lockedAxis(axis);
+			m_associatedWin->getBaseViewMat().applyRotation(axis);
+
+			bool topView = (std::abs(axis.z) > 0.5);
+			ccGLCameraParameters camera;
+			m_associatedWin->getGLCameraParameters(camera);
+
+			if (topView)
+			{
+				//rotation origin
+				CCVector3d C2D;
+				
+				if (m_associatedWin->getViewportParameters().objectCenteredView)
+				{
+					//project the current pivot point on screen
+					camera.project(m_associatedWin->getViewportParameters().pivotPoint, C2D);
+					C2D.z = 0.0;
+				}
+				else
+				{
+					C2D = CCVector3d(width() / 2.0, m_associatedWin->glHeight() / 2.0, 0.0);
+				}
+
+				CCVector3d previousMousePos(static_cast<double>(m_lastMousePos.x), static_cast<double>(m_associatedWin->glHeight() - m_lastMousePos.y), 0.0);
+				CCVector3d currentMousePos(static_cast<double>(x), static_cast<double>(height() - y), 0.0);
+
+				CCVector3d a = (currentMousePos - C2D);
+				CCVector3d b = (previousMousePos - C2D);
+				CCVector3d u = a * b;
+				double u_norm = std::abs(u.z); //a and b are in the XY plane
+				if (u_norm > 1.0e-6)
+				{
+					double sin_angle = u_norm / (a.norm() * b.norm());
+
+					//determine the rotation direction
+					if (u.z * lockedAxis.z > 0)
+					{
+						sin_angle = -sin_angle;
+					}
+
+					double angle_rad = asin(sin_angle); //in [-pi/2 ; pi/2]
+					rotMat.initFromParameters(angle_rad, axis, CCVector3d(0, 0, 0));
+				}
+			}
+			else //side view
+			{
+				//project the current pivot point on screen
+				CCVector3d A2D, B2D;
+				if (camera.project(m_associatedWin->getViewportParameters().pivotPoint, A2D)
+					&& camera.project(m_associatedWin->getViewportParameters().pivotPoint + m_associatedWin->getViewportParameters().zFar * lockedAxis, B2D))
+				{
+					CCVector3d lockedRotationAxis2D = B2D - A2D;
+					lockedRotationAxis2D.z = 0; //just in case
+					lockedRotationAxis2D.normalize();
+
+					CCVector3d mouseShift(static_cast<double>(dx), -static_cast<double>(dy), 0.0);
+					mouseShift -= mouseShift.dot(lockedRotationAxis2D) * lockedRotationAxis2D; //we only keep the orthogonal part
+					double angle_rad = 2.0 * M_PI * mouseShift.norm() / (width() + height());
+					if ((lockedRotationAxis2D * mouseShift).z > 0.0)
+					{
+						angle_rad = -angle_rad;
+					}
+
+					rotMat.initFromParameters(angle_rad, axis, CCVector3d(0, 0, 0));
+				}
+			}
+
+		}
+		// standard
+		else {
+			static CCVector3d s_lastMouseOrientation;
+			CCVector3d currentMouseOrientation = m_associatedWin->convertMousePositionToOrientation(x, y);
+			
+			if (!m_mouseMoved)
+			{
+				//on the first time, we must compute the previous orientation (the camera hasn't moved yet)
+				s_lastMouseOrientation = m_associatedWin->convertMousePositionToOrientation(m_lastMousePos.x, m_lastMousePos.y);
+			}
+			// unconstrained rotation following mouse position
+			rotMat = ccGLMatrixd::FromToRotation(s_lastMouseOrientation, currentMouseOrientation);
+
+			s_lastMouseOrientation = currentMouseOrientation;
+		}
+
+		for (ccHObject* obj : m_actives) {
+			if (obj) {
+				ccGLMatrix m(rotMat.data());
+				obj->applyGLTransformation_recursive(&m);
+				needRedraw = true;
 			}
 		}
 	}
 	
-	m_associatedWin->refresh();
+	if (needRedraw) m_associatedWin->redraw();
 	m_mouseMoved = true;
 	m_lastMousePos = CCVector2i(x, y);
 }

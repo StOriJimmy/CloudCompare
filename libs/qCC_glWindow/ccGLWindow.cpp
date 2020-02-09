@@ -4133,7 +4133,7 @@ void ccGLWindow::mouseMoveEvent(QMouseEvent *event)
 	int dy = y - m_lastMousePos.y();
 	setLODEnabled(true, false);
 
-	if ((event->buttons() & Qt::RightButton)
+	if ((event->buttons() & Qt::RightButton) && !(QApplication::keyboardModifiers() & Qt::AltModifier)
 #ifdef CC_MAC_OS
 		|| (QApplication::keyboardModifiers() & Qt::MetaModifier)
 #endif

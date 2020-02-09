@@ -1028,12 +1028,7 @@ protected:
 	bool initGLFilter(int w, int h, bool silent = false);
 	//! Releases active GL filter
 	void removeGLFilter();
-
-	//! Converts a given (mouse) position in pixels to an orientation
-	/** The orientation vector origin is the current pivot point!
-	**/
-	CCVector3d convertMousePositionToOrientation(int x, int y);
-
+	
 	//! Returns the height of the 'GL filter' banner
 	int getGlFilterBannerHeight() const;
 
@@ -1090,6 +1085,11 @@ protected:
 	GLfloat getGLDepth(int x, int y, int extendToNeighbors = 0);
 
 public:
+	//! Converts a given (mouse) position in pixels to an orientation
+	/** The orientation vector origin is the current pivot point!
+	**/
+	CCVector3d convertMousePositionToOrientation(int x, int y);
+
 	bool getClick3DPos(int x, int y, float depth, CCVector3d & P3D);
 
 	//! Returns the approximate 3D position of the clicked pixel
