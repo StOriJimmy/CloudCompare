@@ -590,12 +590,6 @@ void ccFacet::applyGLTransformation(const ccGLMatrix &trans)
 	// compute new d-parameter from the updated values
 	CCVector3 n(m_planeEquation);
 	m_planeEquation[3] = n.dot(m_center);
-
-	//! notify the parent block to change this
-	StBlock* block = ccHObjectCaster::ToStBlock(getParent());
-	if (block) {
-		block->updateFacet(this);
-	}
 }
 
 void ccFacet::invertNormal()
