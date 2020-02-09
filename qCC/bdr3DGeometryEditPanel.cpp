@@ -887,7 +887,7 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 						sin_angle = -sin_angle;
 					}
 
-					double angle_rad = asin(sin_angle); //in [-pi/2 ; pi/2]
+					double angle_rad = asin(sin_angle) / 2; //in [-pi/2 ; pi/2]
 					rotMat.initFromParameters(angle_rad, axis, CCVector3d(0, 0, 0));
 				}
 			}
