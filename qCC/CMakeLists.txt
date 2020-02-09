@@ -142,7 +142,7 @@ else( UNIX )
 endif()
 
 # Translation
-add_subdirectory( translations )
+#add_subdirectory( translations )
 
 # in order to ensure that everything else is installed first, put the Mac bundling in its own subdirectory
 if( APPLE )
