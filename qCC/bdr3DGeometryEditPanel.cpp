@@ -787,31 +787,69 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 		if ((BUTTON_STATE_CTRL_PUSHED || BUTTON_STATE_SHIFT_PUSHED) && !m_movingObjs.empty()) {
 
 			double pixSize = m_associatedWin->computeActualPixelSize();
-			CCVector3d u(dx * pixSize, -dy * pixSize, 0.0);
+			CCVector3 u(dx * pixSize, -dy * pixSize, 0.0);
 			if (!m_associatedWin->viewerPerspectiveEnabled()) {
 				u.y *= m_associatedWin->getViewportParameters().orthoAspectRatio;
 			}
 			u *= m_associatedWin->devicePixelRatio();
 			m_associatedWin->getViewportParameters().viewMat.transposed().applyRotation(u);
-
-			if (m_refPlane) {
-
+			if (m_UI->transRefplaneRadioButton->isChecked() && m_refPlane) {
+				CCVector3 pn = m_refPlane->getNormal();
+				PointCoordinateType pnorm2 = pn.norm2();
+				if (fabs(pnorm2) > std::numeric_limits<PointCoordinateType>::epsilon()) {
+					u = u - u.dot(pn) * pn / pnorm2;
+				}
+			}
+			if (m_UI->transCustomRadioButton->isChecked()) {
+				CCVector3 lockedTrans;
+				lockedTrans.x = m_UI->transVXDoubleSpinBox->value();
+				lockedTrans.y = m_UI->transVYDoubleSpinBox->value();
+				lockedTrans.z = m_UI->transVZDoubleSpinBox->value();
+				lockedTrans.normalize();
+				if (fabs(lockedTrans.norm2() - 1) < 1e-6) {
+					u = u.dot(lockedTrans) * lockedTrans;
+				}
 			}
 			ccGLMatrix trans; trans.toIdentity();
 			trans += u;
 			for (ccHObject* obj : m_movingObjs) {
-				obj->setGLTransformation(trans);
-				obj->applyGLTransformation_recursive();
-				needRedraw = true;
+				if (obj) {
+					obj->setGLTransformation(trans);
+					obj->applyGLTransformation_recursive();
+					needRedraw = true;
+				}
 			}
 		}
 	}
 	else if ((buttons == Qt::RightButton) && BUTTON_STATE_ALT_PUSHED) {
 		ccGLMatrixd rotMat;
 		//! rotation mode
-		if (BUTTON_STATE_CTRL_PUSHED) {
-			CCVector3d axis = CCVector3d::fromArray(m_refPlane->getNormal().u);
-			CCVector3d lockedAxis(axis);
+		if (m_UI->rotateFreeRadioButton->isChecked()) {// standard
+			static CCVector3d s_lastMouseOrientation;
+			CCVector3d currentMouseOrientation = m_associatedWin->convertMousePositionToOrientation(x, y);
+
+			if (!m_mouseMoved)
+			{
+				//on the first time, we must compute the previous orientation (the camera hasn't moved yet)
+				s_lastMouseOrientation = m_associatedWin->convertMousePositionToOrientation(m_lastMousePos.x, m_lastMousePos.y);
+			}
+			// unconstrained rotation following mouse position
+			rotMat = ccGLMatrixd::FromToRotation(s_lastMouseOrientation, currentMouseOrientation);
+
+			s_lastMouseOrientation = currentMouseOrientation;
+		}
+		else {
+			CCVector3d axis, lockedAxis;
+			if (m_UI->rotateRefplaneRadioButton->isChecked()) {
+				lockedAxis = axis = CCVector3d::fromArray(m_refPlane->getNormal().u);
+			}
+			else if (m_UI->rotateCustomRadioButton->isChecked()) {
+				axis.x = m_UI->rotateNXDoubleSpinBox->value();
+				axis.y = m_UI->rotateNYDoubleSpinBox->value();
+				axis.z = m_UI->rotateNZDoubleSpinBox->value();
+				axis.normalize();
+				lockedAxis = axis;
+			}
 			m_associatedWin->getBaseViewMat().applyRotation(axis);
 
 			bool topView = (std::abs(axis.z) > 0.5);
@@ -822,15 +860,13 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 			{
 				//rotation origin
 				CCVector3d C2D;
-				
-				if (m_associatedWin->getViewportParameters().objectCenteredView)
-				{
+
+				if (m_associatedWin->getViewportParameters().objectCenteredView) {
 					//project the current pivot point on screen
 					camera.project(m_associatedWin->getViewportParameters().pivotPoint, C2D);
 					C2D.z = 0.0;
 				}
-				else
-				{
+				else {
 					C2D = CCVector3d(width() / 2.0, m_associatedWin->glHeight() / 2.0, 0.0);
 				}
 
@@ -841,13 +877,11 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 				CCVector3d b = (previousMousePos - C2D);
 				CCVector3d u = a * b;
 				double u_norm = std::abs(u.z); //a and b are in the XY plane
-				if (u_norm > 1.0e-6)
-				{
+				if (u_norm > 1.0e-6) {
 					double sin_angle = u_norm / (a.norm() * b.norm());
 
 					//determine the rotation direction
-					if (u.z * lockedAxis.z > 0)
-					{
+					if (u.z * lockedAxis.z > 0)	{
 						sin_angle = -sin_angle;
 					}
 
@@ -869,30 +903,12 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 					CCVector3d mouseShift(static_cast<double>(dx), -static_cast<double>(dy), 0.0);
 					mouseShift -= mouseShift.dot(lockedRotationAxis2D) * lockedRotationAxis2D; //we only keep the orthogonal part
 					double angle_rad = 2.0 * M_PI * mouseShift.norm() / (width() + height());
-					if ((lockedRotationAxis2D * mouseShift).z > 0.0)
-					{
+					if ((lockedRotationAxis2D * mouseShift).z > 0.0) {
 						angle_rad = -angle_rad;
 					}
-
 					rotMat.initFromParameters(angle_rad, axis, CCVector3d(0, 0, 0));
 				}
 			}
-
-		}
-		// standard
-		else {
-			static CCVector3d s_lastMouseOrientation;
-			CCVector3d currentMouseOrientation = m_associatedWin->convertMousePositionToOrientation(x, y);
-			
-			if (!m_mouseMoved)
-			{
-				//on the first time, we must compute the previous orientation (the camera hasn't moved yet)
-				s_lastMouseOrientation = m_associatedWin->convertMousePositionToOrientation(m_lastMousePos.x, m_lastMousePos.y);
-			}
-			// unconstrained rotation following mouse position
-			rotMat = ccGLMatrixd::FromToRotation(s_lastMouseOrientation, currentMouseOrientation);
-
-			s_lastMouseOrientation = currentMouseOrientation;
 		}
 
 		for (ccHObject* obj : m_actives) {
