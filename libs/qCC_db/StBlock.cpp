@@ -357,6 +357,21 @@ bool StBlock::buildUp()
 	return buildFromFacet();
 }
 
+void StBlock::applyGLTransformation(const ccGLMatrix & trans)
+{
+	//! main plane
+	m_mainPlane->applyGLTransformation_recursive(&trans);
+
+	//! for mesh
+	ccGenericPrimitive::applyGLTransformation(trans);
+
+	//! for m_top_normal
+	m_top_normal = getTopFacet()->getNormal();
+
+	//! for m_bottom_normal
+	m_bottom_normal = getBottomFacet()->getNormal();
+}
+
 void StBlock::paramFromFacet()
 {
 	if (!m_top_facet || !m_bottom_facet || !m_mainPlane) {
