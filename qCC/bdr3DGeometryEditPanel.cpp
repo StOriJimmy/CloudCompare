@@ -729,6 +729,7 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 	int dy = y - m_lastMousePos.y;
 
 	bool needRedraw = false;
+	ccViewportParameters viewParams = m_associatedWin->getViewportParameters();
 
 	if (buttons == Qt::LeftButton) {
 		if (BUTTON_STATE_CTRL_PUSHED) {
@@ -789,10 +790,10 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 			double pixSize = m_associatedWin->computeActualPixelSize();
 			CCVector3 u(dx * pixSize, -dy * pixSize, 0.0);
 			if (!m_associatedWin->viewerPerspectiveEnabled()) {
-				u.y *= m_associatedWin->getViewportParameters().orthoAspectRatio;
+				u.y *= viewParams.orthoAspectRatio;
 			}
 			u *= m_associatedWin->devicePixelRatio();
-			m_associatedWin->getViewportParameters().viewMat.transposed().applyRotation(u);
+			viewParams.viewMat.transposed().applyRotation(u);
 			if (m_UI->transRefplaneRadioButton->isChecked() && m_refPlane) {
 				CCVector3 pn = m_refPlane->getNormal();
 				PointCoordinateType pnorm2 = pn.norm2();
@@ -822,6 +823,7 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 		}
 	}
 	else if ((buttons == Qt::RightButton) && BUTTON_STATE_ALT_PUSHED) {
+
 		ccGLMatrixd rotMat;
 		//! rotation mode
 		if (m_UI->rotateFreeRadioButton->isChecked()) {// standard
@@ -861,9 +863,9 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 				//rotation origin
 				CCVector3d C2D;
 
-				if (m_associatedWin->getViewportParameters().objectCenteredView) {
+				if (viewParams.objectCenteredView) {
 					//project the current pivot point on screen
-					camera.project(m_associatedWin->getViewportParameters().pivotPoint, C2D);
+					camera.project(viewParams.pivotPoint, C2D);
 					C2D.z = 0.0;
 				}
 				else {
@@ -893,8 +895,8 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 			{
 				//project the current pivot point on screen
 				CCVector3d A2D, B2D;
-				if (camera.project(m_associatedWin->getViewportParameters().pivotPoint, A2D)
-					&& camera.project(m_associatedWin->getViewportParameters().pivotPoint + m_associatedWin->getViewportParameters().zFar * lockedAxis, B2D))
+				if (camera.project(viewParams.pivotPoint, A2D)
+					&& camera.project(viewParams.pivotPoint + viewParams.zFar * lockedAxis, B2D))
 				{
 					CCVector3d lockedRotationAxis2D = B2D - A2D;
 					lockedRotationAxis2D.z = 0; //just in case
@@ -911,9 +913,12 @@ void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons butto
 			}
 		}
 
+		rotMat = viewParams.viewMat.transposed() * rotMat * viewParams.viewMat;
+
 		for (ccHObject* obj : m_actives) {
 			if (obj) {
 				ccGLMatrix m(rotMat.data());
+				m += obj->getBB_recursive().getCenter() - m * obj->getBB_recursive().getCenter();
 				obj->applyGLTransformation_recursive(&m);
 				needRedraw = true;
 			}
