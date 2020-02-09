@@ -29,7 +29,7 @@
 #include "ccTorus.h"
 #include "ccDish.h"
 #include "ccPlane.h"
-
+#include "StFootPrint.h"
 #include "ccDBRoot.h"
 
 //qCC_gl
@@ -74,6 +74,9 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 	, m_refPlanePanel(nullptr)
 	, m_toolPlanePanel(nullptr)
 	, m_refPlane(nullptr)
+	, m_pickingVertex(nullptr)
+	, m_mouseMoved(false)
+	, m_lastMousePos(CCVector2i(0, 0))
 {
 	m_UI->setupUi(this);
 
@@ -485,10 +488,10 @@ bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 	
 	if (m_associatedWin)
 	{
-		connect(m_associatedWin, &ccGLWindow::leftButtonClicked,	this, &bdr3DGeometryEditPanel::addPointToPolyline);
-		connect(m_associatedWin, &ccGLWindow::rightButtonClicked,	this, &bdr3DGeometryEditPanel::closePolyLine);
-		connect(m_associatedWin, &ccGLWindow::mouseMoved,			this, &bdr3DGeometryEditPanel::updatePolyLine);
-		connect(m_associatedWin, &ccGLWindow::buttonReleased,		this, &bdr3DGeometryEditPanel::closeRectangle);
+		connect(m_associatedWin, &ccGLWindow::leftButtonClicked,	this, &bdr3DGeometryEditPanel::echoLeftButtonClicked);
+		connect(m_associatedWin, &ccGLWindow::rightButtonClicked,	this, &bdr3DGeometryEditPanel::echoRightButtonClicked);
+		connect(m_associatedWin, &ccGLWindow::mouseMoved,			this, &bdr3DGeometryEditPanel::echoMouseMoved);
+		connect(m_associatedWin, &ccGLWindow::buttonReleased,		this, &bdr3DGeometryEditPanel::echoButtonReleased);
 		//connect(m_associatedWin, &ccGLWindow::entitySelectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
 
 		if (m_editPoly)	{
@@ -682,6 +685,137 @@ void bdr3DGeometryEditPanel::echoSelectChange(/*ccHObject* obj*/)
 	ccHObject::Container actives;
 	MainWindow::TheInstance()->db_building()->getSelectedEntities(actives, CC_TYPES::MESH);
 	setActiveItem(actives);
+}
+
+void bdr3DGeometryEditPanel::echoLeftButtonClicked(int x, int y)
+{
+	m_mouseMoved = false;
+	addPointToPolyline(x, y);
+}
+
+void bdr3DGeometryEditPanel::echoRightButtonClicked(int x, int y)
+{
+	m_mouseMoved = false;
+	closePolyLine(x, y);
+}
+
+void bdr3DGeometryEditPanel::changePickingCursor()
+{
+	if (m_pickingVertex && m_pickingVertex->nearestEntitiy) {
+		if (m_pickingVertex->buttonState == Qt::LeftButton) {
+
+		}
+		else if (BUTTON_STATE_CTRL_PUSHED) {
+
+		}
+
+	}
+	else {
+		m_associatedWin->resetCursor();
+	}
+}
+
+void bdr3DGeometryEditPanel::echoMouseMoved(int x, int y, Qt::MouseButtons buttons)
+{
+	if (m_state & RUNNING) {
+		updatePolyLine(x, y, buttons);
+	}
+	else if (buttons == Qt::LeftButton) {
+		if (BUTTON_STATE_CTRL_PUSHED) {
+			//! clone
+			if (!m_mouseMoved) {
+				m_movingObjs.clear();
+				for (ccHObject* obj : m_actives) {
+					ccHObject* cloned = nullptr;
+					if (obj->isKindOf(CC_TYPES::PRIMITIVE)) {
+						ccGenericPrimitive* prim = ccHObjectCaster::ToPrimitive(obj);
+						if (prim) {
+							cloned = prim->clone(); 
+							cloned->setName(prim->getTypeName());
+						}
+					}
+					else if (obj->isKindOf(CC_TYPES::MESH)) {
+						ccMesh* mesh = ccHObjectCaster::ToMesh(obj);
+						if (mesh) {
+							cloned = mesh->cloneMesh();
+							cloned->setName(MESHPrefix);
+						}
+					}
+					else if (obj->isA(CC_TYPES::ST_FOOTPRINT)) {
+						StFootPrint* fp = ccHObjectCaster::ToStFootPrint(obj);
+						if (fp) {
+							cloned = new StFootPrint(*fp);
+							cloned->setName("FootPrint");
+						}
+					}
+					else if (obj->isA(CC_TYPES::POLY_LINE)) {
+						ccPolyline* poly = ccHObjectCaster::ToPolyline(obj);
+						if (poly) {
+							cloned = new ccPolyline(*poly);
+							cloned->setName("Polyline");
+						}
+					}
+					if (cloned) {
+						if (obj->getParent()) {
+							cloned->setName(GetNextChildName(obj->getParent(), cloned->getName()));
+							obj->getParent()->addChild(cloned);
+						}
+						MainWindow::TheInstance()->addToDB(cloned, CC_TYPES::DB_BUILDING, false, false);
+						m_movingObjs.push_back(cloned);
+					}
+				}
+			}
+		}
+		else if (BUTTON_STATE_SHIFT_PUSHED) {
+			//! move
+			if (!m_mouseMoved) {
+				m_movingObjs = m_actives;
+			}
+		}
+		//! rotate
+		else if (BUTTON_STATE_ALT_PUSHED) {
+		}
+
+		// execute the moving process
+		if ((BUTTON_STATE_CTRL_PUSHED || BUTTON_STATE_SHIFT_PUSHED) && !m_movingObjs.empty()) {
+
+			double pixSize = m_associatedWin->computeActualPixelSize();
+			CCVector3d u((x - m_lastMousePos.x) * pixSize, -(y - m_lastMousePos.y) * pixSize, 0.0);
+			if (!m_associatedWin->viewerPerspectiveEnabled()) {
+				u.y *= m_associatedWin->getViewportParameters().orthoAspectRatio;
+			}
+			u *= m_associatedWin->devicePixelRatio();
+			m_associatedWin->getViewportParameters().viewMat.transposed().applyRotation(u);
+
+			if (m_refPlane) {
+
+			}
+			ccGLMatrix trans; trans.toIdentity();
+			trans += u;
+			for (ccHObject* obj : m_movingObjs) {
+				obj->setGLTransformation(trans);
+				obj->applyGLTransformation_recursive();
+				obj->prepareDisplayForRefresh_recursive();
+			}
+		}
+	}
+	
+	m_associatedWin->refresh();
+	m_mouseMoved = true;
+	m_lastMousePos = CCVector2i(x, y);
+}
+
+void bdr3DGeometryEditPanel::echoButtonReleased()
+{
+	// close the rectangle
+	if ((m_state & RECTANGLE) && (m_state & RUNNING)) {
+		closeRectangle();
+	}
+	else if (!m_movingObjs.empty()) {
+		// put the duplicated object
+		m_movingObjs.clear();
+		m_mouseMoved = false;
+	}
 }
 
 void bdr3DGeometryEditPanel::addPointToPolyline(int x, int y)
@@ -940,7 +1074,7 @@ void bdr3DGeometryEditPanel::startEditingMode(bool state)
 		}
 		allowExecutePolyline(false);
 		allowStateChange(true);
-		m_associatedWin->setInteractionMode(ccGLWindow::TRANSFORM_CAMERA());
+		m_associatedWin->setInteractionMode(ccGLWindow::TRANSFORM_CAMERA() | ccGLWindow::INTERACT_SEND_ALL_SIGNALS);
 		m_associatedWin->setPickingMode(ccGLWindow::DEFAULT_PICKING);
 		MainWindow::TheInstance()->dispToStatus(QString("paused, press space to continue editing"));
 

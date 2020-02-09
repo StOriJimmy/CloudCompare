@@ -1,20 +1,3 @@
-//##########################################################################
-//#                                                                        #
-//#                              CLOUDCOMPARE                              #
-//#                                                                        #
-//#  This program is free software; you can redistribute it and/or modify  #
-//#  it under the terms of the GNU General Public License as published by  #
-//#  the Free Software Foundation; version 2 or later of the License.      #
-//#                                                                        #
-//#  This program is distributed in the hope that it will be useful,       #
-//#  but WITHOUT ANY WARRANTY; without even the implied warranty of        #
-//#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the          #
-//#  GNU General Public License for more details.                          #
-//#                                                                        #
-//#          COPYRIGHT: EDF R&D / TELECOM ParisTech (ENST-TSI)             #
-//#                                                                        #
-//##########################################################################
-
 #ifndef BDR_TRACE_FOOTPRINT_HEADER
 #define BDR_TRACE_FOOTPRINT_HEADER
 
@@ -25,13 +8,61 @@
 
 //qCC_db
 //#include <ccHObject.h>
-
+#define BUTTON_STATE_CTRL_PUSHED (QApplication::keyboardModifiers() & Qt::ControlModifier)
+#define BUTTON_STATE_SHIFT_PUSHED (QApplication::keyboardModifiers() & Qt::ShiftModifier)
+#define BUTTON_STATE_ALT_PUSHED (QApplication::keyboardModifiers() & Qt::AltModifier)
 
 class ccGenericPointCloud;
 class ccPointCloud;
 class ccGLWindow;
 class ccPlane;
 class QToolButton;
+
+template <class SECTION>
+class PickingVertex {
+
+public:
+	PickingVertex() :
+		buttonState(Qt::NoButton)
+		, nearestEntitiy(nullptr)
+		, nearestVert(nullptr)
+		, nearestVertIndex(-1)
+		, selectedEntitiy(nullptr)
+		, selectedVert(nullptr)
+		, selectedVertIndex(-1)
+	{}
+
+	void reset() {
+		picking_repo.clear();
+		resetSelected();
+		resetNearest();
+	}
+
+	void resetNearest() {
+		nearestEntitiy = nullptr;
+		nearestVert = nullptr;
+		nearestVertIndex = -1;
+	}
+
+	void resetSelected() {
+		selectedEntitiy = nullptr;
+		selectedVert = nullptr;
+		selectedVertIndex = -1;
+	}
+public:
+	Qt::MouseButtons buttonState;	// button is down or just hover
+
+	QList<SECTION> picking_repo;	// for picking
+
+	//! mouse move
+	ccHObject* nearestEntitiy;
+	CCVector3* nearestVert;
+	int nearestVertIndex;
+	//! picking result
+	ccHObject* selectedEntitiy;
+	CCVector3* selectedVert;
+	int selectedVertIndex;
+};
 
 namespace Ui
 {
@@ -325,51 +356,8 @@ private: //members
 	ccPlane* m_workingPlane;
 
 	SketchObjectMode m_currentSOMode;
-
-	struct PickingVertex {
-		PickingVertex() :
-			buttonState(Qt::NoButton)
-			, nearestEntitiy(nullptr)
-			, nearestVert(nullptr)
-			, nearestVertIndex(-1)
-			, selectedEntitiy(nullptr)
-			, selectedVert(nullptr)
-			, selectedVertIndex(-1)
-		{}
-
-		void reset() {
-			picking_repo.clear();
-			resetSelected();
-			resetNearest();
-		}
-
-		void resetNearest() {
-			nearestEntitiy = nullptr;
-			nearestVert = nullptr;
-			nearestVertIndex = -1;
-		}
-
-		void resetSelected() {
-			selectedEntitiy = nullptr;
-			selectedVert = nullptr;
-			selectedVertIndex = -1;
-		}
-
-		Qt::MouseButtons buttonState;	// button is down or just hover
-
-		SectionPool picking_repo;	// for picking
-
-		//! mouse move
-		ccHObject* nearestEntitiy;
-		CCVector3* nearestVert;
-		int nearestVertIndex;
-		//! picking result
-		ccHObject* selectedEntitiy;
-		CCVector3* selectedVert;
-		int selectedVertIndex;
-	};
-
-	PickingVertex* m_pickingVertex;
+	
+	PickingVertex<Section>* m_pickingVertex;
 };
 
 #endif //BDR_TRACE_FOOTPRINT_HEADER

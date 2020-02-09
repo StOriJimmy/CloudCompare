@@ -133,6 +133,9 @@ protected:
 	virtual bool fromFile_MeOnly(QFile& in, short dataVersion, int flags) override;
 	virtual bool buildUp() override;
 
+	// ccHObject interface
+	void applyGLTransformation(const ccGLMatrix &trans) override;
+
 	//! Width along 'X' dimension
 	PointCoordinateType m_xWidth;
 

@@ -72,9 +72,19 @@ bool ccPlane::buildUp()
 	return true;
 }
 
+void ccPlane::applyGLTransformation(const ccGLMatrix & trans)
+{
+	ccHObject::applyGLTransformation(trans);
+	for (auto&p : m_profile) {
+		trans.apply(p);
+	}
+}
+
 ccGenericPrimitive* ccPlane::clone() const
 {
-	return finishCloneJob(new ccPlane(m_xWidth, m_yWidth, &m_transformation, getName()));
+	ccPlane* new_plane = new ccPlane(m_xWidth, m_yWidth, &m_transformation, getName());
+	new_plane->setProfile(m_profile);
+	return finishCloneJob(new_plane);
 }
 
 void ccPlane::drawMeOnly(CC_DRAW_CONTEXT& context)
@@ -164,10 +174,16 @@ void ccPlane::setProfile(std::vector<CCVector3> profile, bool update)
 CCVector3 ccPlane::getProfileCenter()
 {
 	CCVector3 center(0, 0, 0);
-	for (auto & pt : m_profile)	{
-		center += pt;
+	if (!m_profile.empty()) {
+		for (auto & pt : m_profile) {
+			center += pt;
+		}
+		center /= m_profile.size();
 	}
-	center /= m_profile.size();
+	else
+	{
+		center = CCVector3(NAN, NAN, NAN);
+	}
 	return center;
 }
 

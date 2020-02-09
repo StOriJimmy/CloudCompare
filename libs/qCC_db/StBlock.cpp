@@ -4,6 +4,7 @@
 #include "ccPointCloud.h"
 #include "ccPolyline.h"
 #include "ccNormalVectors.h"
+#include "ccHObjectCaster.h"
 #include "ccPlane.h"
 
 //CCLib
@@ -387,7 +388,12 @@ StBlock::StBlock(QString name/*="Block"*/)
 
 ccGenericPrimitive* StBlock::clone() const
 {
-	return finishCloneJob(new StBlock(m_mainPlane, m_top_facet, m_bottom_facet, getName()));
+	ccPlane* clonePlane = ccHObjectCaster::ToPlane(m_mainPlane->clone());
+	if (!clonePlane) {
+		return nullptr;
+	}
+	return finishCloneJob(new StBlock(clonePlane, m_top_height, m_top_normal, m_bottom_height, m_bottom_normal, getName()));
+	//return finishCloneJob(new StBlock(m_mainPlane, m_top_facet, m_bottom_facet, getName()));
 }
 
 ccFacet * StBlock::getTopFacet()

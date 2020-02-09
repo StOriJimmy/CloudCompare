@@ -4187,7 +4187,9 @@ void ccGLWindow::mouseMoveEvent(QMouseEvent *event)
 
 		} //if (m_interactionFlags & INTERACT_PAN)
 	}
-	else if (event->buttons() & Qt::LeftButton) //rotation
+	else if (event->buttons() & Qt::LeftButton &&
+		!(QApplication::keyboardModifiers() & Qt::ShiftModifier) && 
+		!(QApplication::keyboardModifiers() & Qt::ControlModifier)) //rotation
 	{
 		if (m_interactionFlags & INTERACT_2D_ITEMS)
 		{

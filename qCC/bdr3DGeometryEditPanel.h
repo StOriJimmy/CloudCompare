@@ -7,6 +7,8 @@
 //qCC_db
 #include <ccHObject.h>
 
+#include "bdrSketcherDlg.h"
+
 //Qt
 #include <QSet>
 
@@ -101,11 +103,11 @@ private:
 
 protected slots:
 
-	void addPointToPolyline(int x, int y);
-	void closePolyLine(int x=0, int y=0); //arguments for compatibility with ccGlWindow::rightButtonClicked signal
-	void closeRectangle();
-	void updatePolyLine(int x, int y, Qt::MouseButtons buttons);
 	void echoSelectChange(/*ccHObject* obj*/);
+	void echoLeftButtonClicked(int x, int y);
+	void echoRightButtonClicked(int x = 0, int y = 0);
+	void echoMouseMoved(int x, int y, Qt::MouseButtons buttons);
+	void echoButtonReleased();
 
 	void startEditingMode(bool);
 	void confirmCreate();
@@ -149,6 +151,12 @@ protected:
 
 	//inherited from QObject
 	bool eventFilter(QObject *obj, QEvent *e) override;
+
+	void changePickingCursor();
+	void addPointToPolyline(int x, int y);
+	void closePolyLine(int x = 0, int y = 0);
+	void closeRectangle();
+	void updatePolyLine(int x, int y, Qt::MouseButtons buttons);
 
 	QToolButton* getGeoToolBottun(GEOMETRY3D g);
 
@@ -219,6 +227,14 @@ protected:
 
 	bdrPlaneEditorDlg* m_refPlanePanel;
 	bdrPlaneEditorDlg* m_toolPlanePanel;
+
+	PickingVertex<ccHObject*>* m_pickingVertex;
+
+	std::vector<ccHObject*> m_movingObjs;
+
+private:
+	bool m_mouseMoved;
+	CCVector2i m_lastMousePos;
 };
 
 #endif //BDR_3D_GEOMETRY_EDIT_PANEL_HEADER
