@@ -74,7 +74,7 @@ bool ccPlane::buildUp()
 
 void ccPlane::applyGLTransformation(const ccGLMatrix & trans)
 {
-	ccHObject::applyGLTransformation(trans);
+	ccGenericPrimitive::applyGLTransformation(trans);
 	for (auto&p : m_profile) {
 		trans.apply(p);
 	}
