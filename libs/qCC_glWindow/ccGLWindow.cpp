@@ -2556,8 +2556,10 @@ void ccGLWindow::draw3D(CC_DRAW_CONTEXT& CONTEXT, RenderingParams& renderingPara
 	bool draw_pivot = false;
 	if (!m_globalDBRoot.empty()) {
 		for (ccHObject* v : m_globalDBRoot)	{
-			if (v->getChildrenNumber())
+			if (v->getChildrenNumber()) {
 				draw_pivot = true;
+				break;
+			}
 		}
 	}
 	if (draw_pivot) {//draw pivot
@@ -4131,14 +4133,15 @@ void ccGLWindow::mouseMoveEvent(QMouseEvent *event)
 	int dy = y - m_lastMousePos.y();
 	setLODEnabled(true, false);
 
-	if ((event->buttons() & Qt::RightButton)
+	if ((event->buttons() & Qt::RightButton) && !(QApplication::keyboardModifiers() & Qt::AltModifier)
 #ifdef CC_MAC_OS
 		|| (QApplication::keyboardModifiers() & Qt::MetaModifier)
 #endif
 		)
 	{
 		//right button = panning / translating
-		if (m_interactionFlags & INTERACT_PAN)
+		if ((m_interactionFlags & INTERACT_PAN) ||
+			((QApplication::keyboardModifiers() & Qt::ShiftModifier) && (m_interactionFlags & INTERACT_SHIFT_PAN)))
 		{
 			//displacement vector (in "3D")
 			double pixSize = computeActualPixelSize();
@@ -4184,7 +4187,9 @@ void ccGLWindow::mouseMoveEvent(QMouseEvent *event)
 
 		} //if (m_interactionFlags & INTERACT_PAN)
 	}
-	else if (event->buttons() & Qt::LeftButton) //rotation
+	else if (event->buttons() & Qt::LeftButton &&
+		!(QApplication::keyboardModifiers() & Qt::ShiftModifier) && 
+		!(QApplication::keyboardModifiers() & Qt::ControlModifier)) //rotation
 	{
 		if (m_interactionFlags & INTERACT_2D_ITEMS)
 		{

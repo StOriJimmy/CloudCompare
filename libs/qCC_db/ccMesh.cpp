@@ -1674,7 +1674,7 @@ unsigned ccMesh::getUniqueIDForDisplay() const
 
 void ccMesh::drawMeOnly(CC_DRAW_CONTEXT& context)
 {
-	if (size() > 1000) {
+	if (1) {
 		ccGenericMesh::drawMeOnly(context);
 		return;
 	}
@@ -2664,10 +2664,10 @@ void ccMesh::getTriangleNormalIndexes(unsigned triangleIndex, int& i1, int& i2, 
 	}
 }
 
-bool ccMesh::getTriangleNormals(unsigned triangleIndex, CCVector3& Na, CCVector3& Nb, CCVector3& Nc) const
+bool ccMesh::getTriangleNormals(unsigned triangleIndex, CCVector3& Na, CCVector3& Nb, CCVector3& Nc, bool strictSame) const
 {
 	if (m_triNormals && m_triNormalIndexes && m_triNormalIndexes->size() > triangleIndex)
-	{
+	{		
 		const Tuple3i& indexes = m_triNormalIndexes->getValue(triangleIndex);
 		if (indexes.u[0] >= 0)
 			Na = ccNormalVectors::GetUniqueInstance()->getNormal(m_triNormals->getValue(indexes.u[0]));
@@ -2681,6 +2681,21 @@ bool ccMesh::getTriangleNormals(unsigned triangleIndex, CCVector3& Na, CCVector3
 			Nc = ccNormalVectors::GetUniqueInstance()->getNormal(m_triNormals->getValue(indexes.u[2]));
 		else
 			Nc = CCVector3(0, 0, 0);
+
+		if (strictSame)	{
+			CCVector3 p0, p1, p2;
+			getTriangleVertices(triangleIndex, p0, p1, p2);
+
+			CCVector3 n = (p1 - p0).cross(p2 - p0);
+			n.normalize();
+			if (fabs(n.norm() - 1) < 1e-6) {
+				CCVector3 N = (Na + Nb + Nc) / 3; N.normalize();
+				if (fabs(N.norm() - 1) < 1e-6 && n.dot(N) < 0) {
+					n = -n;
+				}
+				Na = Nb = Nc = n;
+			}
+		}
 
 		return true;
 	}

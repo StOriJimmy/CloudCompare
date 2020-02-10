@@ -1,31 +1,10 @@
-//##########################################################################
-//#                                                                        #
-//#                              CLOUDCOMPARE                              #
-//#                                                                        #
-//#  This program is free software; you can redistribute it and/or modify  #
-//##########################################################################
-//#                                                                        #
-//#                              CLOUDCOMPARE                              #
-//#                                                                        #
-//#  This program is free software; you can redistribute it and/or modify  #
-//#  it under the terms of the GNU General Public License as published by  #
-//#  the Free Software Foundation; version 2 or later of the License.      #
-//#                                                                        #
-//#  This program is distributed in the hope that it will be useful,       #
-//#  but WITHOUT ANY WARRANTY; without even the implied warranty of        #
-//#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the          #
-//#  GNU General Public License for more details.                          #
-//#                                                                        #
-//#          COPYRIGHT: EDF R&D / TELECOM ParisTech (ENST-TSI)             #
-//#                                                                        #
-//##########################################################################
-
 #include "StBlock.h"
 
 //qCC_db
 #include "ccPointCloud.h"
 #include "ccPolyline.h"
 #include "ccNormalVectors.h"
+#include "ccHObjectCaster.h"
 #include "ccPlane.h"
 
 //CCLib
@@ -175,13 +154,15 @@ bool StBlock::buildFromFacet()
 		//side faces
 		{
 			int first_top = 1, second_top = 2;
-			if (ccNormalVectors::GetUniqueInstance()->getNormal(m_triNormals->getValue(0)).z < 0)
+			ccNormalVectors* normalv = ccNormalVectors::GetUniqueInstance();
+			CCVector3 n0 = normalv->getNormal(m_triNormals->getValue(0));
+			if (n0.z < 0)
 				std::swap(first_top, second_top);
 			if (flip)
 				std::swap(first_top, second_top);
 
 			int first_bot = 1, second_bot = 2;
-			if (ccNormalVectors::GetUniqueInstance()->getNormal(m_triNormals->getValue(1)).z < 0)
+			if (normalv->getNormal(m_triNormals->getValue(1)).z < 0)
 				std::swap(first_bot, second_bot);
 			if (flip)
 				std::swap(first_bot, second_bot);
@@ -378,6 +359,21 @@ bool StBlock::buildUp()
 	return buildFromFacet();
 }
 
+void StBlock::applyGLTransformation(const ccGLMatrix & trans)
+{
+	//! main plane
+	m_mainPlane->applyGLTransformation_recursive(&trans);
+
+	//! for mesh
+	ccGenericPrimitive::applyGLTransformation(trans);
+
+	//! for m_top_normal
+	m_top_normal = getTopFacet()->getNormal();
+
+	//! for m_bottom_normal
+	m_bottom_normal = getBottomFacet()->getNormal();
+}
+
 void StBlock::paramFromFacet()
 {
 	if (!m_top_facet || !m_bottom_facet || !m_mainPlane) {
@@ -409,7 +405,12 @@ StBlock::StBlock(QString name/*="Block"*/)
 
 ccGenericPrimitive* StBlock::clone() const
 {
-	return finishCloneJob(new StBlock(m_mainPlane, m_top_facet, m_bottom_facet, getName()));
+	ccPlane* clonePlane = ccHObjectCaster::ToPlane(m_mainPlane->clone());
+	if (!clonePlane) {
+		return nullptr;
+	}
+	return finishCloneJob(new StBlock(clonePlane, m_top_height, m_top_normal, m_bottom_height, m_bottom_normal, getName()));
+	//return finishCloneJob(new StBlock(m_mainPlane, m_top_facet, m_bottom_facet, getName()));
 }
 
 ccFacet * StBlock::getTopFacet()
@@ -562,7 +563,7 @@ CCVector3 StBlock::getCenter() const
 	return m_mainPlane->getCenter();
 }
 
-void StBlock::notifyPlanarEntityChanged(ccGLMatrix mat)
+void StBlock::applyPlanarEntityChange(ccGLMatrix mat)
 {
 	//! main plane
 	m_mainPlane->applyGLTransformation_recursive(&mat);

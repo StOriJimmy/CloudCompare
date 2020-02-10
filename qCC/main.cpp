@@ -262,11 +262,11 @@ int main(int argc, char **argv)
 		}
 		catch (const std::exception& e)
 		{
-			QMessageBox::warning(0, "CC crashed!", QString("Hum, it seems that CC has crashed... Sorry about that :)\n") + e.what());
+			QMessageBox::warning(0, "Error!", QString("crashed...bugs caught\n") + e.what());
 		}
 		catch (...)
 		{
-			QMessageBox::warning(0, "CC crashed!", "Hum, it seems that CC has crashed... Sorry about that :)");
+			QMessageBox::warning(0, "Error!", "crashed...bugs caught");
 		}
 
 		//release the plugins

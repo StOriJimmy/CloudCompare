@@ -62,7 +62,7 @@ public:
 	void getTriangleTexCoordinatesIndexes(unsigned triangleIndex, int& i1, int& i2, int& i3) const override;
 	bool hasTriNormals() const override;
 	void getTriangleNormalIndexes(unsigned triangleIndex, int& i1, int& i2, int& i3) const override;
-	bool getTriangleNormals(unsigned triangleIndex, CCVector3& Na, CCVector3& Nb, CCVector3& Nc) const override;
+	bool getTriangleNormals(unsigned triangleIndex, CCVector3& Na, CCVector3& Nb, CCVector3& Nc, bool strictSame = false) const override;
 	NormsIndexesTableType* getTriNormsTable() const override;
 	unsigned capacity() const override;
 

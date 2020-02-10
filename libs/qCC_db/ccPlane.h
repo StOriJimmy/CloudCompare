@@ -77,7 +77,7 @@ public:
 	//inherited from ccPlanarEntityInterface
 	CCVector3 getNormal() const override { return m_transformation.getColumnAsVec3D(2); }
 
-	void notifyPlanarEntityChanged(ccGLMatrix mat) override;
+	void applyPlanarEntityChange(ccGLMatrix mat) override;
 
 	//! Sets an image as texture
 	/** \return The created material (if successful)
@@ -132,6 +132,9 @@ protected:
 	virtual bool toFile_MeOnly(QFile& out) const override;
 	virtual bool fromFile_MeOnly(QFile& in, short dataVersion, int flags) override;
 	virtual bool buildUp() override;
+
+	// ccHObject interface
+	void applyGLTransformation(const ccGLMatrix &trans) override;
 
 	//! Width along 'X' dimension
 	PointCoordinateType m_xWidth;

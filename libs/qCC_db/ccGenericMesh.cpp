@@ -1290,7 +1290,7 @@ bool ccGenericMesh::updateVBOs(const CC_DRAW_CONTEXT & context, const glDrawPara
 			}
 
 			//allocate memory for current VBO
-			int vboSizeBytes = m_vboManager.vbos[i]->init(chunkSize * 3, m_vboManager.hasColors, m_vboManager.hasNormals, &reallocated);	// XYLIU * 3 for triangle drawing
+			int vboSizeBytes = m_vboManager.vbos[i]->init(chunkSize * 3, m_vboManager.hasColors, m_vboManager.hasNormals, m_vboManager.hasTexture, &reallocated);	// XYLIU * 3 for triangle drawing
 
 			QOpenGLFunctions_2_1* glFunc = context.glFunctions<QOpenGLFunctions_2_1>();
 			if (glFunc)
@@ -1368,7 +1368,7 @@ bool ccGenericMesh::updateVBOs(const CC_DRAW_CONTEXT & context, const glDrawPara
 					if (showTriNormals)	{
 						for (unsigned n = 0; n < chunkSize; n += decimStep)	{
 							CCVector3 Na, Nb, Nc;
-							getTriangleNormals(static_cast<unsigned>(chunkStart + n), Na, Nb, Nc);
+							getTriangleNormals(static_cast<unsigned>(chunkStart + n), Na, Nb, Nc, false);
 							*_normals++ = Na;
 							*_normals++ = Nb;
 							*_normals++ = Nc;
@@ -1717,7 +1717,7 @@ void ccGenericMesh::glChunkNormalPointer(const CC_DRAW_CONTEXT & context, size_t
 			for (unsigned n = 0; n < chunkSize; n += decimStep)
 			{
 				CCVector3 Na, Nb, Nc;
-				getTriangleNormals(static_cast<unsigned>(chunkStart + n), Na, Nb, Nc);
+				getTriangleNormals(static_cast<unsigned>(chunkStart + n), Na, Nb, Nc, false);
 				*_normals++ = Na;
 				*_normals++ = Nb;
 				*_normals++ = Nc;

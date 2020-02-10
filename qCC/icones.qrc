@@ -294,6 +294,10 @@
     <file>images/stocker/freemesh.png</file>
     <file>images/stocker/polyline.png</file>
     <file>images/stocker/crosshairs.png</file>
+    <file>images/stocker/csg_ints.png</file>
+    <file>images/stocker/csg_diff.png</file>
+    <file>images/stocker/csg_symd.png</file>
+    <file>images/stocker/csg_union.png</file>
     <file>images/stocker/poly.png</file>
     <file>images/stocker/play.png</file>
     <file>images/stocker/undo_dis.png</file>

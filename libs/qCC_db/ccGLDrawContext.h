@@ -175,7 +175,7 @@ struct ccGLDrawContext
 		, textDefaultCol(ccColor::defaultColor)
 		, labelDefaultBkgCol(ccColor::defaultLabelBkgColor)
 		, labelDefaultMarkerCol(ccColor::defaultLabelMarkerColor)
-		, bbDefaultCol(ccColor::khaki)
+		, bbDefaultCol(ccColor::paleCoral)
 		, decimateCloudOnMove(false)
 		, minLODPointCount(10000000)
 		, currentLODLevel(0)

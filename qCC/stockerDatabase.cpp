@@ -830,6 +830,15 @@ int GetMaxNumberExcludeChildPrefix(StHObject * obj, QString prefix/*, CC_CLASS_E
 	return -1;
 }
 
+QString GetNextChildName(StHObject * parent, QString prefix)
+{
+	int index = GetMaxNumberExcludeChildPrefix(parent, prefix) + 1;
+	if (index < 0) {
+		index = 0;
+	}
+	return prefix + QString::number(index);
+}
+
 bool StCreatDir(QString dir)
 {
 	if (QDir(dir).exists()) {

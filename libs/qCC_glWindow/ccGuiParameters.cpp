@@ -75,7 +75,7 @@ void ccGui::ParamStruct::reset()
 	backgroundCol		= ccColor::defaultBkgColor;
 	labelBackgroundCol	= ccColor::defaultLabelBkgColor;
 	labelMarkerCol		= ccColor::defaultLabelMarkerColor;
-	bbDefaultCol		= ccColor::khaki;
+	bbDefaultCol		= ccColor::paleCoral;
 
 	lightDoubleSided			= true;
 	drawBackgroundGradient		= false;
@@ -128,7 +128,7 @@ void ccGui::ParamStruct::fromPersistentSettings()
 	backgroundCol		= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("backgroundColor",		QByteArray::fromRawData((const char*)ccColor::defaultBkgColor.rgb,			c_ubColorArraySize)).toByteArray().data()));
 	labelBackgroundCol	= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("labelBackgroundColor",	QByteArray::fromRawData((const char*)ccColor::defaultLabelBkgColor.rgb,		c_ubColorArraySize)).toByteArray().data()));
 	labelMarkerCol		= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("labelMarkerColor",		QByteArray::fromRawData((const char*)ccColor::defaultLabelMarkerColor.rgb,	c_ubColorArraySize)).toByteArray().data()));
-	bbDefaultCol		= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("bbDefaultColor",			QByteArray::fromRawData((const char*)ccColor::khaki.rgb,					c_ubColorArraySize)).toByteArray().data()));
+	bbDefaultCol		= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("bbDefaultColor",			QByteArray::fromRawData((const char*)ccColor::paleCoral.rgb,				c_ubColorArraySize)).toByteArray().data()));
 
 	lightDoubleSided			=                                      settings.value("lightDoubleSided",        true ).toBool();
 	drawBackgroundGradient		=                                      settings.value("backgroundGradient",      false ).toBool();

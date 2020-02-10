@@ -58,9 +58,6 @@
 #include "stocker_parser.h"
 #endif // USE_STOCKER
 
-#define BUTTON_STATE_CTRL_PUSHED (QApplication::keyboardModifiers() & Qt::ControlModifier)
-
-
 //default parameters
 static const ccColor::Rgb& s_defaultPolylineColor = ccColor::lightCoral;
 static const ccColor::Rgb& s_defaultVerticeColor = ccColor::green;
@@ -1612,7 +1609,7 @@ void bdrSketcher::enableSelectedSOEditingMode(bool state)
 				m_pickingVertex->reset();
 			}
 			else {
-				m_pickingVertex = new PickingVertex();
+				m_pickingVertex = new PickingVertex<Section>();
 			}
 
 			m_associatedWin->setInteractionMode(ccGLWindow::INTERACT_SHIFT_PAN | ccGLWindow::INTERACT_PAN | ccGLWindow::INTERACT_ZOOM_CAMERA | ccGLWindow::INTERACT_SEND_ALL_SIGNALS);

@@ -67,9 +67,10 @@ bdrPlaneEditorDlg::bdrPlaneEditorDlg(ccPickingHub* pickingHub, QWidget* parent)
 	connect(cyAxisDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onCenterChanged(double)));
 	connect(czAxisDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onCenterChanged(double)));
 
-	connect(nxDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
-	connect(nyDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
-	connect(nzDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
+	connect(normalConfirmToolButton, &QAbstractButton::clicked, this, [this]() {onNormalChanged(0); });
+// 	connect(nxDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
+// 	connect(nyDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
+// 	connect(nzDoubleSpinBox,		SIGNAL(valueChanged(double)),	this, SLOT(onNormalChanged(double)));
 
 	connect(wDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onDimensionChanged(double)));
 	connect(hDoubleSpinBox, SIGNAL(valueChanged(double)), this, SLOT(onDimensionChanged(double)));
@@ -197,6 +198,9 @@ void bdrPlaneEditorDlg::onNormalChanged(double)
 {
 	CCVector3 Nd = getNormal();
 	Nd.normalize();
+	if (fabs(Nd.norm() - 1) > 1e-6) {
+		return;
+	}
 	setNormal(Nd);
 
 	if (previewCheckBox->isChecked()) {
@@ -351,12 +355,6 @@ void bdrPlaneEditorDlg::onItemPicked(const PickedItem& pi)
 
 	setCenter(pi.P3D);
 
-	pickCenterToolButton->setChecked(false);
-
-	if (previewCheckBox->isChecked()) {
-		updateParams();
-	}
-
 	if (!m_associatedPlane) {
 		if (pi.entity->isA(CC_TYPES::ST_BLOCK)) {
 			StBlock* block = ccHObjectCaster::ToStBlock(pi.entity);
@@ -380,7 +378,6 @@ void bdrPlaneEditorDlg::onItemPicked(const PickedItem& pi)
 			new_block->setDisplay_recursive(block->getDisplay());
 			new_plane->setDisplay_recursive(block->getDisplay());
 			if (footprint) { footprint->addChild(new_block); }
-
 			
 			main_window->addToDB(new_block, block->getDBSourceType());
 			main_window->unselectAllInDB();
@@ -389,6 +386,25 @@ void bdrPlaneEditorDlg::onItemPicked(const PickedItem& pi)
 			initWithPlane(new_block);
 			m_planePara.already_in_db = false; // this is created inside this dialog, if restore, delete it!
 		}
+	}
+	else {
+		if (pi.entity->isKindOf(CC_TYPES::MESH)) {
+			ccGenericMesh* block = ccHObjectCaster::ToGenericMesh(pi.entity);
+			CCVector3 Na, Nb, Nc;
+			if (block && block->getTriangleNormals(pi.itemIndex, Na, Nb, Nc, true)) {
+				CCVector3 N = (Na + Nb + Nc) / 3;
+				N.normalize();
+				if (fabs(N.norm() - 1) < 1e-6) {
+					setNormal(N);
+				}
+			}
+		}
+	}
+
+	pickCenterToolButton->setChecked(false);
+
+	if (previewCheckBox->isChecked()) {
+		updateParams();
 	}
 }
 
@@ -456,15 +472,10 @@ void bdrPlaneEditorDlg::initWithPlane(ccPlanarEntityInterface* plane)
 
 	//init the dialog
 
-	setNormal(N);
-
-	onNormalChanged(0);
-	//PointCoordinateType dip = 0, dipDir = 0;
-	//ccNormalVectors::ConvertNormalToDipAndDipDir(N, dip, dipDir);
-
-	//dipDoubleSpinBox->setValue(dip);
-	//dipDirDoubleSpinBox->setValue(dipDir);
-	//upwardCheckBox->setChecked(N.z >= 0);
+	N.normalize();
+	if (fabs(N.norm() - 1) < 1e-6) {
+		setNormal(N);
+	}
 		
 	ccPlane* plane_ = getMainPlaneFromInterface(plane);
 	if (plane_) {
@@ -480,8 +491,8 @@ void bdrPlaneEditorDlg::initWithPlane(ccPlanarEntityInterface* plane)
 	CCVector3 C = plane->getCenter();
 	setCenter(C);
 
-	m_planePara.normal = N;
-	m_planePara.center = C;
+	m_planePara.normal = getNormal();
+	m_planePara.center = getCenter();
 	//m_planePara.size = CCVector2(plane->getXWidth(), plane->getYWidth());
 
 	setDisplayState(m_display_state);
@@ -533,13 +544,12 @@ void bdrPlaneEditorDlg::updatePlane(ccPlanarEntityInterface* plane)
 	bool needToApplyTrans = false;
 	bool needToApplyRot = false;
 
-	needToApplyRot = (fabs(N.dot(Nd) - PC_ONE) > std::numeric_limits<PointCoordinateType>::epsilon());
+	needToApplyRot = (fabs(N.dot(Nd) - PC_ONE) > 1e-6/*std::numeric_limits<PointCoordinateType>::epsilon()*/);
 	needToApplyTrans = needToApplyRot || ((C - Cd).norm2d() != 0);
 
 	if (needToApplyTrans)
 	{
 		trans.setTranslation(-C);
-		needToApplyTrans = true;
 	}
 	if (needToApplyRot)
 	{
@@ -567,7 +577,7 @@ void bdrPlaneEditorDlg::updatePlane(ccPlanarEntityInterface* plane)
 	if (needToApplyRot || needToApplyTrans)
 	{
 		//plane->getPlane()->applyGLTransformation_recursive(&trans);
-		plane->notifyPlanarEntityChanged(trans);
+		plane->applyPlanarEntityChange(trans);
 
 		ccLog::Print("[Plane edit] Applied transformation matrix:");
 		ccLog::Print(trans.toString(12, ' ')); //full precision

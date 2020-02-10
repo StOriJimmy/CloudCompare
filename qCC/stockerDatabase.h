@@ -285,6 +285,8 @@ inline QString BuildingNameByNumber(int number) {
 //! return -1 if no child exists
 int GetMaxNumberExcludeChildPrefix(StHObject * obj, QString prefix);
 
+QString GetNextChildName(StHObject* parent, QString prefix);
+
 bool StCreatDir(QString dir);
 
 // return new result files, if force success, will return all the existing files whatever the files are successfully moved or not

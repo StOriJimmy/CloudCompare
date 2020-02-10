@@ -7,6 +7,8 @@
 //qCC_db
 #include <ccHObject.h>
 
+#include "bdrSketcherDlg.h"
+
 //Qt
 #include <QSet>
 
@@ -20,6 +22,8 @@ class ccPlane;
 class QToolButton;
 class ccPickingHub;
 class bdrPlaneEditorDlg;
+class BDBaseHObject;
+class ccDBRoot;
 
 #define GEO_ROUND_FLAG QStringLiteral("ROUND")
 
@@ -41,6 +45,8 @@ enum GEOMETRY3D
 	GEO_END,
 };
 
+enum CSG_OPERATION { CSG_UNION, CSG_INTERSECT, CSG_DIFF, CSG_SYM_DIFF };
+
 namespace Ui
 {
 	class bdr3DGeometryEditPanel;
@@ -57,23 +63,8 @@ public:
 	//! Destructor
 	~bdr3DGeometryEditPanel() override;
 
-	//! Adds an entity (and/or its children) to the 'to be segmented' pool
-	/** Warning: some entities may be rejected if they are
-		locked, or can't be segmented this way.
-		\return whether entity has been added to the pool or not
-	**/
-	bool addEntity(ccHObject* anObject);
-	
-	//! Returns the number of entites currently in the the 'to be segmented' pool
-	unsigned getNumberOfValidEntities() const;
-
 	//! Get a pointer to the polyline that has been segmented
-	ccPolyline *getPolyLine() {return m_segmentationPoly;}
-
-	//! Returns the active 'to be segmented' set
-	QSet<ccHObject*>& entities() { return m_toSegment; }
-	//! Returns the active 'to be segmented' set (const version)
-	const QSet<ccHObject*>& entities() const { return m_toSegment; }
+	ccPolyline *getPolyLine() {return m_editPoly;}
 
 	//! Returns whether hidden parts should be delete after segmentation
 	bool deleteHiddenParts() const { return m_deleteHiddenParts; }
@@ -95,6 +86,14 @@ public:
 	void setDestinationGroup(ccHObject* obj) { m_destination = obj; }
 
 	void setActiveItem(std::vector<ccHObject*> active);
+
+	void setModelObjects(std::vector<ccHObject*> builds);
+
+	//! Returns the active 'to be segmented' set
+	QSet<ccHObject*>& modelObjects() { return m_ModelObjs; }
+	//! Returns the active 'to be segmented' set (const version)
+	const QSet<ccHObject*>& modelObjects() const { return m_ModelObjs; }
+
 private:
 	Ui::bdr3DGeometryEditPanel	*m_UI;
 
@@ -104,17 +103,16 @@ private:
 
 protected slots:
 
-	void segment(bool);
-	
-	void addPointToPolyline(int x, int y);
-	void closePolyLine(int x=0, int y=0); //arguments for compatibility with ccGlWindow::rightButtonClicked signal
-	void closeRectangle();
-	void updatePolyLine(int x, int y, Qt::MouseButtons buttons);
-	void echoSelectChange(ccHObject* obj);
+	void echoSelectChange(/*ccHObject* obj*/);
+	void echoLeftButtonClicked(int x, int y);
+	void echoRightButtonClicked(int x = 0, int y = 0);
+	void echoMouseMoved(int x, int y, Qt::MouseButtons buttons);
+	void echoButtonReleased();
 
 	void startEditingMode(bool);
+	void confirmCreate();
 	void pauseAll();
-	
+		
 	void doBlock();
 	void doBox();
 	void doSphere();
@@ -131,8 +129,12 @@ protected slots:
 	void startEdit();
 	void makeFreeMesh();
 
-	void setLabel();
-	void createEntity();
+	void doCSGoperation(CSG_OPERATION operation);
+
+	void planeBasedView();
+	void objectBasedView();
+
+	void onCurrentModelChanged(QString name);
 
 	void reset();	// reset current editing state
 	void exit();
@@ -150,19 +152,26 @@ protected:
 	//inherited from QObject
 	bool eventFilter(QObject *obj, QEvent *e) override;
 
+	void changePickingCursor();
+	void addPointToPolyline(int x, int y);
+	void closePolyLine(int x = 0, int y = 0);
+	void closeRectangle();
+	void updatePolyLine(int x, int y, Qt::MouseButtons buttons);
+
 	QToolButton* getGeoToolBottun(GEOMETRY3D g);
 
-	void startGeoTool(GEOMETRY3D g);
+	void pauseGeoTool();
+
+	void startGeoTool(GEOMETRY3D g, bool uncheck = true);
 
 	//! Whether to allow or not to exort the current segmentation polyline
 	void allowExecutePolyline(bool state);
 
 	void allowStateChange(bool state);
 
-	void updateWithActive(ccHObject* obj);
+	void updateWithActive(ccHObject* obj, bool onlyone);
 
-	//! Set of entities to be segmented
-	QSet<ccHObject*> m_toSegment;
+	ccHObject* getActiveModel();
 
 	//! Whether something has changed or not (for proper 'cancel')
 	bool m_somethingHasChanged;
@@ -171,7 +180,9 @@ protected:
 	enum ProcessStates
 	{
 		POLYLINE		= 1,
-		RECTANGLE		= 2,
+		POLYGON			= 2,
+		RECTANGLE		= 4,
+		
 		//EDITING		= 4,
 		//...			= 8,
 		//...			= 16,
@@ -184,9 +195,9 @@ protected:
 	unsigned m_state;
 
 	//! Segmentation polyline
-	ccPolyline* m_segmentationPoly;
+	ccPolyline* m_editPoly;
 	//! Segmentation polyline vertices
-	ccPointCloud* m_polyVertices;
+	ccPointCloud* m_editPolyVer;
 
 	//! Selection mode
 	enum SelectionMode
@@ -204,6 +215,8 @@ protected:
 
 	QSet<ccHObject*> m_changed_baseobj;
 
+	QSet<ccHObject*> m_ModelObjs;
+
 	std::vector<ccHObject*> m_actives;
 
 	GEOMETRY3D m_current_editor;
@@ -215,6 +228,13 @@ protected:
 	bdrPlaneEditorDlg* m_refPlanePanel;
 	bdrPlaneEditorDlg* m_toolPlanePanel;
 
+	PickingVertex<ccHObject*>* m_pickingVertex;
+
+	std::vector<ccHObject*> m_movingObjs;
+
+private:
+	bool m_mouseMoved;
+	CCVector2i m_lastMousePos;
 };
 
 #endif //BDR_3D_GEOMETRY_EDIT_PANEL_HEADER

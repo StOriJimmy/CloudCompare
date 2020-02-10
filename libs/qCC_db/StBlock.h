@@ -45,27 +45,27 @@ public:
 		CCVector3 top_normal, 
 		PointCoordinateType bottom_height,
 		CCVector3 bottom_normal,
-		QString name = QString("Block"));
+		QString name = QString("Prism"));
 
 	StBlock(ccPlane * mainPlane, 
 		ccFacet * top_facet,
 		ccFacet * bottom_facet,
-		QString name = QString("Block"));
+		QString name = QString("Prism"));
 
 	static StBlock * Create(const std::vector<CCVector3>& top,
 		const PointCoordinateType bottom_height,
-		QString name = QString("Block"));
+		QString name = QString("Prism"));
 
 	//! Simplified constructor
 	/** For ccHObject factory only!
 	**/
-	StBlock(QString name = QString("Block"));
+	StBlock(QString name = QString("Prism"));
 
 	//! Returns class ID
 	virtual CC_CLASS_ENUM getClassID() const override { return CC_TYPES::ST_BLOCK; }
 
 	//inherited from ccGenericPrimitive
-	virtual QString getTypeName() const override { return "Block"; }
+	virtual QString getTypeName() const override { return "Prism"; }
 	virtual ccGenericPrimitive* clone() const override;
 	
 	//! Returns profile
@@ -105,6 +105,10 @@ protected:
 	virtual bool toFile_MeOnly(QFile& out) const override;
 	virtual bool fromFile_MeOnly(QFile& in, short dataVersion, int flags) override;
 	virtual bool buildUp() override;
+	
+	//inherited from ccHObject
+	virtual void applyGLTransformation(const ccGLMatrix& trans) override;
+
 	void paramFromFacet();
 	bool buildFromFacet();
 
@@ -132,7 +136,7 @@ public:
 	//inherited from ccPlanarEntityInterface //! Returns the facet center
 	CCVector3 getCenter() const override;
 	//inherited from ccPlanarEntityInterface
-	void notifyPlanarEntityChanged(ccGLMatrix mat) override;
+	void applyPlanarEntityChange(ccGLMatrix mat) override;
 	void normalEditState(bool edit) override;
 
 	void getEquation(CCVector3& N, PointCoordinateType& constVal) const override;

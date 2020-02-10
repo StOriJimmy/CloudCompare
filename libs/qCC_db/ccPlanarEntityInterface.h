@@ -59,7 +59,7 @@ public:
 	**/
 	void setActiveComponent(int id);
 
-	virtual void notifyPlanarEntityChanged(ccGLMatrix mat) = 0;
+	virtual void applyPlanarEntityChange(ccGLMatrix mat) = 0;
 
 	CCVector3 projectTo3DGlobal(CCVector3 pt_3d);
 	CCVector2 projectTo2DLocal(CCVector3 pt_3d);

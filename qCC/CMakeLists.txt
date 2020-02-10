@@ -142,7 +142,7 @@ else( UNIX )
 endif()
 
 # Translation
-add_subdirectory( translations )
+#add_subdirectory( translations )
 
 # in order to ensure that everything else is installed first, put the Mac bundling in its own subdirectory
 if( APPLE )
@@ -182,6 +182,9 @@ option(OPTION_CONSOLE "show console window" ON)
 if(OPTION_CONSOLE)
 	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS /SUBSYSTEM:CONSOLE)
 endif()
+
+include( ../contrib/CorkSupport.cmake )
+target_link_cork( ${PROJECT_NAME} )
 
 # building reconstruction
 option(OPTION_USE_STOCKER "Building Reconstruction" ON)

@@ -54,7 +54,7 @@ public:
 	virtual void getTriangleTexCoordinatesIndexes(unsigned triangleIndex, int& i1, int& i2, int& i3) const override { i1 = i2 = i3 = -1; }
 	virtual bool hasTriNormals() const override { return false; }
 	virtual void getTriangleNormalIndexes(unsigned triangleIndex, int& i1, int& i2, int& i3) const override { i1 = i2 = i3 = -1; }
-	virtual bool getTriangleNormals(unsigned triangleIndex, CCVector3& Na, CCVector3& Nb, CCVector3& Nc) const override { return false; }
+	virtual bool getTriangleNormals(unsigned triangleIndex, CCVector3& Na, CCVector3& Nb, CCVector3& Nc, bool strictSame = false) const override { return false; }
 	virtual NormsIndexesTableType* getTriNormsTable() const override { return 0; }
 	virtual unsigned capacity() const override { return 0; }
 	virtual bool trianglePicking(	const CCVector2d& clickPos,
