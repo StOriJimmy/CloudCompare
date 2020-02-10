@@ -1368,7 +1368,7 @@ bool ccGenericMesh::updateVBOs(const CC_DRAW_CONTEXT & context, const glDrawPara
 					if (showTriNormals)	{
 						for (unsigned n = 0; n < chunkSize; n += decimStep)	{
 							CCVector3 Na, Nb, Nc;
-							getTriangleNormals(static_cast<unsigned>(chunkStart + n), Na, Nb, Nc);
+							getTriangleNormals(static_cast<unsigned>(chunkStart + n), Na, Nb, Nc, false);
 							*_normals++ = Na;
 							*_normals++ = Nb;
 							*_normals++ = Nc;
@@ -1717,7 +1717,7 @@ void ccGenericMesh::glChunkNormalPointer(const CC_DRAW_CONTEXT & context, size_t
 			for (unsigned n = 0; n < chunkSize; n += decimStep)
 			{
 				CCVector3 Na, Nb, Nc;
-				getTriangleNormals(static_cast<unsigned>(chunkStart + n), Na, Nb, Nc);
+				getTriangleNormals(static_cast<unsigned>(chunkStart + n), Na, Nb, Nc, false);
 				*_normals++ = Na;
 				*_normals++ = Nb;
 				*_normals++ = Nc;

@@ -391,11 +391,12 @@ void bdrPlaneEditorDlg::onItemPicked(const PickedItem& pi)
 		if (pi.entity->isKindOf(CC_TYPES::MESH)) {
 			ccGenericMesh* block = ccHObjectCaster::ToGenericMesh(pi.entity);
 			CCVector3 Na, Nb, Nc;
-			block->getTriangleNormals(pi.itemIndex, Na, Nb, Nc);
-			CCVector3 N = (Na + Nb + Nc) / 3;
-			N.normalize();
-			if (fabs(N.norm() - 1) < 1e-6) {
-				setNormal(N);
+			if (block && block->getTriangleNormals(pi.itemIndex, Na, Nb, Nc, true)) {
+				CCVector3 N = (Na + Nb + Nc) / 3;
+				N.normalize();
+				if (fabs(N.norm() - 1) < 1e-6) {
+					setNormal(N);
+				}
 			}
 		}
 	}

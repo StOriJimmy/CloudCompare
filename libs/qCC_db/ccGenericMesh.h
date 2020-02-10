@@ -108,7 +108,7 @@ public:
 	//! Returns a given triangle normal
 	/** Mesh must have triangle normals associated (see hasTriNormals)
 	**/
-	virtual bool getTriangleNormals(unsigned triangleIndex, CCVector3& Na, CCVector3& Nb, CCVector3& Nc) const = 0;
+	virtual bool getTriangleNormals(unsigned triangleIndex, CCVector3& Na, CCVector3& Nb, CCVector3& Nc, bool strictSame = false) const = 0;
 
 	//! Returns per-triangle normals shared array
 	virtual NormsIndexesTableType* getTriNormsTable() const = 0;

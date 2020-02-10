@@ -154,13 +154,15 @@ bool StBlock::buildFromFacet()
 		//side faces
 		{
 			int first_top = 1, second_top = 2;
-			if (ccNormalVectors::GetUniqueInstance()->getNormal(m_triNormals->getValue(0)).z < 0)
+			ccNormalVectors* normalv = ccNormalVectors::GetUniqueInstance();
+			CCVector3 n0 = normalv->getNormal(m_triNormals->getValue(0));
+			if (n0.z < 0)
 				std::swap(first_top, second_top);
 			if (flip)
 				std::swap(first_top, second_top);
 
 			int first_bot = 1, second_bot = 2;
-			if (ccNormalVectors::GetUniqueInstance()->getNormal(m_triNormals->getValue(1)).z < 0)
+			if (normalv->getNormal(m_triNormals->getValue(1)).z < 0)
 				std::swap(first_bot, second_bot);
 			if (flip)
 				std::swap(first_bot, second_bot);

@@ -367,9 +367,9 @@ void ccSubMesh::getTriangleNormalIndexes(unsigned triIndex, int& i1, int& i2, in
 	}
 }
 
-bool ccSubMesh::getTriangleNormals(unsigned triIndex, CCVector3& Na, CCVector3& Nb, CCVector3& Nc) const
+bool ccSubMesh::getTriangleNormals(unsigned triIndex, CCVector3& Na, CCVector3& Nb, CCVector3& Nc, bool strictSame) const
 {
-	return (m_associatedMesh && triIndex < size() ? m_associatedMesh->getTriangleNormals(getTriGlobalIndex(triIndex), Na, Nb, Nc) : false);
+	return (m_associatedMesh && triIndex < size() ? m_associatedMesh->getTriangleNormals(getTriGlobalIndex(triIndex), Na, Nb, Nc, strict) : false);
 }
 
 NormsIndexesTableType* ccSubMesh::getTriNormsTable() const
