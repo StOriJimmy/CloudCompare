@@ -1674,7 +1674,7 @@ unsigned ccMesh::getUniqueIDForDisplay() const
 
 void ccMesh::drawMeOnly(CC_DRAW_CONTEXT& context)
 {
-	if (size() > 1000) {
+	if (1) {
 		ccGenericMesh::drawMeOnly(context);
 		return;
 	}
