@@ -571,12 +571,12 @@ void bdr3DGeometryEditPanel::setActiveItem(std::vector<ccHObject*> active)
 	if (m_state & RUNNING) {
 		return;
 	}
-	for (ccHObject* obj : m_actives) {
-		if (obj) obj->setLocked(false);
-	}
-	for (ccHObject* obj : active) {
-		if (obj) obj->setLocked(true);
-	}
+// 	for (ccHObject* obj : m_actives) {
+// 		if (obj) obj->setLocked(false);
+// 	}
+// 	for (ccHObject* obj : active) {
+// 		if (obj) obj->setLocked(true);
+// 	}
 	m_actives = active;
 
 	if (m_actives.size() != 1) {
@@ -1373,12 +1373,22 @@ void bdr3DGeometryEditPanel::confirmCreate()
 		PointCoordinateType planeEquation[4]; planeEquation[0] = planeN.x; planeEquation[1] = planeN.y; planeEquation[2] = planeN.z; planeEquation[3] = planeD;
 		ccPlane* mainPlane = ccPlane::Fit(polygon3D, planeEquation);
 		if (mainPlane) {
-			StBlock* block = new StBlock(mainPlane, top_height, CCVector3(0, 0, 1), 0, CCVector3(0, 0, -1));
-			if (block) {
-				block->setName(block->getTypeName());
-				created_obj = block;
+			CCVector3 top_normal(0, 0, 1);
+			CCVector3 bottom_normal(0, 0, -1);
+			m_refPlane->getTransformation().applyRotation(top_normal);
+			m_refPlane->getTransformation().applyRotation(bottom_normal);
+			try
+			{
+				StBlock* block = new StBlock(mainPlane, top_height, top_normal, 0, bottom_normal);
+				if (block) {
+					block->setName(block->getTypeName());
+					created_obj = block;
+				}
+				else
+					throw std::runtime_error("internal error");
+				
 			}
-			else {
+			catch (...)	{
 				delete mainPlane;
 				mainPlane = nullptr;
 			}
@@ -1450,6 +1460,9 @@ void bdr3DGeometryEditPanel::pauseGeoTool()
 
 void bdr3DGeometryEditPanel::startGeoTool(GEOMETRY3D g, bool uncheck)
 {
+	if (g >= GEO_END) {
+		return;
+	}
 	bool same = uncheck ? (m_current_editor == g) : false;
 	if (m_current_editor < GEO_END) {
 		startEditingMode(false);
@@ -1458,6 +1471,7 @@ void bdr3DGeometryEditPanel::startGeoTool(GEOMETRY3D g, bool uncheck)
 	if (!same) {
 		m_current_editor = g;
 		m_UI->createGroupBox->setEnabled(true);
+		getGeoToolBottun(m_current_editor)->setChecked(true);
 
 		if (m_current_editor == GEO_BLOCK || m_current_editor == GEO_PARAPET || m_current_editor == GEO_POLYLINE) {
 			m_selection_mode = SELECT_2D;
@@ -1475,6 +1489,7 @@ void bdr3DGeometryEditPanel::doBlock()
 	startGeoTool(GEO_BLOCK);
 	if (m_current_editor == GEO_BLOCK) {
 		planeBasedView();
+		startEditingMode(true);
 	}
 }
 
