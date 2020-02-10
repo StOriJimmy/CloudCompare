@@ -7980,7 +7980,16 @@ void MainWindow::doActionCloudCloudDist()
 	//assert(!m_compDlg);
 	if (m_compDlg)
 		delete m_compDlg;
+
 	m_compDlg = new ccComparisonDlg(compCloud, refCloud, ccComparisonDlg::CLOUDCLOUD_DIST, this);
+	if (!m_compDlg->initDialog())
+	{
+		ccConsole::Error("Failed to initialize comparison dialog");
+		delete m_compDlg;
+		m_compDlg = nullptr;
+		return;
+	}
+
 	connect(m_compDlg, &QDialog::finished, this, &MainWindow::deactivateComparisonMode);
 	m_compDlg->show();
 	//cDlg.setModal(false);
@@ -13305,6 +13314,7 @@ void MainWindow::doActionBDPrimPlaneQuality()
 		return;
 	}
 
+<<<<<<< HEAD
 	if (!m_pbdrPlaneQDlg) {
 		m_pbdrPlaneQDlg = new bdrPlaneQualityDlg;
 		m_pbdrPlaneQDlg->setModal(false);
@@ -13319,6 +13329,35 @@ void MainWindow::doActionBDPrimPlaneQuality()
 		m_pbdrPlaneQDlg->setPlanes(ccHObject::Container());
 		m_pbdrPlaneQDlg->hide();
 	}
+=======
+	ccOrderChoiceDlg dlg(	m_selectedEntities[0], "Compared",
+							m_selectedEntities[1], "Reference",
+							this );
+	if (!dlg.exec())
+		return;
+
+	ccGenericPointCloud* compCloud = ccHObjectCaster::ToGenericPointCloud(dlg.getFirstEntity());
+	ccGenericPointCloud* refCloud = ccHObjectCaster::ToGenericPointCloud(dlg.getSecondEntity());
+
+	//assert(!m_compDlg);
+	if (m_compDlg)
+		delete m_compDlg;
+
+	m_compDlg = new ccComparisonDlg(compCloud, refCloud, ccComparisonDlg::CLOUDCLOUD_DIST, this);
+	if (!m_compDlg->initDialog())
+	{
+		ccConsole::Error("Failed to initialize comparison dialog");
+		delete m_compDlg;
+		m_compDlg = nullptr;
+		return;
+	}
+
+	connect(m_compDlg, &QDialog::finished, this, &MainWindow::deactivateComparisonMode);
+	m_compDlg->show();
+	//cDlg.setModal(false);
+	//cDlg.exec();
+	freezeUI(true);
+>>>>>>> d1642f15252d1b462d387c6e323cec1bee384810
 }
 
 // for plane/plane_cloud (.primitive by default)
