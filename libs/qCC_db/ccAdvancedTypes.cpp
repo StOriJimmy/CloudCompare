@@ -18,7 +18,7 @@
 #include "ccAdvancedTypes.h"
 
 NormsIndexesTableType::NormsIndexesTableType()
-	: ccArray<CompressedNormType, 1, CompressedNormType>("Compressed normals")
+	: ccArray<CompressedNormType, 1, CompressedNormType>("normal")
 {
 }
 

@@ -31,6 +31,7 @@
 #include "ccPlane.h"
 #include "StFootPrint.h"
 #include "ccDBRoot.h"
+#include "StBlockGroup.h"
 
 //qCC_gl
 #include <ccGLWindow.h>
@@ -52,9 +53,20 @@
 
 inline ccPointCloud* getModelPoint(ccHObject* entity)
 {
+	if (!entity) { return nullptr; }
 	BDBaseHObject* baseObj = GetRootBDBase(entity);
 	if (baseObj) {
 		return baseObj->GetOriginPointCloud(entity->getName(), false);
+	}
+	else return nullptr;
+}
+
+inline StBlockGroup* getBlockGroup(ccHObject* entity)
+{
+	if (!entity) { return nullptr; }
+	BDBaseHObject* baseObj = GetRootBDBase(entity);
+	if (baseObj) {
+		return baseObj->GetBlockGroup(entity->getName());
 	}
 	else return nullptr;
 }
@@ -1412,9 +1424,11 @@ void bdr3DGeometryEditPanel::confirmCreate()
 	}
 
 	if (created_obj) {
-		if (activeModel) {
-			created_obj->setName(GetNextChildName(activeModel, created_obj->getName()));
-			activeModel->addChild(created_obj);
+		ccHObject *blockGroup = activeModel ? getBlockGroup(activeModel) : nullptr;
+		if (!blockGroup) { blockGroup = activeModel; }
+		if (blockGroup) {
+			created_obj->setName(GetNextChildName(blockGroup, created_obj->getName()));
+			blockGroup->addChild(created_obj);
 		}
 
 		MainWindow::TheInstance()->addToDB(created_obj, CC_TYPES::DB_BUILDING, false, false);

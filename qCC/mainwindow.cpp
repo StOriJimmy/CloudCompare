@@ -13106,13 +13106,13 @@ void MainWindow::doActionBDPrimitives()
 
 	m_pbdrGeoPanel->linkWith(win);
 
-	ccHObject::Container models;
-	if (haveSelection()) {
-		models = GetBuildingEntitiesBySelected(getSelectedEntities().front());
-	}
-	else {
-		getRoot(CC_TYPES::DB_BUILDING)->filterChildren(models, true, CC_TYPES::ST_BUILDING, true);
-	}
+	ccHObject::Container models = GetEnabledObjFromGroup(getRoot(CC_TYPES::DB_BUILDING), CC_TYPES::ST_BUILDING, true, true);
+// 	if (haveSelection()) {
+// 		models = GetBuildingEntitiesBySelected(getSelectedEntities().front());
+// 	}
+// 	else {
+// 		getRoot(CC_TYPES::DB_BUILDING)->filterChildren(models, true, CC_TYPES::ST_BUILDING, true);
+// 	}
 	m_pbdrGeoPanel->setModelObjects(models);
 
 	ccHObject::Container active;

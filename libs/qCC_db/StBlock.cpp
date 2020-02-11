@@ -492,6 +492,9 @@ void StBlock::setTopHeight(double val)
 	double add = val - m_top_height;
 	m_top_height = val;
 
+	buildUp();
+	return;
+
 	//! get top points
 	std::vector<CCVector3> top_points;
 	ccPointCloud* verts = vertices();
@@ -512,6 +515,9 @@ void StBlock::setBottomHeight(double val)
 {
 	double add = val - m_bottom_height;
 	m_bottom_height = val;
+
+	buildUp();
+	return;
 
 	//! get bottom points
 	std::vector<CCVector3> bot_points;

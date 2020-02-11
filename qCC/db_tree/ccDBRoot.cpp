@@ -142,16 +142,16 @@ private:
 							QIcon(QStringLiteral(":/CC/Stocker/images/stocker/block_lock.png")) } );	//:/CC/images/dbMiscGeomSymbolLocked.png
 		
 		const int	meshIndex = mIconList.count();
-		mIconList.append( { QIcon(QStringLiteral(":/CC/images/dbMeshSymbol.png")),
-							QIcon(QStringLiteral(":/CC/images/dbMeshSymbolLocked.png")) } );
+		mIconList.append( { QIcon(QStringLiteral(":/CC/Stocker/images/stocker/primfacet.png")),
+						    QIcon(QStringLiteral(":/CC/Stocker/images/stocker/primfacet.png")) });
 		
 		const int	subMeshIndex = mIconList.count();
-		mIconList.append( { QIcon(QStringLiteral(":/CC/images/dbSubMeshSymbol.png")),
-							QIcon(QStringLiteral(":/CC/images/dbSubMeshSymbolLocked.png")) } );
+		mIconList.append( { QIcon(QStringLiteral(":/CC/Stocker/images/stocker/primfacet.png")),
+							QIcon(QStringLiteral(":/CC/Stocker/images/stocker/primfacet.png")) } );
 		
 		const int	polyLineIndex = mIconList.count();
-		mIconList.append( { QIcon(QStringLiteral(":/CC/images/dbPolylineSymbol.png")),
-							{} } );
+		mIconList.append( { QIcon(QStringLiteral(":/CC/Stocker/images/stocker/polygon.png")),
+							QIcon(QStringLiteral(":/CC/Stocker/images/stocker/polygon.png")) } );
 		
 		const int	octreeIndex = mIconList.count();
 		mIconList.append( { QIcon(QStringLiteral(":/CC/images/dbOctreeSymbol.png")),
@@ -178,8 +178,8 @@ private:
 							{} } );
 		
 		const int	containerIndex = mIconList.count();
-		mIconList.append( { QIcon(QStringLiteral(":/CC/images/dbContainerSymbol.png")),
-							QIcon(QStringLiteral(":/CC/images/dbContainerSymbolLocked.png")) } );
+		mIconList.append( { QIcon(QStringLiteral(":/CC/Stocker/images/stocker/link.png")),
+							QIcon(QStringLiteral(":/CC/Stocker/images/stocker/link.png")) } );
 		
 		const int	labelIndex = mIconList.count();
 		mIconList.append( { QIcon(QStringLiteral(":/CC/images/dbLabelSymbol.png")),
@@ -194,31 +194,40 @@ private:
 							{} } );
 				
 		const int	projectIndex = mIconList.count();
-		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/database.png")),{} });
+		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/database.png")),
+						   QIcon(QStringLiteral(":/CC/Stocker/images/stocker/database.png")) });
 
 		const int	buildingIndex = mIconList.count();
-		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/building.png")),{} });
+		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/building.png")),
+						   QIcon(QStringLiteral(":/CC/Stocker/images/stocker/building.png")) });
 
 		const int	stprimitiveIndex = mIconList.count();
-		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/primitives.png")),{} });
+		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/primitives.png")),
+						   QIcon(QStringLiteral(":/CC/Stocker/images/stocker/primitives.png")) });
 
 		const int	footprintIndex = mIconList.count();
-		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/footprint.png")),{} });
+		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/footprint.png")),
+						   QIcon(QStringLiteral(":/CC/Stocker/images/stocker/footprint.png")) });
 
 		const int	blockgroupIndex = mIconList.count();
-		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/blockgroup.png")),{} });
+		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/blockgroup.png")),
+						   QIcon(QStringLiteral(":/CC/Stocker/images/stocker/blockgroup.png")) });
 
 		const int	blockIndex = mIconList.count();
-		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/block.png")),{} });
+		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/block.png")),
+						   QIcon(QStringLiteral(":/CC/Stocker/images/stocker/block.png")) });
 
 		const int	modelIndex = mIconList.count();
-		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/buildingmodel.png")),{} });
+		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/buildingmodel.png")),
+						   QIcon(QStringLiteral(":/CC/Stocker/images/stocker/buildingmodel.png")) });
 
 		const int	planeIndex = mIconList.count();
-		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/plane.png")),{} });
+		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/plane.png")),
+						   QIcon(QStringLiteral(":/CC/Stocker/images/stocker/plane.png")) });
 
 		const int	facetIndex = mIconList.count();
-		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/primfacet.png")),{} });
+		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/primfacet.png")),
+						   QIcon(QStringLiteral(":/CC/Stocker/images/stocker/primfacet.png")) });
 
 // 		const int	cameragroupIndex = mIconList.count();
 // 		mIconList.append({ QIcon(QStringLiteral(":/CC/Stocker/images/stocker/camera.png")),{} });
