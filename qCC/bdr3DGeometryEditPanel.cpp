@@ -131,6 +131,7 @@ bdr3DGeometryEditPanel::bdr3DGeometryEditPanel(QWidget* parent, ccPickingHub* pi
 	connect(m_UI->planeBasedViewToolButton,		&QToolButton::clicked, this, &bdr3DGeometryEditPanel::planeBasedView);
 	connect(m_UI->objectBasedViewToolButton,	&QToolButton::clicked, this, &bdr3DGeometryEditPanel::objectBasedView);
 
+	connect(m_UI->csgToolButton,				&QAbstractButton::clicked, this, [=]() { doCSGoperation(CSG_ALL); });
 	connect(m_UI->csgUnionToolButton,			&QAbstractButton::clicked, this, [=]() { doCSGoperation(CSG_UNION); });
 	connect(m_UI->csgIntersectToolButton,		&QAbstractButton::clicked, this, [=]() { doCSGoperation(CSG_INTERSECT); });
 	connect(m_UI->csgDiffToolButton,			&QAbstractButton::clicked, this, [=]() { doCSGoperation(CSG_DIFF); });
@@ -434,6 +435,14 @@ ccHObject * bdr3DGeometryEditPanel::getActiveModel()
 	return activeModel;
 }
 
+ccHObject * bdr3DGeometryEditPanel::getDestination()
+{
+	ccHObject* activeModel = getActiveModel();
+	ccHObject *blockGroup = activeModel ? getBlockGroup(activeModel) : nullptr;
+	if (!blockGroup) { blockGroup = activeModel; }
+	return blockGroup;
+}
+
 void bdr3DGeometryEditPanel::onShortcutTriggered(int key)
 {
  	switch(key)
@@ -504,6 +513,8 @@ bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 		connect(m_associatedWin, &ccGLWindow::rightButtonClicked,	this, &bdr3DGeometryEditPanel::echoRightButtonClicked);
 		connect(m_associatedWin, &ccGLWindow::mouseMoved,			this, &bdr3DGeometryEditPanel::echoMouseMoved);
 		connect(m_associatedWin, &ccGLWindow::buttonReleased,		this, &bdr3DGeometryEditPanel::echoButtonReleased);
+		connect(m_associatedWin, &ccGLWindow::doubleClicked,		this, &bdr3DGeometryEditPanel::echoDoubleClicked);
+		
 		//connect(m_associatedWin, &ccGLWindow::entitySelectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
 
 		if (m_editPoly)	{
@@ -952,6 +963,69 @@ void bdr3DGeometryEditPanel::echoButtonReleased()
 		// put the duplicated object
 		m_movingObjs.clear();
 		m_mouseMoved = false;
+	}
+}
+
+void bdr3DGeometryEditPanel::echoDoubleClicked(const CCVector3d & P)
+{
+	ccHObject::Container meshes;
+	MainWindow::TheInstance()->getRoot(CC_TYPES::DB_BUILDING)->filterChildren(meshes, true, CC_TYPES::MESH, false);
+	{
+		ccHObject::Container group_enabled;
+		for (ccHObject* gp : meshes) {
+			if (gp->isBranchEnabled()) {
+				group_enabled.push_back(gp);
+			}
+		}
+		std::swap(meshes, group_enabled);
+	}
+	
+	ccMesh* nearest_entity = nullptr;
+	int nearestTriIndex = -1;
+	double nearestSquareDist = FLT_MAX;
+
+	for (ccHObject* m : meshes) {
+		ccMesh * mesh = ccHObjectCaster::ToMesh(m);
+
+		bool found = false;
+		for (size_t i = 0; i < mesh->size(); i++) {
+			CCVector3 A3D, B3D, C3D;
+			mesh->getTriangleVertices(i, A3D, B3D, C3D);
+
+			stocker::Triangle3d tri(stocker::parse_xyz(A3D), stocker::parse_xyz(B3D), stocker::parse_xyz(C3D));
+			double distance; stocker::Vec3d clo;
+			vcg::TrianglePointDistance(tri, stocker::parse_xyz(P), distance, clo);
+
+			if (distance < nearestSquareDist) {
+				nearest_entity = mesh;
+				nearestTriIndex = i;
+				nearestSquareDist = distance;
+			}
+
+			if (fabs(distance) < 1e-6) {
+				found = true;
+				break;
+			}
+		}
+
+		if (found) {
+			break;
+		}
+	}
+
+	CCVector3 N;
+	if (nearest_entity && nearestTriIndex >= 0 && nearestSquareDist < 1) {
+		CCVector3 na, nb, nc;
+		nearest_entity->getTriangleNormals(nearestTriIndex, na, nb, nc, true);
+		N = (na + nb + nc) / 3;
+		N.normalize();
+
+		if (fabs(N.norm() - 1) < 0) {
+			m_refPlanePanel->setCenter(CCVector3::fromArray(P.u));
+			m_refPlanePanel->setNormal(N);
+			m_refPlanePanel->updatePlane(m_refPlane);
+			m_associatedWin->redraw();
+		}
 	}
 }
 
@@ -1424,8 +1498,7 @@ void bdr3DGeometryEditPanel::confirmCreate()
 	}
 
 	if (created_obj) {
-		ccHObject *blockGroup = activeModel ? getBlockGroup(activeModel) : nullptr;
-		if (!blockGroup) { blockGroup = activeModel; }
+		ccHObject *blockGroup = getDestination();
 		if (blockGroup) {
 			created_obj->setName(GetNextChildName(blockGroup, created_obj->getName()));
 			blockGroup->addChild(created_obj);
@@ -1669,6 +1742,100 @@ void bdr3DGeometryEditPanel::doCSGoperation(CSG_OPERATION operation)
 {
 	const ccHObject::Container& selectedEntities = m_actives;
 	size_t selNum = m_actives.size();
+	if (selNum < 2) { return; }
+
+	if (operation == CSG_ALL) {
+		std::vector<ccMesh*> merge, ints;
+		for (ccHObject* obj : m_actives) {
+			ccMesh* mesh = ccHObjectCaster::ToMesh(obj);
+			if (!mesh) continue;
+
+			if (obj->isA(CC_TYPES::ST_BLOCK)) {
+				StBlock* block = ccHObjectCaster::ToStBlock(obj);
+				if (block->isHole()) {
+					ints.push_back(mesh);
+					continue;
+				}
+			}
+
+			merge.push_back(mesh);
+		}
+
+		if (merge.empty()) {
+			return;
+		}
+
+		ccMesh* mesh = merge.front();
+		CorkMesh corkMesh;
+		if (!ToCorkMesh(mesh, corkMesh)) {
+			return;
+		}
+
+		ccHObject::Container processed;
+
+		for (size_t i = 1; i < merge.size(); i++) {
+			CorkMesh thismesh;
+			if (!ToCorkMesh(merge[i], thismesh)) {
+				continue;
+			}
+			try	{
+				computeUnion(corkMesh, thismesh);
+			}
+			catch (...)	{
+				continue;
+			}
+
+			processed.push_back(merge[i]);
+		}
+		
+		for (ccMesh* m : ints) {
+			CorkMesh thismesh;
+			if (!ToCorkMesh(m, thismesh)) {
+				continue;
+			}
+			try	{
+				computeIntersection(corkMesh, thismesh);
+			}
+			catch (...)	{
+				continue;
+			}
+			processed.push_back(m);
+		}
+
+		ccMesh* result = FromCorkMesh(corkMesh);
+		if (result)
+		{
+			mesh->setEnabled(false);
+			for (ccHObject* m : processed) {
+				m->setEnabled(false);
+			}
+			
+			ccHObject * destination = getDestination();
+			if (destination) {
+				result->setName(GetNextChildName(destination, MESHPrefix));
+				destination->addChild(result);
+			}
+
+			//normals
+			bool hasNormals = false;
+			if (mesh->hasTriNormals())
+				hasNormals = result->computePerTriangleNormals();
+			else if (mesh->hasNormals())
+				hasNormals = result->computePerVertexNormals();
+			
+			result->showNormals(hasNormals && mesh->normalsShown());
+
+			result->setDisplay(mesh->getDisplay());
+			MainWindow::TheInstance()->addToDB(result, CC_TYPES::DB_BUILDING, false, false);
+			result->redrawDisplay();
+
+			//currently selected entities appearance may have changed!
+			m_associatedWin->redraw();
+		}
+		
+		return;
+	}
+		
 	if (selNum != 2
 		|| !selectedEntities[0]->isKindOf(CC_TYPES::MESH)
 		|| !selectedEntities[1]->isKindOf(CC_TYPES::MESH))
@@ -1734,38 +1901,13 @@ void bdr3DGeometryEditPanel::doCSGoperation(CSG_OPERATION operation)
 
 	if (result)
 	{
-		meshA->setEnabled(false);
-		if (meshB->getDisplay() == meshA->getDisplay())
-			meshB->setEnabled(false);
+		meshA->setEnabled(false);		
+		meshB->setEnabled(false);
 
-		//set name
-		QString opName;
-		switch (operation)
-		{
-		case CSG_UNION:
-			opName = "union";
-			break;
-		case CSG_INTERSECT:
-			opName = "ints";
-			break;
-		case CSG_DIFF:
-			opName = "diff";
-			break;
-		case CSG_SYM_DIFF:
-			opName = "symd";
-			break;
-		default:
-			assert(false);
-			break;
-		}
-
-		ccHObject * destination = m_destination ? m_destination : getActiveModel();
+		ccHObject * destination = getDestination();
 		if (destination) {
 			result->setName(GetNextChildName(destination, MESHPrefix));
 			destination->addChild(result);
-		}
-		else {
-			result->setName(QString("(%1).%2.(%3)").arg(meshA->getName()).arg(opName).arg(meshB->getName()));
 		}
 
 		//normals
@@ -1774,10 +1916,11 @@ void bdr3DGeometryEditPanel::doCSGoperation(CSG_OPERATION operation)
 			hasNormals = result->computePerTriangleNormals();
 		else if (meshA->hasNormals())
 			hasNormals = result->computePerVertexNormals();
-		meshA->showNormals(hasNormals && meshA->normalsShown());
+		
+		result->showNormals(hasNormals && meshA->normalsShown());
 
 		result->setDisplay(meshA->getDisplay());
-		MainWindow::TheInstance()->addToDB_Build(result);
+		MainWindow::TheInstance()->addToDB(result, CC_TYPES::DB_BUILDING, false, false);
 		result->redrawDisplay();
 	}
 

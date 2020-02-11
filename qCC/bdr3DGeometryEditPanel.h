@@ -45,7 +45,7 @@ enum GEOMETRY3D
 	GEO_END,
 };
 
-enum CSG_OPERATION { CSG_UNION, CSG_INTERSECT, CSG_DIFF, CSG_SYM_DIFF };
+enum CSG_OPERATION { CSG_UNION, CSG_INTERSECT, CSG_DIFF, CSG_SYM_DIFF, CSG_ALL };
 
 namespace Ui
 {
@@ -108,6 +108,7 @@ protected slots:
 	void echoRightButtonClicked(int x = 0, int y = 0);
 	void echoMouseMoved(int x, int y, Qt::MouseButtons buttons);
 	void echoButtonReleased();
+	void echoDoubleClicked(const CCVector3d & P);
 
 	void startEditingMode(bool);
 	void confirmCreate();
@@ -172,6 +173,7 @@ protected:
 	void updateWithActive(ccHObject* obj, bool onlyone);
 
 	ccHObject* getActiveModel();
+	ccHObject* getDestination();
 
 	//! Whether something has changed or not (for proper 'cancel')
 	bool m_somethingHasChanged;

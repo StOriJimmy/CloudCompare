@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>632</width>
-    <height>330</height>
+    <height>528</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -3219,51 +3219,11 @@
           </widget>
          </item>
          <item row="2" column="0" colspan="2">
-          <layout class="QHBoxLayout" name="horizontalLayout_6">
+          <layout class="QGridLayout" name="gridLayout_7">
            <property name="spacing">
             <number>0</number>
            </property>
-           <item>
-            <widget class="QToolButton" name="csgUnionToolButton">
-             <property name="toolTip">
-              <string>CSG union</string>
-             </property>
-             <property name="text">
-              <string>u</string>
-             </property>
-             <property name="icon">
-              <iconset resource="../icones.qrc">
-               <normaloff>:/CC/Stocker/images/stocker/csg_union.png</normaloff>:/CC/Stocker/images/stocker/csg_union.png</iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>20</width>
-               <height>20</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QToolButton" name="csgIntersectToolButton">
-             <property name="toolTip">
-              <string>CSG intersection</string>
-             </property>
-             <property name="text">
-              <string>i</string>
-             </property>
-             <property name="icon">
-              <iconset resource="../icones.qrc">
-               <normaloff>:/CC/Stocker/images/stocker/csg_ints.png</normaloff>:/CC/Stocker/images/stocker/csg_ints.png</iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>20</width>
-               <height>20</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
+           <item row="2" column="1">
             <widget class="QToolButton" name="csgDiffToolButton">
              <property name="toolTip">
               <string>CSG difference</string>
@@ -3283,7 +3243,47 @@
              </property>
             </widget>
            </item>
-           <item>
+           <item row="0" column="1">
+            <widget class="QToolButton" name="csgUnionToolButton">
+             <property name="toolTip">
+              <string>CSG union</string>
+             </property>
+             <property name="text">
+              <string>u</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/csg_union.png</normaloff>:/CC/Stocker/images/stocker/csg_union.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QToolButton" name="csgIntersectToolButton">
+             <property name="toolTip">
+              <string>CSG intersection</string>
+             </property>
+             <property name="text">
+              <string>i</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/csg_ints.png</normaloff>:/CC/Stocker/images/stocker/csg_ints.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
             <widget class="QToolButton" name="csgXorToolButton">
              <property name="toolTip">
               <string>CSG symmetric difference</string>
@@ -3299,6 +3299,26 @@
               <size>
                <width>20</width>
                <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0" rowspan="3">
+            <widget class="QToolButton" name="csgToolButton">
+             <property name="toolTip">
+              <string>CSG operation</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/sitemap.png</normaloff>:/CC/Stocker/images/stocker/sitemap.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>46</width>
+               <height>46</height>
               </size>
              </property>
             </widget>

@@ -82,6 +82,8 @@ public:
 	// roof -> bottom -> facades
 	bool getWallPolygons(std::vector<std::vector<CCVector3>>& walls);
 
+	bool isHole() { return m_top_height < m_bottom_height; }
+
 protected:
 
 	//inherited from ccDrawable

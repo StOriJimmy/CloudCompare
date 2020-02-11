@@ -4057,6 +4057,7 @@ void ccGLWindow::mouseDoubleClickEvent(QMouseEvent *event)
 	if (getClick3DPos(x, y, P))
 	{
 		setPivotPoint(P, true, true);
+		emit doubleClicked(P);
 	}
 }
 
