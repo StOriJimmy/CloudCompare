@@ -674,36 +674,26 @@ bool ccFacet::FormByContour(std::vector<CCVector3> contour_points, bool polygon,
 	//we project the input points on a plane
 	std::vector<CCLib::PointProjectionTools::IndexedCCVector2> points2D;
 	CCVector3 X, Y; //local base
-	if (!Yk.projectIndexedPointsOn2DPlane(points2D, nullptr, &m_center, &X, &Y))
+	if (!Yk.projectIndexedPointsOn2DPlane(points2D, m_planeEquation, &m_center, &X, &Y))
 	{
 		ccLog::Warning("[ccFacet::createInternalRepresentation] Not enough memory!");
 		return false;
 	}
-	if (polygon) {
-		double   area = 0;
-		for (size_t i = 0, j = points2D.size() - 1; i < points2D.size(); i++) {
-			area += (points2D[j][0] + points2D[i][0])*(points2D[j][1] - points2D[i][1]);
-			j = i;
-		}
-		area = -area * .5;
-		if (area < 0) {
-			for (size_t i = 0; i < 4; i++) {
-				PointCoordinateType& t = const_cast<PointCoordinateType&>(planeEquation[i]);
-				t = -planeEquation[i];
-			}
-		}
-		if (fabs(area) < 1e-6) {
-			return false;
-		}
-	}
-
-	//compute resulting RMS
-	m_rms = CCLib::DistanceComputationTools::computeCloud2PlaneDistanceRMS(m_contourVertices, m_planeEquation);
-
-// 	//update the points indexes (not done by Neighbourhood::projectPointsOn2DPlane)
-// 	{
-// 		for (unsigned i = 0; i < hullPtsCount; ++i)	{
-// 			points2D[i].index = i;
+// 	if (polygon) {
+// 		double   area = 0;
+// 		for (size_t i = 0, j = points2D.size() - 1; i < points2D.size(); i++) {
+// 			area += (points2D[j][0] + points2D[i][0])*(points2D[j][1] - points2D[i][1]);
+// 			j = i;
+// 		}
+// 		area = -area * .5;
+// 		if (area < 0) {
+// 			for (size_t i = 0; i < 4; i++) {
+// 				PointCoordinateType& t = const_cast<PointCoordinateType&>(planeEquation[i]);
+// 				t = -planeEquation[i];
+// 			}
+// 		}
+// 		if (fabs(area) < 1e-6) {
+// 			return false;
 // 		}
 // 	}
 
@@ -767,11 +757,23 @@ bool ccFacet::FormByContour(std::vector<CCVector3> contour_points, bool polygon,
 				m_polygonMesh = new ccMesh(m_contourVertices);
 				if (m_polygonMesh->reserve(triCount))
 				{
+					CCVector3 real_normal(0, 0, 0);
 					//import faces
-					for (unsigned i = 0; i < triCount; ++i)
-					{
+					for (unsigned i = 0; i < triCount; ++i) {
 						const CCLib::VerticesIndexes* tsi = dm->getTriangleVertIndexes(i);
 						m_polygonMesh->addTriangle(tsi->i1, tsi->i2, tsi->i3);
+
+						CCVector3 A, B, C;
+						m_polygonMesh->getTriangleVertices(i, A, B, C);
+						CCVector3 N = (B - A).cross(C - A);
+						N.normalize();
+						real_normal += N;
+					}
+					real_normal.normalize();
+					if (real_normal.dot(CCVector3::fromArray(m_planeEquation)) < 0)	{
+						for (size_t i = 0; i < 4; i++) {
+							m_planeEquation[i] = -m_planeEquation[i];
+						}
 					}
 					m_polygonMesh->setVisible(true);
 					m_polygonMesh->enableStippling(true);
@@ -816,6 +818,9 @@ bool ccFacet::FormByContour(std::vector<CCVector3> contour_points, bool polygon,
 			}
 		}
 	}
+
+	//compute resulting RMS
+	m_rms = CCLib::DistanceComputationTools::computeCloud2PlaneDistanceRMS(m_contourVertices, m_planeEquation);
 
 	emit planarEntityChanged();
 	return true;

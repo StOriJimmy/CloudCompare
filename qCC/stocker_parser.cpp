@@ -2150,8 +2150,10 @@ ccHObject* LoD1FromFootPrint(ccHObject* buildingObj)
 			//bottom_points.push_back(CCVector3(pt.x, pt.y, ground));
 		}
 		StBlock* block_entity = StBlock::Create(top_points, ground);
-		block_entity->setName(BDDB_BLOCK_PREFIX + QString::number(++biggest));
-		foot_print->addChild(block_entity);
+		if (block_entity) {
+			block_entity->setName(BDDB_BLOCK_PREFIX + QString::number(++biggest));
+			foot_print->addChild(block_entity);
+		}
 	}
 	return blockgroup_obj;
 }

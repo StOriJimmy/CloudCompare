@@ -2115,6 +2115,9 @@ void MainWindow::addToDB(ccHObject* obj,
 		}
 		obj->setDisplay_recursive(activeWin);
 	}
+	else {
+		obj->setDisplay_recursive(obj->getDisplay());
+	}
 
 	//eventually we update the corresponding display
 	assert(obj->getDisplay());

@@ -41,49 +41,58 @@ StBlock::StBlock(ccPlane* mainPlane,
 	}
 }
 
-StBlock::StBlock(ccPlane* mainPlane,
-	ccFacet* top_facet, ccFacet* bottom_facet,
-	QString name)
-	: m_mainPlane(mainPlane)
-	, m_top_height(0)
-	, m_top_normal(0,0,1)
-	, m_bottom_height(0)
-	, m_bottom_normal(0,0,1)
-	, ccGenericPrimitive(name, nullptr/*&mainPlane->getTransformation()*/)
-	, m_top_facet(nullptr)
-	, m_bottom_facet(nullptr)
-{
-	if (m_mainPlane) {
-		m_mainPlane->enableStippling(true);
-	}
-	setTopFacet(top_facet);
-	setBottomFacet(bottom_facet);
-
-	paramFromFacet();
-
-	if (!buildFromFacet()) {
-//		throw std::runtime_error("internal error");
-	}
-}
-
 StBlock* StBlock::Create(const std::vector<CCVector3>& top,
 	const PointCoordinateType bottom_height, QString name)
 {
+	bool bottom_is_lower_than_allpoints = true;
+	bool bottom_is_heigher_than_allpoints = true;
+	double min_height = FLT_MAX;
+	for (auto pt : top)	{
+		if (bottom_height >= pt.z) {
+			bottom_is_lower_than_allpoints = false;
+		}
+		else {
+			bottom_is_heigher_than_allpoints = false;
+		}
+		if (pt.z < min_height) {
+			min_height = pt.z;
+		}
+	}
+	PointCoordinateType bottom_height_valid(bottom_height);
+	if (!bottom_is_heigher_than_allpoints && !bottom_is_lower_than_allpoints) {
+		bottom_height_valid = min_height;
+	}
+
+	// for now the bottom should be lower
+	assert(!bottom_is_heigher_than_allpoints);
+
 	std::vector<CCVector3> profile_points;
 	for (auto & pt : top) {
-		profile_points.push_back(CCVector3(pt.x, pt.y, bottom_height));
+		profile_points.push_back(CCVector3(pt.x, pt.y, bottom_height_valid));
 	}
-	ccPlane* mainPlane = ccPlane::Fit(profile_points);
+	PointCoordinateType eq[4];
+	eq[0] = 0; eq[1] = 0; eq[2] = 1; eq[3] = bottom_height_valid;
+	ccPlane* mainPlane = ccPlane::Fit(profile_points, eq);
 	if (!mainPlane) { return nullptr; }
 	ccFacet* top_facet = ccFacet::CreateFromContour(top, "top", true);
-	if (!top_facet) return nullptr;
-	ccFacet* bottom_facet = ccFacet::CreateFromContour(profile_points, "bottom", true);
-	if (!bottom_facet) return nullptr;
-	bottom_facet->invertNormal();
-
-	//! 
-	StBlock* block = new StBlock(mainPlane, top_facet, bottom_facet, name);
-	return block;
+	if (!top_facet) { delete mainPlane; return nullptr; }
+		
+	try	{
+		StBlock* block = new StBlock(mainPlane, top_facet->getCenter().z - bottom_height_valid, top_facet->getNormal(),
+			0, CCVector3(0, 0, 1), name);
+		if (block) {
+			delete top_facet;
+			return block;
+		}
+		else throw std::runtime_error("internal error");
+	}
+	catch (...) {
+		if (mainPlane) {
+			delete mainPlane;
+		}
+	}
+	
+	return nullptr;
 }
 
 bool StBlock::buildFromFacet()
@@ -127,10 +136,33 @@ bool StBlock::buildFromFacet()
 	verts->clear();
 	m_triNormals->clear();
 
+	bool outside = (m_top_height >= m_bottom_height);
+
 	// top & bottom faces normals
 	{
-		m_triNormals->addElement(ccNormalVectors::GetNormIndex(m_top_facet->getNormal().u));
-		m_triNormals->addElement(ccNormalVectors::GetNormIndex(m_bottom_facet->getNormal().u));
+		if (outside) {
+			m_triNormals->addElement(ccNormalVectors::GetNormIndex(m_top_facet->getNormal()));
+			m_triNormals->addElement(ccNormalVectors::GetNormIndex(m_bottom_facet->getNormal()));
+		}
+		else {
+			m_triNormals->addElement(ccNormalVectors::GetNormIndex(-m_top_facet->getNormal()));
+			m_triNormals->addElement(ccNormalVectors::GetNormIndex(-m_bottom_facet->getNormal()));
+		}
+	}
+
+	// if the facet is clockwise, need reverse
+	bool reverse = false;
+	{
+		ccNormalVectors* normalv = ccNormalVectors::GetUniqueInstance();
+		CCVector3 n0 = normalv->getNormal(m_triNormals->getValue(0));
+
+		CCVector3 A, B, C;
+		mesh->getTriangleVertices(0, A, B, C);
+		CCVector3 N = (B - A).cross(C - A);
+		N.normalize();
+		if (N.dot(n0) < 0) {
+			reverse = true;
+		}
 	}
 
 	ccPointCloud* top_points = m_top_facet->getContourVertices();
@@ -142,41 +174,30 @@ bool StBlock::buildFromFacet()
 		verts->addPoint(*top_points->getPoint(i));
 		verts->addPoint(*bottom_points->getPoint(i));
 
-		const CCVector2& P = CCVector2(profile[i].x, profile[i].y);	// TODO: Project to plane
-		const CCVector2& PNext = CCVector2(profile[(i + 1) % count].x, profile[(i + 1) % count].y);
-		CCVector2 N(PNext.y - P.y, -(PNext.x - P.x));
-		N.normalize();
-		m_triNormals->addElement(ccNormalVectors::GetNormIndex(CCVector3(N.x, N.y, 0.0).u));	// TODO: SHOULD CONSIDER MAINPLANE
+// 		const CCVector2& P = CCVector2(profile[i].x, profile[i].y);	// TODO: Project to plane
+// 		const CCVector2& PNext = CCVector2(profile[(i + 1) % count].x, profile[(i + 1) % count].y);
+// 		CCVector2 N(PNext.y - P.y, -(PNext.x - P.x));
+// 		N.normalize();
+// 		m_triNormals->addElement(ccNormalVectors::GetNormIndex(CCVector3(N.x, N.y, 0.0).u));	// TODO: SHOULD CONSIDER MAINPLANE
 	}
 
 	//add faces
 	{
 		//side faces
 		{
-			int first_top = 1, second_top = 2;
-			ccNormalVectors* normalv = ccNormalVectors::GetUniqueInstance();
-			CCVector3 n0 = normalv->getNormal(m_triNormals->getValue(0));
-			if (n0.z < 0)
-				std::swap(first_top, second_top);
-			if (flip)
-				std::swap(first_top, second_top);
-
-			int first_bot = 1, second_bot = 2;
-			if (normalv->getNormal(m_triNormals->getValue(1)).z < 0)
-				std::swap(first_bot, second_bot);
-			if (flip)
-				std::swap(first_bot, second_bot);
-
-			//std::cout << "top: " << first_top << " " << second_top << std::endl;
-			//std::cout << "top: " << first_bot << " " << second_bot << std::endl;
+			int first(1), second(2);
+			if (reverse) {
+				first = 2;
+				second = 1;
+			}
 
 			for (unsigned ti = 0; ti < numberOfTriangles; ++ti) {
 				unsigned int* _triIndexes = mesh->getTriangleVertIndexes(ti)->i;
-
-				addTriangle(_triIndexes[0] * 2, _triIndexes[first_top] * 2, _triIndexes[second_top] * 2);
+				
+				addTriangle(_triIndexes[0] * 2, _triIndexes[first] * 2, _triIndexes[second] * 2);
 				addTriangleNormalIndexes(0, 0, 0);
 
-				addTriangle(_triIndexes[0] * 2 + 1, _triIndexes[first_bot] * 2 + 1, _triIndexes[second_bot] * 2 + 1);
+				addTriangle(_triIndexes[0] * 2 + 1, _triIndexes[second] * 2 + 1, _triIndexes[first] * 2 + 1);
 				addTriangleNormalIndexes(1, 1, 1);
 			}
 		}
@@ -186,9 +207,25 @@ bool StBlock::buildFromFacet()
 			for (unsigned i = 0; i < count; ++i)
 			{
 				unsigned iNext = ((i + 1) % count);
-				addTriangle(i * 2, i * 2 + 1, iNext * 2);
+
+				int first = i * 2 + 1;
+				int second = iNext * 2;
+				if (reverse) {
+					std::swap(first, second);
+				}		
+
+				CCVector3 A, B, C;
+				A = *verts->getPoint(i * 2);
+				B = *verts->getPoint(first);
+				C = *verts->getPoint(second);
+
+				CCVector3 N = (B - A).cross(C - A); N.normalize();
+				m_triNormals->addElement(ccNormalVectors::GetNormIndex(N));
+				
+				addTriangle(i * 2, first, second);
 				addTriangleNormalIndexes(2 + i, 2 + i, 2 + i);
-				addTriangle(iNext * 2, i * 2 + 1, iNext * 2 + 1);
+
+				addTriangle(second, first, iNext * 2 + 1);
 				addTriangleNormalIndexes(2 + i, 2 + i, 2 + i);
 			}
 		}
@@ -328,9 +365,6 @@ bool StBlock::getWallPolygons(std::vector<std::vector<CCVector3>>& walls)
 
 bool StBlock::buildUp()
 {
-// 	unsigned count = static_cast<unsigned>(m_top.size());
-// 	assert(count >= 3);
-
 	//! firstly, deduce top facet and bottom facet from height and normal
 	std::vector<CCVector3> top_points = deduceTopPoints();
 	std::vector<CCVector3> bottom_points = deduceBottomPoints();
@@ -341,20 +375,22 @@ bool StBlock::buildUp()
 		//! change the facet contours
 		m_top_facet->FormByContour(top_points, true);
 		m_bottom_facet->FormByContour(bottom_points, true);
-		m_bottom_facet->invertNormal();
 	}
 	else {
 		if (m_top_facet) { delete m_top_facet; m_top_facet = nullptr; }
 		if (m_bottom_facet) { delete m_bottom_facet; m_bottom_facet = nullptr; }
-		ccFacet* top_facet = ccFacet::CreateFromContour(top_points, "top", true);
-		ccFacet* bottom_facet = ccFacet::CreateFromContour(bottom_points, "bottom", true);
-		if (bottom_facet) {
-			bottom_facet->invertNormal();
-		}
-
-		setTopFacet(top_facet);
-		setBottomFacet(bottom_facet);
+		ccFacet* top = ccFacet::CreateFromContour(top_points, "top", true);
+		setTopFacet(top);
+		ccFacet* bottom = ccFacet::CreateFromContour(bottom_points, "bottom", true);
+		setBottomFacet(bottom);
 	}
+	if (!m_top_facet || !m_bottom_facet) {
+		return false;
+	}
+	if (m_bottom_height <= m_top_height) {
+		m_bottom_facet->invertNormal();
+	}
+	else m_top_facet->invertNormal();
  	
 	return buildFromFacet();
 }
@@ -379,9 +415,10 @@ void StBlock::paramFromFacet()
 	if (!m_top_facet || !m_bottom_facet || !m_mainPlane) {
 		return;
 	}
-	m_top_height = (m_top_facet->getCenter() - m_mainPlane->getProfileCenter()).norm();
+	CCVector3 plane_normal = getNormal(); plane_normal.normalize();
+	m_top_height = (m_top_facet->getCenter() - m_mainPlane->getProfileCenter()).dot(plane_normal);
 	m_top_normal = m_top_facet->getNormal();
-	m_bottom_height = (m_bottom_facet->getCenter() - m_mainPlane->getProfileCenter()).norm();
+	m_bottom_height = (m_bottom_facet->getCenter() - m_mainPlane->getProfileCenter()).dot(plane_normal);
 	m_bottom_normal = m_bottom_facet->getNormal();
 }
 
@@ -410,7 +447,6 @@ ccGenericPrimitive* StBlock::clone() const
 		return nullptr;
 	}
 	return finishCloneJob(new StBlock(clonePlane, m_top_height, m_top_normal, m_bottom_height, m_bottom_normal, getName()));
-	//return finishCloneJob(new StBlock(m_mainPlane, m_top_facet, m_bottom_facet, getName()));
 }
 
 ccFacet * StBlock::getTopFacet()
