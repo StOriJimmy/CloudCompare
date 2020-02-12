@@ -940,7 +940,9 @@ bool ccGenericMesh::trianglePicking(unsigned triIndex,
 		bool insideA = camera.project(A3D, A2D, true);
 		bool insideB = camera.project(B3D, B2D, true);
 		bool insideC = camera.project(C3D, C2D, true);
-		if (!insideA && !insideB && !insideC)
+		CCVector3d D2D;
+		bool insideD = camera.project((A3D + B3D + C3D) / 3, D2D);
+		if (!insideA && !insideB && !insideC && !insideD)
 		{
 			return false;
 		}
@@ -955,7 +957,9 @@ bool ccGenericMesh::trianglePicking(unsigned triIndex,
 		bool insideA = camera.project(A3Dp, A2D, true);
 		bool insideB = camera.project(B3Dp, B2D, true);
 		bool insideC = camera.project(C3Dp, C2D, true);
-		if (!insideA && !insideB && !insideC)
+		CCVector3d D2D;
+		bool insideD = camera.project((A3Dp + B3Dp + C3Dp) / 3, D2D);
+		if (!insideA && !insideB && !insideC && !insideD)
 		{
 			return false;
 		}
