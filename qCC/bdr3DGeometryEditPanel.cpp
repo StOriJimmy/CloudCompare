@@ -45,6 +45,7 @@
 
 #include "stocker_parser.h"
 #include "cork_parser.hpp"
+#include <QProgressBar>
 
 //System
 #include <assert.h>
@@ -1773,33 +1774,61 @@ void bdr3DGeometryEditPanel::doCSGoperation(CSG_OPERATION operation)
 
 		ccHObject::Container processed;
 
+		MainWindow* win = MainWindow::TheInstance(); if (!win) return;
+		win->progressStart("CSG operation", merge.size() + ints.size());
+
+		s_params.corkA = &corkMesh;
+		s_params.nameA = mesh->getName();
+		
 		for (size_t i = 1; i < merge.size(); i++) {
-			CorkMesh thismesh;
-			if (!ToCorkMesh(merge[i], thismesh)) {
-				continue;
-			}
 			try	{
-				computeUnion(corkMesh, thismesh);
+				CorkMesh thismesh;
+				if (ToCorkMesh(merge[i], thismesh)) {
+
+					s_params.corkB = &thismesh;
+					s_params.nameB = merge[i]->getName();
+					s_params.operation = CSG_UNION;
+
+					QFuture<bool> future = QtConcurrent::run(doPerformBooleanOp);
+					while (!future.isFinished()) {
+						::Sleep(500);
+						QApplication::processEvents();
+					}
+					if (future.result()) {
+						processed.push_back(merge[i]);
+					}
+					else throw runtime_error("");
+				}
 			}
 			catch (...)	{
-				continue;
+				std::cerr << "[CSG Error] - merge " << mesh->getName().toStdString() << " and " << merge[i]->getName().toStdString() << std::endl;
 			}
-
-			processed.push_back(merge[i]);
+			win->progressStep();
 		}
 		
 		for (ccMesh* m : ints) {
-			CorkMesh thismesh;
-			if (!ToCorkMesh(m, thismesh)) {
-				continue;
-			}
 			try	{
-				computeIntersection(corkMesh, thismesh);
+				CorkMesh thismesh;
+				if (ToCorkMesh(m, thismesh)) {
+					s_params.corkB = &thismesh;
+					s_params.nameB = m->getName();
+					s_params.operation = CSG_INTERSECT;
+
+					QFuture<bool> future = QtConcurrent::run(doPerformBooleanOp);
+					while (!future.isFinished()) {
+						::Sleep(500);
+						QApplication::processEvents();
+					}
+					if (future.result()) {
+						processed.push_back(m);
+					}
+					else throw runtime_error("");
+				}
 			}
 			catch (...)	{
-				continue;
+				std::cerr << "[CSG Error] - intersection " << mesh->getName().toStdString() << " and " << m->getName().toStdString() << std::endl;
 			}
-			processed.push_back(m);
+			win->progressStep();
 		}
 
 		ccMesh* result = FromCorkMesh(corkMesh);
@@ -1815,6 +1844,7 @@ void bdr3DGeometryEditPanel::doCSGoperation(CSG_OPERATION operation)
 				result->setName(GetNextChildName(destination, MESHPrefix));
 				destination->addChild(result);
 			}
+			else result->setName("MeshCSG");
 
 			//normals
 			bool hasNormals = false;
@@ -1832,6 +1862,8 @@ void bdr3DGeometryEditPanel::doCSGoperation(CSG_OPERATION operation)
 			//currently selected entities appearance may have changed!
 			m_associatedWin->redraw();
 		}
+		win->progressStep();
+		win->progressStop();
 		
 		return;
 	}
@@ -1857,11 +1889,8 @@ void bdr3DGeometryEditPanel::doCSGoperation(CSG_OPERATION operation)
 	//launch process
 	{
 		//run in a separate thread
-		QProgressDialog pDlg("Operation in progress", QString(), 0, 0, this);
-		pDlg.setWindowTitle("Cork");
-		pDlg.show();
-		QApplication::processEvents();
-
+		MainWindow::TheInstance()->progressStart("CSG operation", 0);
+		
 		s_params.corkA = &corkA;
 		s_params.corkB = &corkB;
 		s_params.nameA = meshA->getName();
@@ -1878,16 +1907,14 @@ void bdr3DGeometryEditPanel::doCSGoperation(CSG_OPERATION operation)
 #else
 			usleep(500 * 1000);
 #endif
-
-			pDlg.setValue(pDlg.value() + 1);
-			QApplication::processEvents();
+			
+			MainWindow::TheInstance()->progressStep();
 		}
 
 		//just to be sure
 		s_params.corkA = s_params.corkB = 0;
 
-		pDlg.hide();
-		QApplication::processEvents();
+		MainWindow::TheInstance()->progressStop();
 
 		if (!future.result())
 		{
@@ -1908,6 +1935,28 @@ void bdr3DGeometryEditPanel::doCSGoperation(CSG_OPERATION operation)
 		if (destination) {
 			result->setName(GetNextChildName(destination, MESHPrefix));
 			destination->addChild(result);
+		}
+		else {
+			QString name;
+			switch (operation)
+			{
+			case CSG_UNION:
+				name = ".union.";
+				break;
+			case CSG_INTERSECT:
+				name = ".ints.";
+				break;
+			case CSG_DIFF:
+				name = ".diff.";
+				break;
+			case CSG_SYM_DIFF:
+				name = ".symd.";
+				break;
+			default:
+				name = ".csg.";
+				break;
+			}
+			result->setName(meshA->getName() + name + meshB->getName());
 		}
 
 		//normals

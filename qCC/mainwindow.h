@@ -261,6 +261,11 @@ public:
 	void showBestImage(bool use_area = true);
 	void showImage(ccHObject* imCamera);
 
+	QProgressBar* getProgressBar() { return m_progressBar; }
+	void progressStart(QString name, int size);
+	void progressStep();
+	void progressStop();
+
 private slots:
 	//! Creates a new 3D GL sub-window
 	ccGLWindow* new3DView( bool allowEntitySelection );

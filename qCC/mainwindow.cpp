@@ -15812,6 +15812,33 @@ void MainWindow::showImage(ccHObject * imCamera)
 	}
 }
 
+void MainWindow::progressStart(QString name, int size)
+{
+	QString label_name = name;
+	if (size > 0) {
+		label_name += QString(" %1 items").arg(size);
+	}
+	m_progressBar->setRange(0, size < 0 ? 0 : size);
+	m_progressBar->setValue(0);
+	m_progressLabel->show();
+	m_progressBar->show();
+	QApplication::processEvents();
+}
+
+void MainWindow::progressStep()
+{
+	m_progressBar->setValue(m_progressBar->value() + 1);
+	QApplication::processEvents();
+}
+
+void MainWindow::progressStop()
+{
+	m_progressBar->setValue(0);
+	m_progressBar->hide();
+	m_progressLabel->hide();
+	QApplication::processEvents();
+}
+
 void MainWindow::doActionShowBestImage()
 {
 	showBestImage(false);
