@@ -154,7 +154,9 @@ namespace ccColor
 
 	// Default foreground color (unsigned byte)
 	constexpr Rgbub defaultColor			(255, 255, 255);	// white
-	constexpr Rgbub defaultBkgColor			(242, 242, 242);	// white	( 10, 102, 151);	// dark blue
+	constexpr Rgbub defaultPointsColor		(119, 217, 97);		// green
+	constexpr Rgbub defaultTextColor		(230, 230, 230);	// gray
+	constexpr Rgbub defaultBkgColor			(255, 255, 255);	// white	( 10, 102, 151);	// dark blue
 	constexpr Rgbub defaultLabelBkgColor	(255, 255, 255);	// white
 	constexpr Rgbub defaultLabelMarkerColor	(255,   0, 255);	// magenta
 

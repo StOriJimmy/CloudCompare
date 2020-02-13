@@ -121,8 +121,8 @@ void bdrLabelAnnotationPanel::allowExecutePolyline(bool state)
 void bdrLabelAnnotationPanel::allowStateChange(bool state)
 {
 	m_UI->selectionModeButton->setEnabled(state);
-	m_UI->typeComboBox->setEnabled(state);
-	m_UI->filterToolButton->setEnabled(state);
+	//m_UI->typeComboBox->setEnabled(state);
+	//m_UI->filterToolButton->setEnabled(state);
 }
 
 bdrLabelAnnotationPanel::~bdrLabelAnnotationPanel()
@@ -903,8 +903,13 @@ void bdrLabelAnnotationPanel::createEntity()
 		else {
 			destination = GetRootBDBase(*p);
 		}
+		if (!destination) {
+			destination = cloud->getParent();
+		}
 		if (!destination) continue;
-		m_changed_baseobj.insert(destination);
+		if (isBuildingProject(destination))	{
+			m_changed_baseobj.insert(destination);
+		}
 
 		//! create a new point cloud
 		
@@ -961,8 +966,7 @@ void bdrLabelAnnotationPanel::createEntity()
 		{
 		case LAS_LABEL::Building:
 		{
-			int number = GetMaxNumberExcludeChildPrefix(destination, BDDB_BUILDING_PREFIX);
-			new_ent->setName(BuildingNameByNumber(number + 1));
+			new_ent->setName(GetNextChildName(destination, BDDB_BUILDING_PREFIX));
 
 			if (new_ent->size() > 15) {
 				ccHObject* new_building_folder = new ccHObject(new_ent->getName() + BDDB_ORIGIN_CLOUD_SUFFIX);
@@ -980,12 +984,15 @@ void bdrLabelAnnotationPanel::createEntity()
 			break;
 		}
 		default:
+			ccLog::Error("not supported yet");
 			break;
 		}
 		
-		if (!created && new_ent) {
-			delete new_ent;
-			new_ent = nullptr;
+		if (!created) {
+			if (!new_ent) {
+				delete new_ent;
+				new_ent = nullptr;
+			}
 			continue;
 		}
 		m_somethingHasChanged = true;

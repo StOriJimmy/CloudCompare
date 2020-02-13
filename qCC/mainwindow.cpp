@@ -399,7 +399,10 @@ MainWindow::MainWindow()
 	//tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableImage);
 	tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableConsole);
 	m_UI->DockableProperties->raise();
-	
+
+	m_UI->DockableConsole->hide();
+	m_UI->DockablePanel->hide();
+
 	m_UI->DockableImage->setHidden(true);
 	m_UI->DockableImage->setWindowFlags(m_UI->DockableImage->windowFlags() | Qt::WindowMaximizeButtonHint);
 
@@ -16896,9 +16899,8 @@ void MainWindow::doActionPointClassEditor()
 	m_pbdrLAPanel->linkWith(win);
 	for (ccHObject *entity : getSelectedEntities())
 	{
-		if (entity->isKindOf(CC_TYPES::POINT_CLOUD) /*|| entity->isKindOf(CC_TYPES::MESH)*/) {
-			m_pbdrLAPanel->addEntity(entity);
-		}
+		//if (entity->isKindOf(CC_TYPES::POINT_CLOUD) /*|| entity->isKindOf(CC_TYPES::MESH)*/)
+		m_pbdrLAPanel->addEntity(entity);
 	}
 	updatePropertiesView();
 
