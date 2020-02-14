@@ -399,7 +399,10 @@ MainWindow::MainWindow()
 	//tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableImage);
 	tabifyDockWidget(m_UI->DockableProperties, m_UI->DockableConsole);
 	m_UI->DockableProperties->raise();
-	
+
+	m_UI->DockableConsole->hide();
+	m_UI->DockablePanel->hide();
+
 	m_UI->DockableImage->setHidden(true);
 	m_UI->DockableImage->setWindowFlags(m_UI->DockableImage->windowFlags() | Qt::WindowMaximizeButtonHint);
 
@@ -2114,6 +2117,9 @@ void MainWindow::addToDB(ccHObject* obj,
 			return;
 		}
 		obj->setDisplay_recursive(activeWin);
+	}
+	else {
+		obj->setDisplay_recursive(obj->getDisplay());
 	}
 
 	//eventually we update the corresponding display
@@ -13103,13 +13109,13 @@ void MainWindow::doActionBDPrimitives()
 
 	m_pbdrGeoPanel->linkWith(win);
 
-	ccHObject::Container models;
-	if (haveSelection()) {
-		models = GetBuildingEntitiesBySelected(getSelectedEntities().front());
-	}
-	else {
-		getRoot(CC_TYPES::DB_BUILDING)->filterChildren(models, true, CC_TYPES::ST_BUILDING, true);
-	}
+	ccHObject::Container models = GetEnabledObjFromGroup(getRoot(CC_TYPES::DB_BUILDING), CC_TYPES::ST_BUILDING, true, true);
+// 	if (haveSelection()) {
+// 		models = GetBuildingEntitiesBySelected(getSelectedEntities().front());
+// 	}
+// 	else {
+// 		getRoot(CC_TYPES::DB_BUILDING)->filterChildren(models, true, CC_TYPES::ST_BUILDING, true);
+// 	}
 	m_pbdrGeoPanel->setModelObjects(models);
 
 	ccHObject::Container active;
@@ -15809,6 +15815,33 @@ void MainWindow::showImage(ccHObject * imCamera)
 	}
 }
 
+void MainWindow::progressStart(QString name, int size)
+{
+	QString label_name = name;
+	if (size > 0) {
+		label_name += QString(" %1 items").arg(size);
+	}
+	m_progressBar->setRange(0, size < 0 ? 0 : size);
+	m_progressBar->setValue(0);
+	m_progressLabel->show();
+	m_progressBar->show();
+	QApplication::processEvents();
+}
+
+void MainWindow::progressStep()
+{
+	m_progressBar->setValue(m_progressBar->value() + 1);
+	QApplication::processEvents();
+}
+
+void MainWindow::progressStop()
+{
+	m_progressBar->setValue(0);
+	m_progressBar->hide();
+	m_progressLabel->hide();
+	QApplication::processEvents();
+}
+
 void MainWindow::doActionShowBestImage()
 {
 	showBestImage(false);
@@ -16866,9 +16899,8 @@ void MainWindow::doActionPointClassEditor()
 	m_pbdrLAPanel->linkWith(win);
 	for (ccHObject *entity : getSelectedEntities())
 	{
-		if (entity->isKindOf(CC_TYPES::POINT_CLOUD) /*|| entity->isKindOf(CC_TYPES::MESH)*/) {
-			m_pbdrLAPanel->addEntity(entity);
-		}
+		//if (entity->isKindOf(CC_TYPES::POINT_CLOUD) /*|| entity->isKindOf(CC_TYPES::MESH)*/)
+		m_pbdrLAPanel->addEntity(entity);
 	}
 	updatePropertiesView();
 

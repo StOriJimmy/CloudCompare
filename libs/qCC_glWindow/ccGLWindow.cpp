@@ -4057,6 +4057,7 @@ void ccGLWindow::mouseDoubleClickEvent(QMouseEvent *event)
 	if (getClick3DPos(x, y, P))
 	{
 		setPivotPoint(P, true, true);
+		emit doubleClicked(P);
 	}
 }
 
@@ -4188,7 +4189,8 @@ void ccGLWindow::mouseMoveEvent(QMouseEvent *event)
 		} //if (m_interactionFlags & INTERACT_PAN)
 	}
 	else if (event->buttons() & Qt::LeftButton &&
-		!(QApplication::keyboardModifiers() & Qt::ShiftModifier) && 
+		(!(QApplication::keyboardModifiers() & Qt::ShiftModifier) || ((QApplication::keyboardModifiers() & Qt::ShiftModifier) && (QApplication::keyboardModifiers() & Qt::AltModifier))) 
+		&&
 		!(QApplication::keyboardModifiers() & Qt::ControlModifier)) //rotation
 	{
 		if (m_interactionFlags & INTERACT_2D_ITEMS)
@@ -4770,7 +4772,11 @@ void ccGLWindow::wheelEvent(QWheelEvent* event)
 
 		//same shortcut as Meshlab: change the point size
 		float sizeModifier = (event->delta() < 0 ? -1.0f : 1.0f);
-		setPointSize(m_viewportParams.defaultPointSize + sizeModifier);
+
+		if (keyboardModifiers & Qt::ControlModifier) {
+			setLineWidth(m_viewportParams.defaultLineWidth + sizeModifier);
+		}
+		else setPointSize(m_viewportParams.defaultPointSize + sizeModifier);
 
 		doRedraw = true;
 	}

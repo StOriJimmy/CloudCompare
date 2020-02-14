@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>632</width>
-    <height>330</height>
+    <height>335</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -579,147 +579,187 @@
           <string>prism</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_5">
-          <item row="1" column="0">
-           <widget class="QGroupBox" name="groupBox">
-            <property name="title">
-             <string>Top</string>
-            </property>
-            <property name="flat">
-             <bool>true</bool>
-            </property>
-            <layout class="QGridLayout" name="gridLayout_3">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <property name="rightMargin">
-              <number>0</number>
-             </property>
-             <property name="bottomMargin">
-              <number>0</number>
-             </property>
-             <property name="spacing">
-              <number>0</number>
-             </property>
-             <item row="0" column="0">
-              <widget class="QDoubleSpinBox" name="blockTopDoubleSpinBox">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>100</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="toolTip">
-                <string>顶面高度</string>
-               </property>
-               <property name="prefix">
-                <string>H: </string>
-               </property>
-               <property name="suffix">
-                <string> m</string>
-               </property>
-               <property name="decimals">
-                <number>6</number>
-               </property>
-               <property name="minimum">
-                <double>-9999999999999.000000000000000</double>
-               </property>
-               <property name="maximum">
-                <double>9999999999999.000000000000000</double>
-               </property>
-               <property name="singleStep">
-                <double>0.010000000000000</double>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QToolButton" name="blockTopNormalEditToolButton">
-               <property name="text">
-                <string>Normal Editor</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
           <item row="2" column="0">
-           <widget class="QGroupBox" name="groupBox_2">
-            <property name="title">
-             <string>Bottom</string>
+           <layout class="QGridLayout" name="gridLayout_3">
+            <property name="spacing">
+             <number>3</number>
             </property>
-            <property name="flat">
-             <bool>true</bool>
+            <item row="0" column="1">
+             <widget class="QDoubleSpinBox" name="blockBottomDoubleSpinBox">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="toolTip">
+               <string>底面高度</string>
+              </property>
+              <property name="prefix">
+               <string>H: </string>
+              </property>
+              <property name="suffix">
+               <string> m</string>
+              </property>
+              <property name="decimals">
+               <number>6</number>
+              </property>
+              <property name="minimum">
+               <double>-9999999999999.000000000000000</double>
+              </property>
+              <property name="singleStep">
+               <double>0.010000000000000</double>
+              </property>
+              <property name="value">
+               <double>0.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_40">
+              <property name="text">
+               <string>Bottom</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <widget class="QToolButton" name="blockBottomNormalEditToolButton">
+              <property name="text">
+               <string>Edit</string>
+              </property>
+              <property name="icon">
+               <iconset resource="../icones.qrc">
+                <normaloff>:/CC/Stocker/images/stocker/editor1.png</normaloff>:/CC/Stocker/images/stocker/editor1.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>24</width>
+                <height>24</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QPlainTextEdit" name="blockBottomNormalPlainTextEdit">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Ignored" vsizetype="MinimumExpanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>30</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_42">
+              <property name="text">
+               <string>N </string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="1" column="0">
+           <layout class="QGridLayout" name="gridLayout_8">
+            <property name="spacing">
+             <number>3</number>
             </property>
-            <layout class="QGridLayout" name="gridLayout_4">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <property name="rightMargin">
-              <number>0</number>
-             </property>
-             <property name="bottomMargin">
-              <number>0</number>
-             </property>
-             <property name="spacing">
-              <number>0</number>
-             </property>
-             <item row="0" column="0">
-              <widget class="QDoubleSpinBox" name="blockBottomDoubleSpinBox">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>100</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="toolTip">
-                <string>底面高度</string>
-               </property>
-               <property name="prefix">
-                <string>H: </string>
-               </property>
-               <property name="suffix">
-                <string> m</string>
-               </property>
-               <property name="decimals">
-                <number>6</number>
-               </property>
-               <property name="minimum">
-                <double>-9999999999999.000000000000000</double>
-               </property>
-               <property name="singleStep">
-                <double>0.010000000000000</double>
-               </property>
-               <property name="value">
-                <double>0.000000000000000</double>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QToolButton" name="blockBottomNormalEditToolButton">
-               <property name="text">
-                <string>Normal Editor</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
+            <item row="0" column="1">
+             <widget class="QDoubleSpinBox" name="blockTopDoubleSpinBox">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="toolTip">
+               <string>顶面高度</string>
+              </property>
+              <property name="prefix">
+               <string>H: </string>
+              </property>
+              <property name="suffix">
+               <string> m</string>
+              </property>
+              <property name="decimals">
+               <number>6</number>
+              </property>
+              <property name="minimum">
+               <double>-9999999999999.000000000000000</double>
+              </property>
+              <property name="maximum">
+               <double>9999999999999.000000000000000</double>
+              </property>
+              <property name="singleStep">
+               <double>0.010000000000000</double>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_29">
+              <property name="text">
+               <string>Top</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <widget class="QToolButton" name="blockTopNormalEditToolButton">
+              <property name="text">
+               <string>Edit</string>
+              </property>
+              <property name="icon">
+               <iconset resource="../icones.qrc">
+                <normaloff>:/CC/Stocker/images/stocker/editor1.png</normaloff>:/CC/Stocker/images/stocker/editor1.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>24</width>
+                <height>24</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QPlainTextEdit" name="blockTopNormalPlainTextEdit">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Ignored" vsizetype="MinimumExpanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>30</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_41">
+              <property name="text">
+               <string>N </string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
           <item row="0" column="0">
            <widget class="QFrame" name="blockNameFrame">
@@ -774,7 +814,7 @@
             </layout>
            </widget>
           </item>
-          <item row="0" column="1" rowspan="3">
+          <item row="0" column="1" rowspan="4">
            <widget class="QGroupBox" name="blockDeduceTotalGroupBox">
             <property name="maximumSize">
              <size>
@@ -823,7 +863,7 @@
                 <number>4</number>
                </property>
                <property name="minimum">
-                <double>0.001000000000000</double>
+                <double>-9999.000000000000000</double>
                </property>
                <property name="maximum">
                 <double>9999.000000000000000</double>
@@ -860,19 +900,6 @@
                 <property name="spacing">
                  <number>0</number>
                 </property>
-                <item row="0" column="0">
-                 <widget class="QLabel" name="label_26">
-                  <property name="minimumSize">
-                   <size>
-                    <width>58</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string>Distance T</string>
-                  </property>
-                 </widget>
-                </item>
                 <item row="0" column="1" colspan="2">
                  <widget class="QDoubleSpinBox" name="blockDeduceDistanceThresholdDoubleSpinBox">
                   <property name="maximumSize">
@@ -895,14 +922,20 @@
                   </property>
                  </widget>
                 </item>
-                <item row="1" column="0" colspan="2">
-                 <widget class="QCheckBox" name="blockDeduceAutoFitCheckBox">
+                <item row="0" column="0">
+                 <widget class="QLabel" name="label_26">
+                  <property name="minimumSize">
+                   <size>
+                    <width>58</width>
+                    <height>0</height>
+                   </size>
+                  </property>
                   <property name="text">
-                   <string>Auto Fitting</string>
+                   <string>Distance T</string>
                   </property>
                  </widget>
                 </item>
-                <item row="0" column="3" rowspan="2">
+                <item row="2" column="0" colspan="4">
                  <widget class="QFrame" name="frame_4">
                   <property name="frameShape">
                    <enum>QFrame::StyledPanel</enum>
@@ -910,7 +943,7 @@
                   <property name="frameShadow">
                    <enum>QFrame::Raised</enum>
                   </property>
-                  <layout class="QGridLayout" name="gridLayout_20">
+                  <layout class="QHBoxLayout" name="horizontalLayout_6">
                    <property name="leftMargin">
                     <number>0</number>
                    </property>
@@ -923,20 +956,21 @@
                    <property name="bottomMargin">
                     <number>0</number>
                    </property>
-                   <property name="horizontalSpacing">
-                    <number>9</number>
-                   </property>
-                   <property name="verticalSpacing">
-                    <number>0</number>
-                   </property>
-                   <item row="1" column="1">
-                    <widget class="QRadioButton" name="blockDeduceNegativeRadioButton">
+                   <item>
+                    <widget class="QLabel" name="label_27">
                      <property name="text">
-                      <string>Negative</string>
+                      <string>Direction</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="0" column="1">
+                   <item>
+                    <widget class="QRadioButton" name="blockDeduceAllRadioButton">
+                     <property name="text">
+                      <string>All</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
                     <widget class="QRadioButton" name="blockDeducePositiveRadioButton">
                      <property name="text">
                       <string>Positive</string>
@@ -946,21 +980,21 @@
                      </property>
                     </widget>
                    </item>
-                   <item row="2" column="1">
-                    <widget class="QRadioButton" name="blockDeduceAllRadioButton">
+                   <item>
+                    <widget class="QRadioButton" name="blockDeduceNegativeRadioButton">
                      <property name="text">
-                      <string>All</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="0">
-                    <widget class="QLabel" name="label_27">
-                     <property name="text">
-                      <string>Direction</string>
+                      <string>Negative</string>
                      </property>
                     </widget>
                    </item>
                   </layout>
+                 </widget>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QCheckBox" name="blockDeduceAutoFitCheckBox">
+                  <property name="text">
+                   <string>Auto Fitting</string>
+                  </property>
                  </widget>
                 </item>
                </layout>
@@ -3219,51 +3253,11 @@
           </widget>
          </item>
          <item row="2" column="0" colspan="2">
-          <layout class="QHBoxLayout" name="horizontalLayout_6">
+          <layout class="QGridLayout" name="gridLayout_7">
            <property name="spacing">
             <number>0</number>
            </property>
-           <item>
-            <widget class="QToolButton" name="csgUnionToolButton">
-             <property name="toolTip">
-              <string>CSG union</string>
-             </property>
-             <property name="text">
-              <string>u</string>
-             </property>
-             <property name="icon">
-              <iconset resource="../icones.qrc">
-               <normaloff>:/CC/Stocker/images/stocker/csg_union.png</normaloff>:/CC/Stocker/images/stocker/csg_union.png</iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>20</width>
-               <height>20</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QToolButton" name="csgIntersectToolButton">
-             <property name="toolTip">
-              <string>CSG intersection</string>
-             </property>
-             <property name="text">
-              <string>i</string>
-             </property>
-             <property name="icon">
-              <iconset resource="../icones.qrc">
-               <normaloff>:/CC/Stocker/images/stocker/csg_ints.png</normaloff>:/CC/Stocker/images/stocker/csg_ints.png</iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>20</width>
-               <height>20</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
+           <item row="2" column="1">
             <widget class="QToolButton" name="csgDiffToolButton">
              <property name="toolTip">
               <string>CSG difference</string>
@@ -3283,7 +3277,47 @@
              </property>
             </widget>
            </item>
-           <item>
+           <item row="0" column="1">
+            <widget class="QToolButton" name="csgUnionToolButton">
+             <property name="toolTip">
+              <string>CSG union</string>
+             </property>
+             <property name="text">
+              <string>u</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/csg_union.png</normaloff>:/CC/Stocker/images/stocker/csg_union.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QToolButton" name="csgIntersectToolButton">
+             <property name="toolTip">
+              <string>CSG intersection</string>
+             </property>
+             <property name="text">
+              <string>i</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/csg_ints.png</normaloff>:/CC/Stocker/images/stocker/csg_ints.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
             <widget class="QToolButton" name="csgXorToolButton">
              <property name="toolTip">
               <string>CSG symmetric difference</string>
@@ -3299,6 +3333,26 @@
               <size>
                <width>20</width>
                <height>20</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0" rowspan="3">
+            <widget class="QToolButton" name="csgToolButton">
+             <property name="toolTip">
+              <string>CSG operation</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../icones.qrc">
+               <normaloff>:/CC/Stocker/images/stocker/sitemap.png</normaloff>:/CC/Stocker/images/stocker/sitemap.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>46</width>
+               <height>46</height>
               </size>
              </property>
             </widget>

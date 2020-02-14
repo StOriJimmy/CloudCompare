@@ -70,8 +70,8 @@ void ccGui::ParamStruct::reset()
 	meshFrontDiff		= ccColor::defaultMeshFrontDiff;
 	meshBackDiff		= ccColor::defaultMeshBackDiff;
 	meshSpecular		= ccColor::middle;
-	pointsDefaultCol	= ccColor::defaultColor;
-	textDefaultCol		= ccColor::defaultColor;
+	pointsDefaultCol	= ccColor::defaultPointsColor;
+	textDefaultCol		= ccColor::defaultTextColor;
 	backgroundCol		= ccColor::defaultBkgColor;
 	labelBackgroundCol	= ccColor::defaultLabelBkgColor;
 	labelMarkerCol		= ccColor::defaultLabelMarkerColor;
@@ -123,8 +123,8 @@ void ccGui::ParamStruct::fromPersistentSettings()
 	meshFrontDiff		= ccColor::Rgbaf (reinterpret_cast<float*>        (settings.value("meshFrontDiff",			QByteArray::fromRawData((const char*)ccColor::defaultMeshFrontDiff.rgba,	c_fColorArraySize )).toByteArray().data()));
 	meshBackDiff		= ccColor::Rgbaf (reinterpret_cast<float*>        (settings.value("meshBackDiff",			QByteArray::fromRawData((const char*)ccColor::defaultMeshBackDiff.rgba,		c_fColorArraySize )).toByteArray().data()));
 	meshSpecular		= ccColor::Rgbaf (reinterpret_cast<float*>        (settings.value("meshSpecular",			QByteArray::fromRawData((const char*)ccColor::middle.rgba,					c_fColorArraySize )).toByteArray().data()));
-	pointsDefaultCol	= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("pointsDefaultColor",		QByteArray::fromRawData((const char*)ccColor::defaultColor.rgb,				c_ubColorArraySize)).toByteArray().data()));
-	textDefaultCol		= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("textDefaultColor",		QByteArray::fromRawData((const char*)ccColor::defaultColor.rgb,				c_ubColorArraySize)).toByteArray().data()));
+	pointsDefaultCol	= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("pointsDefaultColor",		QByteArray::fromRawData((const char*)ccColor::defaultPointsColor.rgb,		c_ubColorArraySize)).toByteArray().data()));
+	textDefaultCol		= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("textDefaultColor",		QByteArray::fromRawData((const char*)ccColor::defaultTextColor.rgb,			c_ubColorArraySize)).toByteArray().data()));
 	backgroundCol		= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("backgroundColor",		QByteArray::fromRawData((const char*)ccColor::defaultBkgColor.rgb,			c_ubColorArraySize)).toByteArray().data()));
 	labelBackgroundCol	= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("labelBackgroundColor",	QByteArray::fromRawData((const char*)ccColor::defaultLabelBkgColor.rgb,		c_ubColorArraySize)).toByteArray().data()));
 	labelMarkerCol		= ccColor::Rgbaub(reinterpret_cast<unsigned char*>(settings.value("labelMarkerColor",		QByteArray::fromRawData((const char*)ccColor::defaultLabelMarkerColor.rgb,	c_ubColorArraySize)).toByteArray().data()));

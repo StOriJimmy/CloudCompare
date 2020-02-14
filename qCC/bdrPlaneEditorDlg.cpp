@@ -356,36 +356,36 @@ void bdrPlaneEditorDlg::onItemPicked(const PickedItem& pi)
 	setCenter(pi.P3D);
 
 	if (!m_associatedPlane) {
-		if (pi.entity->isA(CC_TYPES::ST_BLOCK)) {
-			StBlock* block = ccHObjectCaster::ToStBlock(pi.entity);
-			ccHObject* footprint = block->getParent();
-			CCVector3 Na, Nb, Nc;
-			block->getTriangleNormals(pi.itemIndex, Na, Nb, Nc);
-			CCVector3 N = (Na + Nb + Nc) / 3;
-			N.normalize();
-
-			setNormal(N);
-			onNormalChanged(0);
-			
-			MainWindow* main_window = MainWindow::TheInstance();
-			if (!main_window) { return; }
-			//! create a plane for footprint //FIXME: Maybe we should create a new footprint for this new canvas
-			ccPlane* new_plane = new ccPlane;
-			updatePlane(new_plane);
-			StBlock* new_block = new StBlock(new_plane, nullptr, nullptr);
-			int block_number = footprint ? (GetMaxNumberExcludeChildPrefix(footprint, BDDB_BLOCK_PREFIX) + 1) : 0;
-			new_block->setName(BDDB_BLOCK_PREFIX + QString::number(block_number));
-			new_block->setDisplay_recursive(block->getDisplay());
-			new_plane->setDisplay_recursive(block->getDisplay());
-			if (footprint) { footprint->addChild(new_block); }
-			
-			main_window->addToDB(new_block, block->getDBSourceType());
-			main_window->unselectAllInDB();
-			main_window->setSelectedInDB(new_block, true);
-			
-			initWithPlane(new_block);
-			m_planePara.already_in_db = false; // this is created inside this dialog, if restore, delete it!
-		}
+// 		if (pi.entity->isA(CC_TYPES::ST_BLOCK)) {
+// 			StBlock* block = ccHObjectCaster::ToStBlock(pi.entity);
+// 			ccHObject* footprint = block->getParent();
+// 			CCVector3 Na, Nb, Nc;
+// 			block->getTriangleNormals(pi.itemIndex, Na, Nb, Nc);
+// 			CCVector3 N = (Na + Nb + Nc) / 3;
+// 			N.normalize();
+// 
+// 			setNormal(N);
+// 			onNormalChanged(0);
+// 			
+// 			MainWindow* main_window = MainWindow::TheInstance();
+// 			if (!main_window) { return; }
+// 			//! create a plane for footprint //FIXME: Maybe we should create a new footprint for this new canvas
+// 			ccPlane* new_plane = new ccPlane;
+// 			updatePlane(new_plane);
+// 			StBlock* new_block = new StBlock(new_plane, 0, CCVector3(0, 0, 0), 0, CCVector3(0, 0, 0));
+// 			int block_number = footprint ? (GetMaxNumberExcludeChildPrefix(footprint, BDDB_BLOCK_PREFIX) + 1) : 0;
+// 			new_block->setName(BDDB_BLOCK_PREFIX + QString::number(block_number));
+// 			new_block->setDisplay_recursive(block->getDisplay());
+// 			new_plane->setDisplay_recursive(block->getDisplay());
+// 			if (footprint) { footprint->addChild(new_block); }
+// 			
+// 			main_window->addToDB(new_block, block->getDBSourceType());
+// 			main_window->unselectAllInDB();
+// 			main_window->setSelectedInDB(new_block, true);
+// 			
+// 			initWithPlane(new_block);
+// 			m_planePara.already_in_db = false; // this is created inside this dialog, if restore, delete it!
+// 		}
 	}
 	else {
 		if (pi.entity->isKindOf(CC_TYPES::MESH)) {

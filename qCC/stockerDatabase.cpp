@@ -803,23 +803,23 @@ StHObject* findChildByName(StHObject* parent,
 	}
 }
 
-int GetNumberExcludePrefix(StHObject * obj, QString prefix)
+int GetNumberExcludePrefix(StHObject * obj, QString prefix, CC_CLASS_ENUM type)
 {
 	QString name = obj->getName();
-	if (name.startsWith(prefix) && name.length() > prefix.length()) {
+	if (name.startsWith(prefix) && name.length() > prefix.length() && obj->isKindOf(type)) {
 		QString number = name.mid(prefix.length(), name.length());
 		return number.toInt();
 	}
 	return -1;
 }
 
-int GetMaxNumberExcludeChildPrefix(StHObject * obj, QString prefix/*, CC_CLASS_ENUM type = CC_TYPES::OBJECT*/)
+int GetMaxNumberExcludeChildPrefix(StHObject * obj, QString prefix, CC_CLASS_ENUM type)
 {
 	if (!obj) { return -1; }
 	set<int> name_numbers;
 	for (size_t i = 0; i < obj->getChildrenNumber(); i++) {
 		QString name = obj->getChild(i)->getName();
-		int number = GetNumberExcludePrefix(obj->getChild(i), prefix);
+		int number = GetNumberExcludePrefix(obj->getChild(i), prefix, type);
 		if (number >= 0) {
 			name_numbers.insert(number);
 		}
@@ -830,9 +830,9 @@ int GetMaxNumberExcludeChildPrefix(StHObject * obj, QString prefix/*, CC_CLASS_E
 	return -1;
 }
 
-QString GetNextChildName(StHObject * parent, QString prefix)
+QString GetNextChildName(StHObject * parent, QString prefix, CC_CLASS_ENUM type)
 {
-	int index = GetMaxNumberExcludeChildPrefix(parent, prefix) + 1;
+	int index = GetMaxNumberExcludeChildPrefix(parent, prefix, type) + 1;
 	if (index < 0) {
 		index = 0;
 	}

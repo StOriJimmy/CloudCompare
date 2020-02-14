@@ -809,6 +809,8 @@ signals:
 	**/
 	void buttonReleased();
 
+	void doubleClicked(const CCVector3d & P);
+
 	//! Signal emitted during 3D pass of OpenGL display process
 	/** Any object connected to this slot can draw additional stuff in 3D.
 		Depth buffering, lights and shaders are enabled by default.

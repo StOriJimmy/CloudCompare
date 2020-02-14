@@ -274,7 +274,7 @@ StHObject* getChildGroupByName(StHObject* group, QString name, bool auto_create 
 
 StHObject * findChildByName(StHObject * parent, bool recursive, QString filter, bool strict, CC_CLASS_ENUM type_filter = CC_TYPES::OBJECT, bool auto_create = false, ccGenericGLDisplay * inDisplay = 0);
 
-int GetNumberExcludePrefix(StHObject * obj, QString prefix);
+int GetNumberExcludePrefix(StHObject * obj, QString prefix, CC_CLASS_ENUM type = CC_TYPES::OBJECT);
 
 inline QString BuildingNameByNumber(int number) {
 	char name[256];
@@ -283,9 +283,9 @@ inline QString BuildingNameByNumber(int number) {
 }
 
 //! return -1 if no child exists
-int GetMaxNumberExcludeChildPrefix(StHObject * obj, QString prefix);
+int GetMaxNumberExcludeChildPrefix(StHObject * obj, QString prefix, CC_CLASS_ENUM type = CC_TYPES::OBJECT);
 
-QString GetNextChildName(StHObject* parent, QString prefix);
+QString GetNextChildName(StHObject* parent, QString prefix, CC_CLASS_ENUM type = CC_TYPES::OBJECT);
 
 bool StCreatDir(QString dir);
 

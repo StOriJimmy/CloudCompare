@@ -47,11 +47,7 @@ public:
 		CCVector3 bottom_normal,
 		QString name = QString("Prism"));
 
-	StBlock(ccPlane * mainPlane, 
-		ccFacet * top_facet,
-		ccFacet * bottom_facet,
-		QString name = QString("Prism"));
-
+	// 2.5D
 	static StBlock * Create(const std::vector<CCVector3>& top,
 		const PointCoordinateType bottom_height,
 		QString name = QString("Prism"));
@@ -68,13 +64,6 @@ public:
 	virtual QString getTypeName() const override { return "Prism"; }
 	virtual ccGenericPrimitive* clone() const override;
 	
-	//! Returns profile
-// 	std::vector<CCVector3> getTop() { return m_top; };
-// 	std::vector<CCVector3> getBottom() { return m_bottom; };
-// 	CCVector3 getCenterTop();
-// 	CCVector3 getCenterBottom();
-//	std::vector<CCVector2> getProfile();
-
 	ccPlane* getMainPlane() { return m_mainPlane; }
 
 	ccFacet* getTopFacet();
@@ -86,15 +75,14 @@ public:
 	double getTopHeight() { return m_top_height; }
 	void setBottomHeight(double val);
 	double getBottomHeight() { return m_bottom_height; }
-
-	std::vector<CCVector3> deduceTopPoints();
-	std::vector<CCVector3> deduceBottomPoints();
-
+	
 	void updateFacet(ccFacet* facet);
 	void setFacetPoints(ccFacet* facet, std::vector<CCVector3> points, bool computePlane);
 
 	// roof -> bottom -> facades
 	bool getWallPolygons(std::vector<std::vector<CCVector3>>& walls);
+
+	bool isHole() { return m_top_height < m_bottom_height; }
 
 protected:
 
@@ -111,6 +99,9 @@ protected:
 
 	void paramFromFacet();
 	bool buildFromFacet();
+
+	std::vector<CCVector3> deduceTopPoints();
+	std::vector<CCVector3> deduceBottomPoints();
 
 	ccFacet* m_top_facet;
 	ccFacet* m_bottom_facet;
