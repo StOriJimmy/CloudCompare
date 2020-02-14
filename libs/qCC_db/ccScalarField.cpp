@@ -162,7 +162,12 @@ void ccScalarField::setLogScale(bool state)
 
 void ccScalarField::computeMinAndMax()
 {
-	computeMinAndMax(true, true);
+	if (strcmpi(getName(), "Classification") == 0 ||
+		strcmpi(getName(), "Segmentation") == 0) {
+		computeMinAndMax(false, true);
+	}
+	else
+		computeMinAndMax(true, true);
 }
 
 void ccScalarField::computeMinAndMax(bool inherit, bool histogram)

@@ -917,6 +917,19 @@ void bdrLabelAnnotationPanel::createEntity()
 		new_ent->setGlobalScale(cloud->getGlobalScale());
 		new_ent->setGlobalShift(cloud->getGlobalShift());
 
+		int number = 0;
+		switch (m_UI->typeComboBox->currentIndex())
+		{
+		case LAS_LABEL::Building:
+		{
+			number = GetMaxNumberExcludeChildPrefix(destination, BDDB_BUILDING_PREFIX, CC_TYPES::ST_BUILDING) + 1;
+			new_ent->setName(BuildingNameByNumber(number));
+			break;
+		}
+		default:
+			break;
+		}
+		
 		//we project each point and we check if it falls inside the segmentation polyline
 // #if defined(_OPENMP)
 // #pragma omp parallel for
@@ -939,7 +952,7 @@ void bdrLabelAnnotationPanel::createEntity()
 
 			if (!pointInside) { continue; }
 			new_ent->addPoint(*P3D);
-
+			
 			if (use_color) {
 				if (cloud->hasColors() && !new_ent->hasColors()) {
 					use_color = new_ent->reserveTheRGBTable();
@@ -954,7 +967,12 @@ void bdrLabelAnnotationPanel::createEntity()
 		if (seg_index >= 0) {
 			new_ent->showColors(false);
 			new_ent->showSF(true);
-			new_ent->setCurrentDisplayedScalarField(seg_index);
+			new_ent->setCurrentScalarField(seg_index);
+
+			CCLib::ScalarField* sf = new_ent->getScalarField(seg_index);
+			if (sf) {
+				sf->fill(number);
+			}
 		}
 		else {
 			new_ent->showColors(true);
@@ -966,8 +984,6 @@ void bdrLabelAnnotationPanel::createEntity()
 		{
 		case LAS_LABEL::Building:
 		{
-			new_ent->setName(GetNextChildName(destination, BDDB_BUILDING_PREFIX));
-
 			if (new_ent->size() > 15) {
 				ccHObject* new_building_folder = new ccHObject(new_ent->getName() + BDDB_ORIGIN_CLOUD_SUFFIX);
 				new_building_folder->addChild(new_ent);
