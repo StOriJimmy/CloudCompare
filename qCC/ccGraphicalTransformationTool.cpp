@@ -453,7 +453,7 @@ void ccGraphicalTransformationTool::advTranslateRefUpdate(int index)
 		MainWindow* mainWindow = MainWindow::TheInstance();
 		if (mainWindow && m_advTranslateRef != nullptr)
 		{
-			mainWindow->db()->unselectEntity(m_advTranslateRef);
+			mainWindow->db(m_advTranslateRef)->unselectEntity(m_advTranslateRef);
 			m_advTranslateRef = nullptr;
 		}
 		return;
@@ -468,13 +468,13 @@ void ccGraphicalTransformationTool::advTranslateRefUpdate(int index)
 			{
 				if (m_advTranslateRef != nullptr && m_advTranslateRef != m_advRotateRef) //leave selected if rotate ref
 				{
-					mainWindow->db()->unselectEntity(m_advTranslateRef);
+					mainWindow->db(m_advTranslateRef)->unselectEntity(m_advTranslateRef);
 				}
 				m_advTranslateRef = m_planesAndLineSegments[i];
 				m_advTranslateRefIsChild = entityInTransformList(m_advTranslateRef);
 				if (m_advTranslateRef != m_advRotateRef) // already selected
 				{
-					mainWindow->db()->selectEntity(m_advTranslateRef, true);
+					mainWindow->db(m_advTranslateRef)->selectEntity(m_advTranslateRef, true);
 				}
 			}
 			if (!setAdvTranslationTransform(m_advTranslateRef))
@@ -513,7 +513,7 @@ void ccGraphicalTransformationTool::advRotateRefUpdate(int index)
 		MainWindow* mainWindow = MainWindow::TheInstance();
 		if (mainWindow && m_advRotateRef != nullptr)
 		{
-			mainWindow->db()->unselectEntity(m_advRotateRef);
+			mainWindow->db(m_advRotateRef)->unselectEntity(m_advRotateRef);
 			m_advRotateRef = nullptr;
 		}
 		return;
@@ -528,12 +528,12 @@ void ccGraphicalTransformationTool::advRotateRefUpdate(int index)
 			{
 				if (m_advRotateRef != nullptr && m_advTranslateRef != m_advRotateRef)//leave selected if translate ref
 				{
-					mainWindow->db()->unselectEntity(m_advRotateRef);
+					mainWindow->db(m_advRotateRef)->unselectEntity(m_advRotateRef);
 				}
 				m_advRotateRef = m_planesAndLineSegments[i];
 				if (m_advTranslateRef != m_advRotateRef) // already selected
 				{
-					mainWindow->db()->selectEntity(m_advRotateRef, true);
+					mainWindow->db(m_advRotateRef)->selectEntity(m_advRotateRef, true);
 				}
 				refAxisRadio->setEnabled(true);
 				m_advRotateRefIsChild = entityInTransformList(m_advRotateRef);
@@ -591,12 +591,12 @@ void ccGraphicalTransformationTool::clearAdvModeEntities()
 	MainWindow* mainWindow = MainWindow::TheInstance();
 	if (mainWindow && m_advTranslateRef != nullptr && m_associatedWin)
 	{
-		mainWindow->db()->unselectEntity(m_advTranslateRef);
+		mainWindow->db(m_advTranslateRef)->unselectEntity(m_advTranslateRef);
 		m_advTranslateRef = nullptr;
 	}
 	if (mainWindow && m_advRotateRef != nullptr && m_associatedWin)
 	{
-		mainWindow->db()->unselectEntity(m_advRotateRef);
+		mainWindow->db(m_advRotateRef)->unselectEntity(m_advRotateRef);
 		m_advRotateRef = nullptr;
 	}
 }
