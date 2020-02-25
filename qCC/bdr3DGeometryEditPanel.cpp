@@ -1712,12 +1712,12 @@ bool doPerformBooleanOp()
 			break;
 
 		case CSG_INTERSECT:
-			computeDifference(*s_params.corkA, *s_params.corkB);
+			computeIntersection(*s_params.corkA, *s_params.corkB);
 			//s_params.corkA->boolIsct(*s_params.corkB);
 			break;
 
 		case CSG_DIFF:
-			computeIntersection(*s_params.corkA, *s_params.corkB);
+			computeDifference(*s_params.corkA, *s_params.corkB);
 			//s_params.corkA->boolDiff(*s_params.corkB);
 			break;
 
