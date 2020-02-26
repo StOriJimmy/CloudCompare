@@ -2257,7 +2257,7 @@ namespace ccEntityAction
 					child->toggleActivation/*_recursive*/();
 					break;
 				case TOGGLE_PROPERTY::VISIBLE:
-					child->toggleVisibility_recursive();
+					child->toggleVisibility/*_recursive*/();
 					break;
 				case TOGGLE_PROPERTY::COLOR:
 					child->toggleColors_recursive();

@@ -12621,7 +12621,7 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 			std::cout << "file: " << point_path.absoluteFilePath().toStdString() << std::endl;
 		}
 		std::cout << "loading " << files.size() << " files" << std::endl;
-		ccHObject::Container loaded = loadFiles(files, 1);
+		ccHObject::Container loaded = loadFiles(files, -1);
 		std::cout << loaded.size() << " files loaded" << std::endl;
 		
 		bd_grp = new BDBaseHObject(prj_name);
@@ -12635,7 +12635,8 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 				continue;
 			}
 
-			QString building_name = names[i];
+			int index = has_origin_cloud ? i - 1 : i;
+			QString building_name = names[index];
 			StBuilding* building = new StBuilding(building_name);
 
 			newGroup->setName(building_name + BDDB_ORIGIN_CLOUD_SUFFIX);
@@ -14826,7 +14827,7 @@ void MainWindow::doActionBDFootPrintAuto()
 		try {
 			stocker::BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
 			if (!build_unit) throw std::runtime_error("invalid building");
-			ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit->ground_height, 0.8, 0.8, 2);
+			ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit->ground_height + baseObj->global_shift.Z(), 0.8, 0.8, 2);
 			for (ccHObject* ft : footprints) {
 				if (ft && ft->isA(CC_TYPES::ST_FOOTPRINT)) {
 					SetGlobalShiftAndScale(ft);
@@ -14891,7 +14892,7 @@ void MainWindow::doActionBDFootPrintManual()
 	}
 	stocker::BuildUnit* _build = baseObj->GetBuildingSp(building_name.toStdString());
 	if (!_build) return;
-	double ground = _build->ground_height;
+	double ground = _build->ground_height + baseObj->global_shift.Z();
 
 	if (!m_seTool)
 	{
@@ -15304,7 +15305,7 @@ void MainWindow::doActionBDLoD2Generation()
 							dispToConsole("invalid building");
 							continue;
 						}
-						ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit->ground_height, 
+						ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit->ground_height + baseObj->global_shift.Z(), 
 							m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
 							m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
 							m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value());

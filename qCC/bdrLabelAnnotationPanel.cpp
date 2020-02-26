@@ -954,9 +954,7 @@ void bdrLabelAnnotationPanel::createEntity()
 			new_ent->addPoint(*P3D);
 			
 			if (use_color) {
-				if (cloud->hasColors() && !new_ent->hasColors()) {
-					use_color = new_ent->reserveTheRGBTable();
-				}
+				use_color = cloud->hasColors() && (new_ent->hasColors() || (!new_ent->hasColors() && new_ent->reserveTheRGBTable()));
 			}
 			if (use_color)
 				new_ent->addRGBColor(cloud->getPointColor(i));

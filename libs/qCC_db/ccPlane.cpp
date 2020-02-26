@@ -157,8 +157,6 @@ bool ccPlane::isVerticalToDirection(CCVector3 dir, double angle_degree)
 
 void ccPlane::setProfile(std::vector<CCVector3> profile, bool update)
 {
-	m_profile = profile;
-	
 	if (update) {
 		ccPlane* new_plane = ccPlane::Fit(profile);
 		if (new_plane) {
@@ -168,6 +166,10 @@ void ccPlane::setProfile(std::vector<CCVector3> profile, bool update)
 			delete new_plane;
 			new_plane = nullptr;
 		}
+	}
+	
+	{
+		m_profile = profile;
 	}
 }
 

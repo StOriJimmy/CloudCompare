@@ -2939,7 +2939,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 
 			std::string output_dir;
 			if (!buildingObj->getPath().isEmpty()) {
-				output_dir = QFileInfo(buildingObj->getPath()).absoluteFilePath().toStdString() + "/footprints/" + ftObj->getName().toStdString();
+				output_dir = QFileInfo(buildingObj->getPath()).absolutePath().toStdString() + "/footprints/" + ftObj->getName().toStdString();
 			}
 			else {
 				output_dir = QFileInfo(QString::fromStdString(build_unit->file_path.ori_points)).absolutePath().toStdString() + "/footprints/" + ftObj->getName().toStdString();

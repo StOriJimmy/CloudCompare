@@ -3352,10 +3352,13 @@ QTreeView::branch:open:has-children:has-siblings  {
   </action>
   <action name="actionToggleVisibility">
    <property name="text">
-    <string>Visibility</string>
+    <string>Visibility (not recursive)</string>
    </property>
    <property name="toolTip">
-    <string>Toggle selected entities visibility (recursive)</string>
+    <string>Toggle selected entities visibility</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+A</string>
    </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>

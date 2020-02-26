@@ -532,6 +532,7 @@ bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 bool bdr3DGeometryEditPanel::start()
 {
 	assert(m_editPolyVer && m_editPoly && m_refPlane);
+	m_refPlanePanel->initWithPlane(m_refPlane);
 
 	connect(MainWindow::TheInstance()->db_building(), &ccDBRoot::selectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
 
