@@ -18,6 +18,7 @@
 #include <cmath>
 
 #include "ccCameraSensor.h"
+#include <iostream>
 
 //local
 #include "ccGenericGLDisplay.h"
@@ -641,18 +642,25 @@ inline QImage ccCameraSensor::getImage(bool forceLoad, bool save)
 // 		else if (QFileInfo(thumb + "_thumb.tif").exists()) { thumb = thumb + "_thumb.tif"; }
 // 		else if (forceLoad) { thumb = m_image_path; }
 // 		else return m_image_thumb;
-		
+		bool do_save = save;
 		QImage image_tmp = QImageReader(thumb).read();
 		if (image_tmp.isNull() && forceLoad) {
 			image_tmp = QImageReader(m_image_path).read();
+
+			if (image_tmp.isNull()) {
+				do_save = false;
+				const ccCameraSensor::IntrinsicParameters& params = getIntrinsicParameters();
+				image_tmp = QImage(params.arrayWidth, params.arrayHeight, QImage::Format_ARGB32);
+				image_tmp.fill(Qt::lightGray);
+			}
 		}
-		if (!image_tmp.isNull()) {
-			m_image_thumb = image_tmp.width() <= 400 ? image_tmp :
-				image_tmp.scaled(400, 400 * image_tmp.height() / image_tmp.width(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-			if (save) {
-				if (!m_image_thumb.save(thumb + ".jpg", "JPG", 100)) {
-					throw std::runtime_error(("failed to save image in: " + thumb.toStdString() + ".jpg").c_str());
-				}
+
+		m_image_thumb = image_tmp.width() <= 400 ? image_tmp :
+			image_tmp.scaled(400, 400 * image_tmp.height() / image_tmp.width(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+		
+		if (do_save) {
+			if (!m_image_thumb.save(thumb + ".jpg", "JPG", 100)) {
+				std::cout << "failed to save image in: " << thumb.toStdString() << ".jpg" << std::endl;
 			}
 		}
 	}

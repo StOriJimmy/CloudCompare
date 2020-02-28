@@ -60,7 +60,7 @@ public:
 	//! left-bottom
 	bool FromGlobalToImage(const CCVector3 & P_global, CCVector3 & P_local, bool withLensError = true);
 
-	void setImage(QString image_path);
+	void setImage(QString image_path, const int * width = nullptr, const int* height = nullptr, const QString * name = nullptr);
 	void setImageAndCamera(ccCameraSensor* cam);
 	ccImage* getImage() { return m_image; }
 

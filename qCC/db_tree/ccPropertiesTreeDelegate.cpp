@@ -2143,20 +2143,31 @@ void ccPropertiesTreeDelegate::updateItem(QStandardItem * item)
 					else 
 						sensor->drawImage(true);
 				}
+
 				//! load image	
-				ProgStartNorm_("get image thumb", sens.size())
-				for (ccCameraSensor* cam : sens) {
-					if (!cam->getImage(true, false).isNull())
-						cam->drawImage(true);
-					ProgStepBreak
+				if (need_thumb_load) {
+					ProgStartNorm_("get image thumb", sens.size())
+						for (ccCameraSensor* cam : sens) {
+							if (!cam->getImage(true, true).isNull())
+								cam->drawImage(true);
+							ProgStepBreak
+						}
+					ProgEnd
 				}
-				ProgEnd
 			}			
 		}
 		else {
 			ccCameraSensor* sensor = ccHObjectCaster::ToCameraSensor(m_currentObject);
 			if (sensor)	{
-				sensor->drawImage(item->checkState() == Qt::Checked);
+				if (item->checkState() == Qt::Checked) {
+					if (!sensor->getImage(true, true).isNull())	{
+						sensor->drawImage(true);
+					}
+					else {
+						item->setCheckState(Qt::Unchecked);
+					}
+				}
+				else sensor->drawImage(false);
 			}
 		}
 	}
