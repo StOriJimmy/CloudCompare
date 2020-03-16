@@ -123,9 +123,11 @@ ccHObject * ConstrainedMesh(ccHObject * planeObj, int rare_pts = -1);
 
 ccHObject::Container GenerateFootPrints_PP(ccHObject * prim_group, double ground);
 
-ccHObject::Container GenerateFootPrints(ccHObject * prim_group, double ground, double alpha, double max_intersection, double min_area);
+ccHObject::Container GenerateFootPrints(ccHObject * prim_group, double ground, double alpha, 
+	double compo_distance, double compo_minpts,
+	double max_intersection, double min_area);
 
-ccHObject * LoD1FromFootPrint(ccHObject * buildingObj);
+ccHObject * LoD1FromFootPrint(ccHObject * buildingObj, bool flat = true);
 
 ccHObject * LoD2FromFootPrint(ccHObject * entity);
 
@@ -136,7 +138,7 @@ bool PackPlaneFrames(ccHObject * buildingObj, int max_iter, bool cap_hole, doubl
 
 bool PackFootprints_PPP(ccHObject * buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio, double sharp_weight);
 
-ccHObject* LoD2FromFootPrint_PPP(ccHObject * entity, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio,
+ccHObject* LoD2FromFootPrint_PPP(ccHObject * entity, int max_iter, bool cap_hole, bool fit_footprint, double ptsnum_ratio, double data_ratio,
 	double ints_thre, double alpha, double min_area, double max_intersection,
 	double cluster_hori, double cluster_verti);
 

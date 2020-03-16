@@ -13748,16 +13748,21 @@ void MainWindow::doActionBDPrimPlaneFrame()
 	if (!haveSelection()) return;
 
 	QStringList methods;
+	methods.append("linegrow from polygon");
+	methods.append("linegrow from plane points");
+
+	methods.append("convexhull from polygon");
+	methods.append("convexhull from plane points");
+
 	methods.append("optimization");
-	methods.append("linegrow");
 	methods.append("houghline");
-	methods.append("convexhull");
+	
 	bool ok;
 	QString used_method = QInputDialog::getItem(this, "Boundary extraction", "method", methods, 0, false, &ok);
 	if (!ok) return;
 
 	double linegrow_alpha(0.5), linegrow_intersection(1), linegrow_minpts(10);
-	if (used_method == "linegrow") {		
+	if (used_method.contains("linegrow")) {
 		ccAskThreeDoubleValuesDlg paraDlg("alpha", "intersection", "minpts", 0, 1.0e12, linegrow_alpha, linegrow_intersection, linegrow_minpts, 6, "line grow", this);
 		if (!paraDlg.exec()) {
 			return;
@@ -13767,22 +13772,29 @@ void MainWindow::doActionBDPrimPlaneFrame()
 	ccHObject *entity = getSelectedEntities().front();
 
 	BDBaseHObject* baseObj = GetRootBDBase(entity);
-	if (!baseObj) {
-		ccHObject::Container polygons = GetEnabledObjFromGroup(entity, CC_TYPES::POLY_LINE, true, true);
+	if (used_method.contains("polygon")) {
+		ccHObject::Container polygons;
+		if (entity->isA(CC_TYPES::POLY_LINE)) {
+			polygons.push_back(entity);
+		}
+		else {
+			polygons = GetEnabledObjFromGroup(entity, CC_TYPES::POLY_LINE, true, true);
+		}
 
 		for (ccHObject* polygon : polygons)	{
 			stocker::Polyline3d poly = GetPolygonFromPolyline(polygon);
 			std::vector<stocker::Contour3d> contours;
-			if (used_method == "convexhull") {
+			if (used_method.contains("convexhull")) {
 				stocker::PlaneUnit plane_unit = stocker::FormPlaneUnit(stocker::ToContour(poly, 3), "temp", true);
 				contours.push_back(plane_unit.convex_hull_prj);
 			}
-			else if (used_method == "linegrow")	{
-				stocker::PolygonGeneralizationLineGrow_Contour(stocker::ToContour(poly, 3), contours, 0, false, linegrow_intersection);
+			else if (used_method.contains("linegrow"))	{
+				stocker::PolygonGeneralizationLineGrow_Contour(stocker::ToContour(poly, 3), contours, linegrow_intersection, 0, false);
 			}
 
 			if (contours.empty()) continue;
-			ccHObject* new_poly = AddPolygonAsPolyline(contours.front(), polygon->getName(), ccColor::Generator::Random(), true);
+			stocker::Polyline3d poly_contour = MakeLoopPolylinefromContour(contours.front(), 1);
+			ccHObject* new_poly = AddPolygonAsPolyline(poly_contour, polygon->getName(), ccColor::Generator::Random(), true);
 			if (!new_poly) continue;
 			polygon->getParent()->addChild(new_poly);
 			polygon->setName("del-" + polygon->getName());
@@ -13802,7 +13814,7 @@ void MainWindow::doActionBDPrimPlaneFrame()
 	
 	for (auto & planeObj : plane_container) {
 		try	{
-			if (used_method == "linegrow") {
+			if (used_method.contains("linegrow")) {
 				ccHObject* frame = PlaneFrameLineGrow(planeObj, linegrow_alpha, linegrow_intersection, linegrow_minpts, 2, false);
 				if (frame) { SetGlobalShiftAndScale(frame); addToDB(frame, planeObj->getDBSourceType(), false, false); }
 			}
@@ -14827,7 +14839,9 @@ void MainWindow::doActionBDFootPrintAuto()
 		try {
 			stocker::BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
 			if (!build_unit) throw std::runtime_error("invalid building");
-			ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit->ground_height + baseObj->global_shift.Z(), 0.8, 0.8, 2);
+			ccHObject::Container footprints = GenerateFootPrints(prim_group,
+				build_unit->ground_height + baseObj->global_shift.Z(),
+				0.8, 2, 50, 0.8, 2);
 			for (ccHObject* ft : footprints) {
 				if (ft && ft->isA(CC_TYPES::ST_FOOTPRINT)) {
 					SetGlobalShiftAndScale(ft);
@@ -15146,13 +15160,21 @@ void MainWindow::doActionBDLoD1Generation()
 	if (building_entites.empty()) {
 		return;
 	}
+
+	QMessageBox message_box(QMessageBox::Question,
+		tr("Flat"),
+		tr("Flat Rooftop?"),
+		QMessageBox::Ok | QMessageBox::Cancel,
+		this);
+	bool flat = (message_box.exec() == QMessageBox::Ok);
+
 	ProgStartNorm("lod1 generation", building_entites.size())
 	for (ccHObject* bd_entity : building_entites) {
 		StBuilding* building = ccHObjectCaster::ToStBuilding(bd_entity);
 		if (!building) { continue; }
 
 		try {
-			ccHObject* bd_model_obj = LoD1FromFootPrint(building);
+			ccHObject* bd_model_obj = LoD1FromFootPrint(building, flat);
 			if (bd_model_obj) {
 				SetGlobalShiftAndScale(bd_model_obj);
 				bd_model_obj->setDisplay_recursive(building->getDisplay());
@@ -15305,8 +15327,11 @@ void MainWindow::doActionBDLoD2Generation()
 							dispToConsole("invalid building");
 							continue;
 						}
-						ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit->ground_height + baseObj->global_shift.Z(), 
+						ccHObject::Container footprints = GenerateFootPrints(prim_group, 
+							build_unit->ground_height + baseObj->global_shift.Z(),
 							m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
+							m_pbdrSettingLoD2Dlg->fpRoofLayerCompoDistDoubleSpinBox->value(),
+							m_pbdrSettingLoD2Dlg->fpRoofLayerCompoMinPtsSpinBox->value(),
 							m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
 							m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value());
 						for (ccHObject* ft : footprints) {
@@ -15351,6 +15376,7 @@ void MainWindow::doActionBDLoD2Generation()
 				bd_model_obj = LoD2FromFootPrint_PPP(bd_entity,
 					m_pbdrSettingLoD2Dlg->cdtMaxIterCheckBox->isChecked() ? m_pbdrSettingLoD2Dlg->cdtMaxIterSpinBox->value() : -1,
 					m_pbdrSettingLoD2Dlg->cdtHoleFillingCheckBox->isChecked(),
+					m_pbdrSettingLoD2Dlg->cdtFitFootprintCheckBox->isChecked(),
 					m_pbdrSettingLoD2Dlg->cdtDataPtsRatioDoubleSpinBox->value(),
 					m_pbdrSettingLoD2Dlg->cdtDataRatioDoubleSpinBox->value(),
 					m_pbdrSettingLoD2Dlg->cdtHOffsetDoubleSpinBox->value(),

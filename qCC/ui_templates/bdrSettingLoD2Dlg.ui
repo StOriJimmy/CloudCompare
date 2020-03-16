@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>450</width>
-    <height>625</height>
+    <height>648</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -149,13 +149,6 @@
       <string>Outline Extraction</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_6">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>alpha-shape</string>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="1">
        <widget class="QDoubleSpinBox" name="alphaDoubleSpinBox">
         <property name="sizePolicy">
@@ -175,10 +168,59 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="3">
+       <widget class="QSpinBox" name="simplifyEdgeMinPtsSpinBox">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="value">
+         <number>7</number>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QDoubleSpinBox" name="simplifyIntersectionDoubleSpinBox">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="suffix">
+         <string> m</string>
+        </property>
+        <property name="decimals">
+         <number>6</number>
+        </property>
+        <property name="singleStep">
+         <double>0.200000000000000</double>
+        </property>
+        <property name="value">
+         <double>0.800000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>alpha-shape</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="2">
        <widget class="QLabel" name="label_6">
         <property name="text">
          <string>执行简化平面最小面积</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QLabel" name="label_8">
+        <property name="text">
+         <string>简化边最小点数</string>
         </property>
        </widget>
       </item>
@@ -208,45 +250,17 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
-       <widget class="QDoubleSpinBox" name="simplifyIntersectionDoubleSpinBox">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="suffix">
-         <string> m</string>
-        </property>
-        <property name="decimals">
-         <number>6</number>
-        </property>
-        <property name="singleStep">
-         <double>0.200000000000000</double>
-        </property>
-        <property name="value">
-         <double>0.800000000000000</double>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QLabel" name="label_8">
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="regularizeCheckBox">
         <property name="text">
-         <string>简化边最小点数</string>
+         <string>规则化</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="3">
-       <widget class="QSpinBox" name="simplifyEdgeMinPtsSpinBox">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="value">
-         <number>10</number>
+      <item row="2" column="1">
+       <widget class="QCheckBox" name="outlineCDTCheckBox">
+        <property name="text">
+         <string>S-CDT</string>
         </property>
        </widget>
       </item>
@@ -259,12 +273,39 @@
       <string>Roof Layer Extraction</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
-      <item row="3" column="0" colspan="2">
+      <item row="0" column="2">
+       <widget class="QLabel" name="label_19">
+        <property name="text">
+         <string>最小点数</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QDoubleSpinBox" name="fpRoofLayerCompoDistDoubleSpinBox">
+        <property name="decimals">
+         <number>6</number>
+        </property>
+        <property name="maximum">
+         <double>10000000.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>1.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_18">
+        <property name="text">
+         <string>层间最小距离</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0" colspan="4">
        <widget class="QGroupBox" name="footprintPolygonPartitionGroupBox">
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>50</height>
+          <height>80</height>
          </size>
         </property>
         <property name="title">
@@ -353,6 +394,19 @@
         </layout>
        </widget>
       </item>
+      <item row="0" column="3">
+       <widget class="QSpinBox" name="fpRoofLayerCompoMinPtsSpinBox">
+        <property name="maximum">
+         <number>10000000</number>
+        </property>
+        <property name="singleStep">
+         <number>10</number>
+        </property>
+        <property name="value">
+         <number>50</number>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -365,23 +419,6 @@
       <bool>true</bool>
      </property>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="0">
-       <widget class="QRadioButton" name="roofCDTRadioButton">
-        <property name="text">
-         <string>约束三角网标签选择</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QRadioButton" name="roofStructureRadioButton">
-        <property name="text">
-         <string>结构点</string>
-        </property>
-       </widget>
-      </item>
       <item row="2" column="0" colspan="2">
        <widget class="QGroupBox" name="roofStructureGroupBox">
         <property name="enabled">
@@ -396,15 +433,38 @@
         <layout class="QGridLayout" name="gridLayout_3"/>
        </widget>
       </item>
+      <item row="0" column="1">
+       <widget class="QRadioButton" name="roofStructureRadioButton">
+        <property name="text">
+         <string>结构点</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QRadioButton" name="roofCDTRadioButton">
+        <property name="text">
+         <string>约束三角网标签选择</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="0" colspan="2">
        <widget class="QGroupBox" name="roofCDTGroupBox">
         <property name="enabled">
          <bool>true</bool>
         </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>50</height>
+          <height>120</height>
          </size>
         </property>
         <property name="title">

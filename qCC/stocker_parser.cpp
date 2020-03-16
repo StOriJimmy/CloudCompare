@@ -1607,7 +1607,7 @@ bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVecto
 	
 	for (stocker::ImageUnit & image_unit : image_units) {
 		Vec3d view_pos = image_unit.GetViewPos();
-		image_unit.m_camera.SetViewPoint(view_pos + baseObj->global_shift);
+		image_unit.m_camera.SetViewPoint((view_pos + baseObj->global_shift)*baseObj->global_scale);
 	}
 	texture_mapping.setImages(image_units);
 	//! collect polygons, roof and facade
@@ -1995,7 +1995,9 @@ ccHObject::Container GenerateFootPrints_PP(ccHObject* prim_group, double ground)
 	return foot_print_objs;
 }
 
-ccHObject::Container GenerateFootPrints(ccHObject* prim_group, double ground, double alpha, double max_intersection, double min_area)
+ccHObject::Container GenerateFootPrints(ccHObject* prim_group, double ground, double alpha, 
+	double compo_distance, double compo_minpts,
+	double max_intersection, double min_area)
 {
 	ccHObject::Container foot_print_objs;
 	BDBaseHObject* baseObj = GetRootBDBase(prim_group);
@@ -2009,7 +2011,7 @@ ccHObject::Container GenerateFootPrints(ccHObject* prim_group, double ground, do
 
 	std::vector<Contour3d> footprints;
 	std::vector<std::vector<Contour3d>> fps_planes;
-	if (!DeriveRoofLayerFootPrints(planes_points, footprints, fps_planes, alpha, 1, 50, 50, max_intersection, min_area))
+	if (!DeriveRoofLayerFootPrints(planes_points, footprints, fps_planes, alpha, compo_distance, compo_minpts, compo_minpts, max_intersection, min_area))
 	if (footprints.size() != fps_planes.size()) {
 		return foot_print_objs;
 	}
@@ -2110,7 +2112,7 @@ ccHObject* LoD1FromFootPrint_Planar(ccHObject* entity)
 	return block_entity;
 }
 
-ccHObject* LoD1FromFootPrint(ccHObject* buildingObj)
+ccHObject* LoD1FromFootPrint(ccHObject* buildingObj, bool flat)
 {	
 	BDBaseHObject* baseObj = GetRootBDBase(buildingObj);
 	if (!baseObj) {
@@ -2145,10 +2147,14 @@ ccHObject* LoD1FromFootPrint(ccHObject* buildingObj)
 
 		std::vector<CCVector3> top_points;
 		//std::vector<CCVector3> bottom_points;
-		for (auto & pt : foot_print_points) {
-			top_points.push_back(CCVector3(pt.x, pt.y, height));
-			//bottom_points.push_back(CCVector3(pt.x, pt.y, ground));
+
+		if (flat) {
+			for (auto & pt : foot_print_points) {
+				top_points.push_back(CCVector3(pt.x, pt.y, height));
+			}
 		}
+		else top_points = foot_print_points;
+		
 		StBlock* block_entity = StBlock::Create(top_points, ground);
 		if (block_entity) {
 			block_entity->setName(BDDB_BLOCK_PREFIX + QString::number(++biggest));
@@ -2653,7 +2659,8 @@ bool PackPlaneFrames(ccHObject* buildingObj, int max_iter, bool cap_hole, double
 	return true;
 }
 
-bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio, double sharp_weight)
+bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, 
+	double ptsnum_ratio, double data_ratio, double sharp_weight)
 {
 	try {
 		BDBaseHObject* baseObj = GetRootBDBase(buildingObj); if (!baseObj) return false;
@@ -2793,7 +2800,15 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 			}
 			size_t original_index = footprints_original_index[footprints_pp_index[i]];
 			StFootPrint* ftOriObj = ccHObjectCaster::ToStFootPrint(footprints[original_index]);
-			if (ftOriObj) footptObj->setPlaneNames(ftOriObj->getPlaneNames());
+			if (ftOriObj) {
+				footptObj->setHighest(ftOriObj->getBottom());
+				footptObj->setBottom(ftOriObj->getBottom());
+				footptObj->setLowest(ftOriObj->getBottom());
+
+				footptObj->setPlaneNames(ftOriObj->getPlaneNames()); 
+				footptObj->setGlobalShift(ftOriObj->getGlobalShift());
+				footptObj->setGlobalScale(ftOriObj->getGlobalScale());
+			}
 			blockgroup_obj->addChild(footptObj);
 		}
 	}
@@ -2808,6 +2823,7 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity, 
 	int max_iter, 
 	bool cap_hole,
+	bool fit_footprint,
 	double ptsnum_ratio, double data_ratio, 
 	double ints_thre, 
 	double alpha, double min_area, double max_intersection,
@@ -2864,7 +2880,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 		double ground_height = ftObj->getBottom();
 
 		Polyline3d footprint_polygon = GetPolygonFromPolyline(ftObj);
-
+		Contour3d footprint_contour = ToContour(footprint_polygon, 0);
 		//! collect planes
 		ccHObject::Container primObjs;
 		QStringList plane_names = ftObj->getPlaneNames();
@@ -2917,7 +2933,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 		if (planes_points.empty()) {
 			// TODO: LOD1
 			std::vector<CCVector3> top_points;
-			for (auto pt : ToContour(footprint_polygon, 0)) {
+			for (auto pt : footprint_contour) {
 				top_points.push_back(CCVector3(pt.X(), pt.Y(), pt.Z()));
 			}
 			StBlock* block_entity = StBlock::Create(top_points, ground_height);
@@ -2930,7 +2946,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 		std::vector<stocker::Contour3d> result_planes_frames;
 		IndexVector result_planes_index;
 		if (planes_frames.size() == 1) {
-			result_planes_frames.push_back(ToContour(footprint_polygon, 0));
+			result_planes_frames.push_back(footprint_contour);
 			result_planes_index.push_back(0);
 		}
 		else //! pack planes
@@ -2951,6 +2967,12 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 			poly_partition.m_run_cap_hole = cap_hole;
 			poly_partition.m_data_pts_ratio = ptsnum_ratio;
 			poly_partition.m_data_ratio = data_ratio;
+
+			if (fit_footprint) {
+				stocker::Outline2d outline;
+				outline.push_back(ToPolyline2d(footprint_polygon));
+				poly_partition.setFootprint(outline);
+			}
 
 			poly_partition.setPolygon(planes_frames, planes_points, true, true);
 
@@ -2977,6 +2999,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 		//! parse result to footprint
 		for (size_t i = 0; i < result_planes_frames.size(); i++) {
 			Contour3d roof_points = result_planes_frames[i];
+			//roof_points = ToContour(MakeLoopPolylinefromContour(roof_points, 0.001), 0);
 			size_t roof_plane_index = result_planes_index[i];
 			std::vector<CCVector3> top_points;
 			for (auto & pt : roof_points) {
