@@ -2192,7 +2192,28 @@ void ccPropertiesTreeDelegate::updateItem(QStandardItem * item)
 	}
 	redraw = true;
 	break;
+	case OBJECT_POLYGON_HOLE:
+	{
+		if (m_currentObject->isA(CC_TYPES::ST_FOOTPRINT)) {
+			StFootPrint* fp = ccHObjectCaster::ToStFootPrint(m_currentObject);
+			if (fp) {
+				fp->setHoleState(item->checkState() == Qt::Checked);
+			}
+		}
+		else if (m_currentObject->isA(CC_TYPES::ST_BLOCK)) {
+			StBlock* block = ccHObjectCaster::ToStBlock(m_currentObject);
+			if (block) {
+				double bottom = block->getBottomHeight();
+				double top = block->getTopHeight();
+				block->setTopHeight(bottom);
+				block->setBottomHeight(top);
+			}
+		}
 	}
+	redraw = true;
+	break;
+	}
+	
 
 	if (redraw)
 	{
@@ -2894,6 +2915,8 @@ void ccPropertiesTreeDelegate::fillWithStFootPrint(const StFootPrint *_obj)
 
 	//"Update planes" button
 	appendRow(ITEM(tr("Update planes")), PERSISTENT_EDITOR(OBJECT_UPDATE_FOOTPRINT_PLANES), true);
+
+	appendRow(ITEM(tr("Hole")), CHECKABLE_ITEM(false, OBJECT_POLYGON_HOLE));
 
 	appendRow(ITEM(tr("Stippling")), CHECKABLE_ITEM(false, OBJECT_MESH_STIPPLING));
 

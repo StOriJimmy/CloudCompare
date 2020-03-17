@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>461</width>
+    <width>493</width>
     <height>33</height>
    </rect>
   </property>
@@ -184,6 +184,26 @@
      </property>
      <property name="toolButtonStyle">
       <enum>Qt::ToolButtonTextBesideIcon</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="exportPolygonToolButton">
+     <property name="toolTip">
+      <string>export polygon</string>
+     </property>
+     <property name="text">
+      <string>settings</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../icones.qrc">
+       <normaloff>:/CC/Stocker/images/stocker/checksolid.png</normaloff>:/CC/Stocker/images/stocker/checksolid.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>23</width>
+       <height>23</height>
+      </size>
      </property>
     </widget>
    </item>

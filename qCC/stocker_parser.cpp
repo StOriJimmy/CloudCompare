@@ -2036,7 +2036,77 @@ ccHObject::Container GenerateBuildingFootPrints(ccHObject* prim_group,
 		return foot_print_objs;
 	}
 
-	
+	std::vector<stocker::Outline3d> outlines;
+	std::vector<std::vector<stocker::Contour3d>> contours_points = stocker::GetPlanePointsOutline(points, alpha, false, 2);
+	for (std::vector<stocker::Contour3d> contourVec : contours_points) {
+		stocker::Outline3d outline;
+		for (size_t i = 0; i < contourVec.size(); i++) {
+			stocker::Polygon3d poly = stocker::MakeLoopPolylinefromContour(contourVec[i]);
+			if (i != 0) {
+				poly.isHole = true;
+			}
+			outline.push_back(poly);
+		}
+		outlines.push_back(outline);
+	}
+
+	vector<vector<Contour3d>> frames_to_add;
+	for (stocker::Outline3d outline : outlines) {
+		if (outline.empty() || outline[0].isHole) {
+			continue;
+		}
+
+		std::vector<Contour3d> frame;
+		for (size_t i = 0; i < outline.size(); i++) {
+			Contour3d sub_frame;
+			vector<Contour3d> sub_frames_temp;
+			stocker::Polygon3d contour = outline[i];
+
+			Contour3d contour_points = ToContour(contour, 0);
+			if (!PolygonGeneralizationLineGrow_Contour(contour_points, sub_frames_temp, max_intersection, min_area, false, regularize, reg_angle))
+				continue;
+
+			sub_frame = sub_frames_temp.front();
+			Vec3d normal = stocker::GetPolygonNormal(sub_frame);
+			if (normal * Vec3d(0, 0, 1) < 0) {
+				std::reverse(sub_frame.begin(), sub_frame.end());
+			}
+			frame.push_back(sub_frame);
+		}
+		frames_to_add.push_back(frame);
+	}
+	StBlockGroup* block_group = nullptr;
+	BDBaseHObject* baseObj = GetRootBDBase(prim_group);
+	if (baseObj) {
+		block_group = baseObj->GetBlockGroup(GetBaseName(prim_group->getName()));
+	}
+
+	int fpnum(0);
+	if (block_group) {
+		fpnum = GetMaxNumberExcludeChildPrefix(block_group, BDDB_BDFOOTPRINT_PREFIX) + 1;
+	}
+
+	for (vector<Contour3d> frame : frames_to_add) {
+		QString name = BDDB_BDFOOTPRINT_PREFIX + QString::number(fpnum);
+
+		for (size_t i = 0; i < frame.size(); i++) {
+			
+			StFootPrint* footptObj = AddPolygonAsFootprint(frame[i], name, ccColor::magenta, true);
+			if (!footptObj) { continue; }
+			footptObj->setComponentId(fpnum);
+			if (i != 0)	{
+				footptObj->setHoleState(true);
+			}
+
+			footptObj->setHighest(ground);
+			footptObj->setBottom(ground);
+			footptObj->setLowest(ground);
+			
+			if (block_group) block_group->addChild(footptObj);
+			foot_print_objs.push_back(footptObj);
+		}
+		fpnum++;
+	}
 
 	return foot_print_objs;
 }

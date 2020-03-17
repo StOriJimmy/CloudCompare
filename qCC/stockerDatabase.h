@@ -22,6 +22,7 @@
 #define BDDB_IMAGELINE_PREFIX		"Imageline"
 #define BDDB_PLANEFRAME_PREFIX		"Frame"
 #define BDDB_FOOTPRINT_PREFIX		"Footprint"
+#define BDDB_BDFOOTPRINT_PREFIX		"BDfootprint"
 #define BDDB_BLOCK_PREFIX			"Block"
 #define BDDB_LOD1MODEL_PREFIX		"LoD1_"
 #define BDDB_LOD2MODEL_PREFIX		"LoD2_"
