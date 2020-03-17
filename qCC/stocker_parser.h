@@ -109,7 +109,7 @@ ccHObject* CalcPlaneOutlines(ccHObject* planeObj, double alpha);
 void ShrinkPlaneToOutline(ccHObject* planeObj, double alpha, double distance_epsilon);
 void CreateIntersectionPoint(ccHObject * p1, ccHObject * p2);
 ccHObject* PlaneFrameOptimization(ccHObject* planeObj, stocker::FrameOption option);
-ccHObject* PlaneFrameLineGrow(ccHObject* planeObj, double alpha, double intersection, double minpts, double min_area, bool skip_small_area);
+ccHObject* PlaneFrameLineGrow(ccHObject* planeObj, double alpha, double intersection, double min_area, bool skip_small_area, bool regularize);
 
 bool FastPlanarTextureMapping(ccHObject * planeObj);
 
@@ -122,6 +122,12 @@ bool TextureMappingPlanes(ccHObject::Container primObjs, stocker::IndexVector* t
 ccHObject * ConstrainedMesh(ccHObject * planeObj, int rare_pts = -1);
 
 ccHObject::Container GenerateFootPrints_PP(ccHObject * prim_group, double ground);
+
+ccHObject::Container GenerateBuildingFootPrints(ccHObject * prim_group, 
+	double ground, double alpha,
+	double max_intersection, double min_area,
+	bool regularize, double reg_angle,
+	bool scdt);
 
 ccHObject::Container GenerateFootPrints(ccHObject * prim_group, double ground, double alpha, 
 	double compo_distance, double compo_minpts,

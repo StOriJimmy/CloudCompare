@@ -13761,12 +13761,25 @@ void MainWindow::doActionBDPrimPlaneFrame()
 	QString used_method = QInputDialog::getItem(this, "Boundary extraction", "method", methods, 0, false, &ok);
 	if (!ok) return;
 
-	double linegrow_alpha(0.5), linegrow_intersection(1), linegrow_minpts(10);
+	double linegrow_alpha(0.5), linegrow_intersection(1);
+	double linegrow_minarea(2); bool linegrow_regularize(false);
+	double linegrow_reg_angle(10);
 	if (used_method.contains("linegrow")) {
-		ccAskThreeDoubleValuesDlg paraDlg("alpha", "intersection", "minpts", 0, 1.0e12, linegrow_alpha, linegrow_intersection, linegrow_minpts, 6, "line grow", this);
-		if (!paraDlg.exec()) {
+
+		if (!m_pbdrSettingLoD2Dlg) {
+			m_pbdrSettingLoD2Dlg = new bdrSettingLoD2Dlg();
+			m_pbdrSettingLoD2Dlg->setModal(false);
+			m_pbdrSettingLoD2Dlg->setWindowModality(Qt::NonModal);
+			m_pbdrSettingLoD2Dlg->setWindowFlags(Qt::WindowStaysOnTopHint);
+		}
+		if (!m_pbdrSettingLoD2Dlg->exec()) {
 			return;
 		}
+		linegrow_regularize = m_pbdrSettingLoD2Dlg->regularizeCheckBox->isChecked();
+		linegrow_alpha = m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value();
+		linegrow_intersection = m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value();
+		linegrow_minarea = m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value();
+		linegrow_reg_angle = m_pbdrSettingLoD2Dlg->regularizeAngleDoubleSpinBox->value();
 	}
 
 	ccHObject *entity = getSelectedEntities().front();
@@ -13789,7 +13802,8 @@ void MainWindow::doActionBDPrimPlaneFrame()
 				contours.push_back(plane_unit.convex_hull_prj);
 			}
 			else if (used_method.contains("linegrow"))	{
-				stocker::PolygonGeneralizationLineGrow_Contour(stocker::ToContour(poly, 3), contours, linegrow_intersection, 0, false);
+				stocker::PolygonGeneralizationLineGrow_Contour(stocker::ToContour(poly, 3), contours, 
+					linegrow_intersection, linegrow_minarea, false, linegrow_regularize, linegrow_reg_angle);
 			}
 
 			if (contours.empty()) continue;
@@ -13815,7 +13829,7 @@ void MainWindow::doActionBDPrimPlaneFrame()
 	for (auto & planeObj : plane_container) {
 		try	{
 			if (used_method.contains("linegrow")) {
-				ccHObject* frame = PlaneFrameLineGrow(planeObj, linegrow_alpha, linegrow_intersection, linegrow_minpts, 2, false);
+				ccHObject* frame = PlaneFrameLineGrow(planeObj, linegrow_alpha, linegrow_intersection, linegrow_minarea, false, linegrow_regularize);
 				if (frame) { SetGlobalShiftAndScale(frame); addToDB(frame, planeObj->getDBSourceType(), false, false); }
 			}
 			else if (used_method == "optimization") {
@@ -14816,6 +14830,17 @@ void MainWindow::doActionBDFootPrintAuto()
 		ccConsole::Error("No building in selection!");
 		return;
 	}
+
+	if (!m_pbdrSettingLoD2Dlg) {
+		m_pbdrSettingLoD2Dlg = new bdrSettingLoD2Dlg();
+		m_pbdrSettingLoD2Dlg->setModal(false);
+		m_pbdrSettingLoD2Dlg->setWindowModality(Qt::NonModal);
+		m_pbdrSettingLoD2Dlg->setWindowFlags(Qt::WindowStaysOnTopHint);
+	}
+	if (!m_pbdrSettingLoD2Dlg->exec()) {
+		return;
+	}
+
 	ProgStartNorm("Generate footprints", building_entites.size())
 	for (ccHObject* entity : building_entites) {
 		StBuilding* building = GetParentBuilding(entity);
@@ -14830,18 +14855,26 @@ void MainWindow::doActionBDFootPrintAuto()
 			dispToConsole(s_no_project_error, ERR_CONSOLE_MESSAGE);
 			return;
 		}
-		StPrimGroup* prim_group = baseObj->GetPrimitiveGroup(building_name);
-		if (!prim_group) {
-			dispToConsole("generate primitives first!", ERR_CONSOLE_MESSAGE);
-			return;
+		ccHObject* prim_group = baseObj->GetPrimitiveGroup(building_name);
+		if (!prim_group || !prim_group->isEnabled() || prim_group->getChildrenNumber() == 0) {
+
+			prim_group = baseObj->GetOriginPointCloud(building_name, false);
+			if (!prim_group) {
+				ProgStepBreak
+			}
 		}
 
 		try {
 			stocker::BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
 			if (!build_unit) throw std::runtime_error("invalid building");
-			ccHObject::Container footprints = GenerateFootPrints(prim_group,
+			ccHObject::Container footprints = GenerateBuildingFootPrints(prim_group,
 				build_unit->ground_height + baseObj->global_shift.Z(),
-				0.8, 2, 50, 0.8, 2);
+				m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
+				m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
+				m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value(),
+				m_pbdrSettingLoD2Dlg->regularizeCheckBox->isChecked(),
+				m_pbdrSettingLoD2Dlg->regularizeAngleDoubleSpinBox->value(),
+				m_pbdrSettingLoD2Dlg->outlineCDTCheckBox->isChecked());
 			for (ccHObject* ft : footprints) {
 				if (ft && ft->isA(CC_TYPES::ST_FOOTPRINT)) {
 					SetGlobalShiftAndScale(ft);

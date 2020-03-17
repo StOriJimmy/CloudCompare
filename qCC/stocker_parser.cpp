@@ -1515,7 +1515,7 @@ ccHObject* PlaneFrameOptimization(ccHObject* planeObj, stocker::FrameOption opti
 #endif
 }
 
-ccHObject * PlaneFrameLineGrow(ccHObject * planeObj, double alpha, double intersection, double minpts, double min_area, bool skip_small_area)
+ccHObject * PlaneFrameLineGrow(ccHObject * planeObj, double alpha, double intersection, double min_area, bool skip_small_area, bool regularize)
 {
 	ccHObject* point_cloud_obj = GetPlaneCloud(planeObj);
 	if (!point_cloud_obj) return nullptr;
@@ -1524,40 +1524,57 @@ ccHObject * PlaneFrameLineGrow(ccHObject * planeObj, double alpha, double inters
 
 	vector<vector<Contour3d>> frames_to_add;
 	
+	
 	std::vector<stocker::Outline3d> outlines = GetPlanarOutlines(planeObj, BDDB_OUTLINE_PREFIX);
 
 	if (outlines.empty()) {
 		Contour3d plane_points = GetPointsFromCloud3d(point_cloud_obj);
-		vector<Contour3d> frame;
-		PolygonGeneralizationLineGrow_Plane(plane_points, frame, alpha, intersection, 2, false);
-		frames_to_add.push_back(frame);
-	}
-	else {
-		for (stocker::Outline3d outline : outlines) {
-			if (outline.empty() || outline[0].isHole) {
-				continue;
-			}
+		vector<vector<stocker::Contour3d>> contours_points = stocker::GetPlanePointsOutline(plane_points, alpha, false, 2);
 
-			std::vector<Contour3d> frame;
-			for (size_t i = 0; i < outline.size(); i++) {
-				Contour3d sub_frame;
-				vector<Contour3d> sub_frames_temp;
-				stocker::Polygon3d contour = outline[i];
-
-				Contour3d contour_points = ToContour(contour, 0);
-				if (!PolygonGeneralizationLineGrow_Contour(contour_points, sub_frames_temp, intersection, min_area, skip_small_area))
-					continue;
-				
-				sub_frame = sub_frames_temp.front();
-				Vec3d normal = stocker::GetPolygonNormal(sub_frame);
-				if (normal * Vec3d(0, 0, 1) < 0) {
-					std::reverse(sub_frame.begin(), sub_frame.end());
+		for (vector<stocker::Contour3d> contourVec : contours_points) {
+			stocker::Outline3d outline;
+			for (size_t i = 0; i < contourVec.size(); i++) {
+				stocker::Polygon3d poly = MakeLoopPolylinefromContour(contourVec[i]);
+				if (i != 0) {
+					poly.isHole = true;
 				}
-				frame.push_back(sub_frame);
+				outline.push_back(poly);
 			}
-
-			frames_to_add.push_back(frame);
+			outlines.push_back(outline);
 		}
+
+// 		vector<Contour3d> frame;
+// 		PolygonGeneralizationLineGrow_Plane(plane_points, frame, alpha, intersection, 2, false);
+// 		frames_to_add.push_back(frame);
+	}
+
+	if (outlines.empty())
+		return nullptr;
+
+	for (stocker::Outline3d outline : outlines) {
+		if (outline.empty() || outline[0].isHole) {
+			continue;
+		}
+
+		std::vector<Contour3d> frame;
+		for (size_t i = 0; i < outline.size(); i++) {
+			Contour3d sub_frame;
+			vector<Contour3d> sub_frames_temp;
+			stocker::Polygon3d contour = outline[i];
+
+			Contour3d contour_points = ToContour(contour, 0);
+			if (!PolygonGeneralizationLineGrow_Contour(contour_points, sub_frames_temp, intersection, min_area, skip_small_area, regularize))
+				continue;
+
+			sub_frame = sub_frames_temp.front();
+			Vec3d normal = stocker::GetPolygonNormal(sub_frame);
+			if (normal * Vec3d(0, 0, 1) < 0) {
+				std::reverse(sub_frame.begin(), sub_frame.end());
+			}
+			frame.push_back(sub_frame);
+		}
+
+		frames_to_add.push_back(frame);
 	}
 	
 	ccHObject* plane_frame = AddOutlinesAsChild(frames_to_add, BDDB_PLANEFRAME_PREFIX, point_cloud_obj);
@@ -1992,6 +2009,35 @@ ccHObject::Container GenerateFootPrints_PP(ccHObject* prim_group, double ground)
 			block_group->addChild(footptObj);
 		}
 	}
+	return foot_print_objs;
+}
+
+ccHObject::Container GenerateBuildingFootPrints(ccHObject* prim_group,
+	double ground, double alpha,
+	double max_intersection, double min_area,
+	bool regularize, double reg_angle,
+	bool scdt)
+{
+	Contour3d points;
+	ccHObject::Container foot_print_objs;
+	if (prim_group->isA(CC_TYPES::ST_PRIMGROUP)) {
+		ccHObject::Container facades;
+		ccHObject::Container primObjs = GetNonVerticalPlaneClouds(prim_group, 15, &facades);
+		std::vector<stocker::Contour3d> planes_points = GetPointsFromCloudInsidePolygonsXY(primObjs, stocker::Polyline3d(), DBL_MAX, true);
+		for (auto pp : planes_points) {
+			points.insert(points.end(), pp.begin(), pp.end());
+		}
+	}
+	else if (prim_group->isA(CC_TYPES::POINT_CLOUD)) {
+		ccPointCloud* pcObj = ccHObjectCaster::ToPointCloud(prim_group);
+		points = GetPointsFromCloud3d(pcObj, false);
+	}
+	if (points.empty()) {
+		return foot_print_objs;
+	}
+
+	
+
 	return foot_print_objs;
 }
 
