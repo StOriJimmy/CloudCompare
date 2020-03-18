@@ -80,6 +80,11 @@ ScalarType ccScalarField::normalize(ScalarType d) const
 				return 0;
 			else if (d >= m_saturationRange.stop())
 				return static_cast<ScalarType>(1);
+
+			QString name = getName();
+			if (name == QString("Segmentation")) {
+				return (int(d - m_saturationRange.start()) % 256) / 256.0;
+			}
 			return (d - m_saturationRange.start()) / m_saturationRange.range();
 		}
 		else //symmetric scale

@@ -14855,10 +14855,9 @@ void MainWindow::doActionBDFootPrintAuto()
 			dispToConsole(s_no_project_error, ERR_CONSOLE_MESSAGE);
 			return;
 		}
-		ccHObject* prim_group = baseObj->GetPrimitiveGroup(building_name);
-		if (!prim_group || !prim_group->isEnabled() || prim_group->getChildrenNumber() == 0) {
-
-			prim_group = baseObj->GetOriginPointCloud(building_name, false);
+		ccHObject* prim_group = baseObj->GetOriginPointCloud(building_name, false); 
+		if (!prim_group) {
+			prim_group = baseObj->GetPrimitiveGroup(building_name);
 			if (!prim_group) {
 				ProgStepBreak
 			}
@@ -15360,7 +15359,22 @@ void MainWindow::doActionBDLoD2Generation()
 							dispToConsole("invalid building");
 							continue;
 						}
-						ccHObject::Container footprints = GenerateFootPrints(prim_group, 
+						ccHObject::Container footprints;
+						if (m_pbdrSettingLoD2Dlg->masterFootprintCheckBox->isChecked())	{
+							ccHObject* pc = baseObj->GetOriginPointCloud(building_name, false);
+							if (!pc) {
+								pc = prim_group;
+							}
+							footprints = GenerateBuildingFootPrints(pc,
+								build_unit->ground_height + baseObj->global_shift.Z(),
+								m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
+								m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
+								m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value(),
+								m_pbdrSettingLoD2Dlg->regularizeCheckBox->isChecked(),
+								m_pbdrSettingLoD2Dlg->regularizeAngleDoubleSpinBox->value(),
+								m_pbdrSettingLoD2Dlg->outlineCDTCheckBox->isChecked());
+						}
+						ccHObject::Container footprints2 = GenerateFootPrints(prim_group, 
 							build_unit->ground_height + baseObj->global_shift.Z(),
 							m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
 							m_pbdrSettingLoD2Dlg->fpRoofLayerCompoDistDoubleSpinBox->value(),

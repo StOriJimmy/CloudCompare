@@ -867,8 +867,10 @@ void bdrLabelAnnotationPanel::createEntity()
 
 	std::vector<ccPolyline*> segmentPolygons;
 
+	bool mode2d = false;
 	if (m_segmentationPoly && m_segmentationPoly->isClosed()) {
 		segmentPolygons.push_back(m_segmentationPoly);
+		mode2d = true;
 	}
 	else {
 		for (ccHObject* ent : mainWin->getSelectedEntities()) {
@@ -928,10 +930,26 @@ void bdrLabelAnnotationPanel::createEntity()
 				CCVector3d Q2D;
 				bool pointInFrustrum = camera.project(*P3D, Q2D, true);
 
+				if (!pointInFrustrum)	{
+					continue;
+				}
+
 				CCVector2 P2D(static_cast<PointCoordinateType>(Q2D.x - half_w),
 					static_cast<PointCoordinateType>(Q2D.y - half_h));
-
-				bool pointInside = pointInFrustrum && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, poly);
+				
+				bool pointInside(false);
+				if (mode2d)	{
+					pointInside = CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, poly);
+				}
+				else {
+					std::vector<CCVector2> poly_vertices;
+					for (CCVector3 p : poly->getPoints(false)) {
+						CCVector3d pq2d;
+						camera.project(p, pq2d);
+						poly_vertices.push_back(CCVector2(pq2d.x - half_w, pq2d.y - half_h));
+					}
+					pointInside = CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, poly_vertices);
+				}
 
 				if (!pointInside) { continue; }
 				new_ent->addPoint(*P3D);
@@ -965,14 +983,15 @@ void bdrLabelAnnotationPanel::createEntity()
 
 			int seg_index = new_ent->addScalarField("Segmentation");
 			if (seg_index >= 0) {
-				new_ent->showColors(false);
-				new_ent->showSF(true);
-				new_ent->setCurrentScalarField(seg_index);
-
 				CCLib::ScalarField* sf = new_ent->getScalarField(seg_index);
 				if (sf) {
 					sf->fill(number);
 				}
+
+				new_ent->showColors(false);
+				new_ent->showSF(true);
+				new_ent->setCurrentScalarField(seg_index);
+				new_ent->setCurrentDisplayedScalarField(seg_index);
 			}
 			else {
 				new_ent->showColors(true);
