@@ -836,13 +836,16 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vecto
 		}
 		group->setName(getPrimGroupNameByCloudName(entity_cloud->getName()));
 	}
-	
-	if (todo_cloud && unassigned_points) {
-		std::vector<stocker::Point_Normal> uss = *unassigned_points;
+
+	std::vector<stocker::Point_Normal> uss;
+	if (unassigned_points) {
+		uss = *unassigned_points;
+	}
+	if (todo_cloud && !uss.empty()) {
 		if (todo_cloud->reserveThePointsTable(uss.size())) {
 			todo_cloud->reserveTheNormsTable();
 			todo_cloud->reserveTheRGBTable();
-			for (stocker::Point_Normal pt : *unassigned_points) {
+			for (stocker::Point_Normal pt : uss) {
 				todo_cloud->addPoint(CCVector3(vcgXYZ(pt.first)));
 				todo_cloud->addNorm(CCVector3(vcgXYZ(pt.second)));
 			}
@@ -855,7 +858,8 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vecto
 		QFileInfo path_info = QFileInfo(entity_cloud->getPath());
 		if (path_info.exists()) {
 			QString path = path_info.absolutePath() + "/" + path_info.completeBaseName() + ".prim.ply";
-			SavePlaneParaMesh(path.toStdString(), *planes, planes_points, *unassigned_points);
+
+			SavePlaneParaMesh(path.toStdString(), *planes, planes_points, uss);
 		}
 	}
 	if (group) entity_cloud->setEnabled(false);
@@ -907,7 +911,7 @@ ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, bool overwrite,
 		point_cloud.push_back(Vec3d(pt.x, pt.y, pt.z));
 	}
 	builder_3d4em.SetBuildingPoints(point_cloud);
-	builder_3d4em.SetPlaneSegOption(min_pts, distance_epsilon, seed_raius, growing_radius);
+	builder_3d4em.SetPlaneSegOption(min_pts, distance_epsilon, seed_raius, growing_radius, 5);
 	builder_3d4em.PlaneSegmentation();
 	std::vector<Contour3d> pp_3d4em = builder_3d4em.GetSegmentedPoints();
 
@@ -2124,9 +2128,22 @@ ccHObject::Container GenerateFootPrints(ccHObject* prim_group, double ground, do
 	if (!baseObj) { return foot_print_objs; }
 
 	//! skip walls
-	ccHObject::Container primObjs = GetNonVerticalPlaneClouds(prim_group, 15);
-
-	std::vector<stocker::Contour3d> planes_points = GetPointsFromCloudInsidePolygonsXY(primObjs, stocker::Polyline3d(), DBL_MAX, true);
+	ccHObject::Container primObjs;
+	std::vector<stocker::Contour3d> planes_points;
+	{
+		primObjs = GetNonVerticalPlaneClouds(prim_group, 15);
+		ccHObject::Container primTemps;
+		for (ccHObject* primObj : primObjs) {
+			Contour3d plane_pts = GetPointsFromCloud3d(GetPlaneCloud(primObj));
+			if (plane_pts.size() > compo_minpts) {
+				primTemps.push_back(primObj);
+				planes_points.push_back(plane_pts);
+			}
+		}
+		swap(primObjs, primTemps);
+	}
+	
+	//= GetPointsFromCloudInsidePolygonsXY(primObjs, stocker::Polyline3d(), DBL_MAX, true);
 	if (planes_points.empty()) { return foot_print_objs; }
 
 	std::vector<Contour3d> footprints;
@@ -2733,7 +2750,7 @@ bool PackPlaneFrames(ccHObject* buildingObj, int max_iter, bool cap_hole, double
 			poly_partition.m_data_ratio = data_ratio;
 
 			//TODO: should give outlines rather than polygons
-			poly_partition.setPolygon(planes_frames, planes_points);
+			poly_partition.setPolygon(planes_frames, planes_points, false, true);
 
 			poly_partition.setFacades(facade_projected);
 
@@ -2913,7 +2930,7 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole,
 			poly_partition.setFootprint(master_footprint);
 			
 			//TODO: should give outlines rather than polygons //! yes give polygons ok, if need holes support, use setFootprint
-			poly_partition.setPolygon(polygons, polygons_points, true, false);
+			poly_partition.setPolygon(polygons, polygons_points, true, true);
 
 			stocker::SimpleSaveToPly("d:/projected.ply", Contour3d(), ToPolyline3d(facade_projected));
 			stocker::Polyline2d facade_clustered = stocker::ClusterSegments(facade_projected, 1, 0.1);

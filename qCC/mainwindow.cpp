@@ -1119,6 +1119,8 @@ void MainWindow::connectActions()
 
 	connect(m_UI->actionBDProjectLoad,				&QAction::triggered, this, &MainWindow::doActionBDProjectLoad);
 	connect(m_UI->actionBDProjectSave,				&QAction::triggered, this, &MainWindow::doActionBDProjectSave);
+	connect(m_UI->actionBDRLoadModels,				&QAction::triggered, this, &MainWindow::doActionBDRLoadModels);
+	
 
 	connect(m_UI->openImageProjToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionBDImagesLoad);
 	connect(m_UI->actionBDImagesLoad,				&QAction::triggered, this, &MainWindow::doActionBDImagesLoad);
@@ -12910,6 +12912,69 @@ void MainWindow::doActionBDProjectSave()
 	}	
 }
 
+void MainWindow::doActionBDRLoadModels()
+{
+	ccHObject::Container building_entites;
+	for (ccHObject* ent : getSelectedEntities()) {
+		ccHObject::Container bds = GetBuildingEntitiesBySelected(ent);
+		building_entites.insert(building_entites.end(), bds.begin(), bds.end());
+	}
+	if (building_entites.empty())
+		return;
+	
+	QMessageBox message_box(QMessageBox::Question,
+		tr("Overwrite?"),
+		tr("Overwrite if model is exist?"),
+		QMessageBox::Yes | QMessageBox::No,
+		this);
+	bool overwrite = (message_box.exec() == QMessageBox::Yes);
+	
+	ProgStartNorm("Load models", building_entites.size())
+	for (ccHObject* bd_entity : building_entites) {
+		BDBaseHObject* baseObj = GetRootBDBase(bd_entity);
+
+		QString building_name = GetBaseName(bd_entity->getName());
+		//! check for footprints
+		StBlockGroup* blockGroup = baseObj->GetBlockGroup(building_name); 
+		stocker::BuildUnit* sp = baseObj->GetBuildingSp(building_name.toStdString());
+		if (!blockGroup || !sp) { ProgStepBreak continue; }
+
+		if (blockGroup->getChildrenNumber() > 0 && !overwrite) {
+			ProgStepBreak
+			continue;
+		}
+
+		QString bin_file = QString::fromStdString(ExcludeExt(sp->file_path.ori_points) + ".bin");
+		if (QFileInfo(bin_file).exists()) {
+			std::cout << "start loading " << bin_file.toStdString() << std::endl;
+			QStringList files; files.append(bin_file);
+			ccHObject::Container loaded;
+			try	{
+				loaded = loadFiles(files);
+			}
+			catch (const std::exception& e) {
+				std::cout << "internal error!" << std::endl;
+				ProgStepBreak
+				continue;
+			}
+			ccHObject* newGroup = loaded.empty() ? nullptr : loaded.front();
+
+			if (newGroup) {
+				blockGroup->setMetaData(newGroup->metaData());
+				blockGroup->removeAllChildren();
+				newGroup->transferChildren(*blockGroup);
+
+				delete newGroup;
+				newGroup = nullptr;
+			}
+		}
+		addToDB(blockGroup, false, false, false, false);
+		ProgStepBreak
+	}
+	ProgEnd
+	refreshAll();
+}
+
 void MainWindow::doActionBDImagesLoad()
 {
 	BDBaseHObject* baseObj = nullptr;
@@ -15305,10 +15370,11 @@ void MainWindow::doActionBDLoD2Generation()
 		BDBaseHObject* baseObj = GetRootBDBase(bd_entity);
 
 		if (bd_entity->isA(CC_TYPES::ST_BUILDING)) {
-			QString building_name = bd_entity->getName();
+			QString building_name = GetBaseName(bd_entity->getName());
 			//! check for footprints
 			StBlockGroup* blockGroup = baseObj->GetBlockGroup(building_name);
 			if (!blockGroup) {
+				ProgStepBreak
 				continue;
 			}
 			ccHObject::Container fts = GetEnabledObjFromGroup(blockGroup, CC_TYPES::ST_FOOTPRINT, true, false);
@@ -15350,13 +15416,15 @@ void MainWindow::doActionBDLoD2Generation()
 					StPrimGroup* prim_group = baseObj->GetPrimitiveGroup(building_name);
 					if (!prim_group) {
 						dispToConsole("generate primitives first!", ERR_CONSOLE_MESSAGE);
-						return;
+						ProgStepBreak
+						continue;;
 					}
 
 					try {
 						stocker::BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
 						if (!build_unit) {
 							dispToConsole("invalid building");
+							ProgStepBreak
 							continue;
 						}
 						ccHObject::Container footprints;
@@ -15398,6 +15466,7 @@ void MainWindow::doActionBDLoD2Generation()
 				}
 				catch (...)
 				{
+					ProgStepBreak
 					continue;
 				}
 				if (m_pbdrSettingLoD2Dlg->footprintPolygonPartitionGroupBox->isChecked()) {
@@ -15442,6 +15511,28 @@ void MainWindow::doActionBDLoD2Generation()
 				SetGlobalShiftAndScale(bd_model_obj);
 				bd_model_obj->setDisplay_recursive(bd_entity->getDisplay());
 				addToDB(bd_model_obj, baseObj->getDBSourceType());
+
+				//////////////////////////////////////////////////////////////////////////
+				if (bd_entity->isA(CC_TYPES::ST_BUILDING)) {
+					QString building_name = GetBaseName(bd_entity->getName());
+					//! check for footprints
+					StBlockGroup* blockGroup = baseObj->GetBlockGroup(building_name);
+					stocker::BuildUnit* sp = baseObj->GetBuildingSp(building_name.toStdString());
+
+					if (sp) {
+						
+						QString path = QString::fromStdString(ExcludeExt(sp->file_path.ori_points) + ".bin");
+						
+						FileIOFilter::SaveParameters parameters;
+						{
+							parameters.alwaysDisplaySaveDialog = false;
+							parameters.parentWidget = MainWindow::TheInstance();
+						}
+
+						//specific case: BIN format			
+						CC_FILE_ERROR result = FileIOFilter::SaveToFile(bd_model_obj, path, parameters, BinFilter::GetFileFilter());
+					}
+				}
 			}
 		}
 		catch (const std::exception& e) {
