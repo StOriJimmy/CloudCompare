@@ -2799,6 +2799,9 @@ bool PackPlaneFrames(ccHObject* buildingObj, int max_iter, bool cap_hole, double
 bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, 
 	double ptsnum_ratio, double data_ratio, double sharp_weight)
 {
+	MainWindow* win = MainWindow::TheInstance();
+	if (!win) return false;
+		
 	try {
 		BDBaseHObject* baseObj = GetRootBDBase(buildingObj); if (!baseObj) return false;
 		QString building_name = buildingObj->getName();
@@ -2955,8 +2958,9 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole,
 		if (footprints_points_pp.empty() || footprints_points_pp.size() != footprints_pp_index.size()) return false;
 
 		for (size_t i = 0; i < footprints.size(); i++) {
-			footprints[i]->setEnabled(false);
-			footprints[i]->setName("del-" + footprints[i]->getName());
+			win->removeFromDB(footprints[i]);
+// 			footprints[i]->setEnabled(false);
+// 			footprints[i]->setName("del-" + footprints[i]->getName());
 		}
 		int biggest = GetMaxNumberExcludeChildPrefix(blockgroup_obj, BDDB_FOOTPRINT_PREFIX);
 		for (size_t i = 0; i < footprints_points_pp.size(); i++) {

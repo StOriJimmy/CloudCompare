@@ -1120,6 +1120,8 @@ void MainWindow::connectActions()
 	connect(m_UI->actionBDProjectLoad,				&QAction::triggered, this, &MainWindow::doActionBDProjectLoad);
 	connect(m_UI->actionBDProjectSave,				&QAction::triggered, this, &MainWindow::doActionBDProjectSave);
 	connect(m_UI->actionBDRLoadModels,				&QAction::triggered, this, &MainWindow::doActionBDRLoadModels);
+	connect(m_UI->actionBDRExportModels,			&QAction::triggered, this, &MainWindow::doActionBDRExportModels);
+	
 	
 
 	connect(m_UI->openImageProjToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionBDImagesLoad);
@@ -12975,6 +12977,107 @@ void MainWindow::doActionBDRLoadModels()
 	refreshAll();
 }
 
+#include "cork_parser.hpp"
+#include "PlyFilter.h"
+void MainWindow::doActionBDRExportModels()
+{
+	ccHObject::Container building_entites;
+	for (ccHObject* ent : getSelectedEntities()) {
+		ccHObject::Container bds = GetBuildingEntitiesBySelected(ent);
+		building_entites.insert(building_entites.end(), bds.begin(), bds.end());
+	}
+	if (building_entites.empty())
+		return;
+
+	QMessageBox message_box(QMessageBox::Question,
+		tr("CSG?"),
+		tr("Export CSG?"),
+		QMessageBox::Yes | QMessageBox::No,
+		this);
+	bool exportCSG = (message_box.exec() == QMessageBox::Yes);
+
+	ProgStartNorm("Export models", building_entites.size())
+	for (ccHObject* bd_entity : building_entites) {
+		try	{
+			BDBaseHObject* baseObj = GetRootBDBase(bd_entity);
+
+			QString building_name = GetBaseName(bd_entity->getName());
+			//! check for footprints
+			StBlockGroup* blockGroup = baseObj->GetBlockGroup(building_name);
+			stocker::BuildUnit* sp = baseObj->GetBuildingSp(building_name.toStdString());
+			if (!blockGroup || !sp) { ProgStepBreak continue; }
+
+			if (blockGroup->getChildrenNumber() == 0) {
+				ProgStepBreak
+					continue;
+			}
+
+			QString bin_file = QString::fromStdString(ExcludeExt(sp->file_path.ori_points) + ".bin");
+			QString mesh_file = QString::fromStdString(ExcludeExt(sp->file_path.ori_points) + "_model.ply");
+
+			FileIOFilter::SaveParameters parameters;
+			{
+				parameters.alwaysDisplaySaveDialog = false;
+				parameters.parentWidget = nullptr;
+			}
+
+			//specific case: BIN format			
+			FileIOFilter::SaveToFile(blockGroup, bin_file, parameters, BinFilter::GetFileFilter());
+
+
+			if (exportCSG) {
+				ccHObject::Container models_temp;
+				blockGroup->filterChildren(models_temp, true, CC_TYPES::PRIMITIVE, false);
+				std::vector<ccMesh*> models;
+				for (ccHObject* model : models_temp) {
+					if (model->isEnabled())	{
+						ccMesh* m = ccHObjectCaster::ToMesh(model);
+						if (m) { models.push_back(m); }
+					}
+				}
+				if (models.size() < 2) {
+					ProgStepBreak continue;
+				}
+
+				ccMesh* mesh = models.front();
+				CorkMesh corkMesh;
+				if (!ToCorkMesh(mesh, corkMesh)) {
+					ProgStepBreak continue;
+				}
+				CSGBoolOpParameters s_params;
+				for (size_t i = 0; i < models.size(); i++) {
+					try	{
+						CorkMesh thismesh;
+						if (!ToCorkMesh(models[i], thismesh)) continue;
+
+						computeUnion(corkMesh, thismesh);
+					}
+					catch (const std::exception&)
+					{
+						continue;
+					}
+				}
+				ccMesh* result = FromCorkMesh(corkMesh);
+				if (result)	{
+					result->setName("ModelMesh");
+					blockGroup->addChild(result);
+					result->showNormals(true);
+					result->setDisplay(mesh->getDisplay());
+					MainWindow::TheInstance()->addToDB(result, CC_TYPES::DB_BUILDING, false, false);
+					FileIOFilter::SaveToFile(result, mesh_file, parameters, "PLY mesh (*.ply)");
+				}
+			}
+		}
+		catch (...) {
+			ProgStepBreak continue;
+		}
+
+		ProgStepBreak
+	}
+	ProgEnd
+	refreshAll();
+}
+
 void MainWindow::doActionBDImagesLoad()
 {
 	BDBaseHObject* baseObj = nullptr;
@@ -15481,31 +15584,31 @@ void MainWindow::doActionBDLoD2Generation()
 			}
 		}
 		
-		if (!m_pbdrSettingLoD2Dlg->roofTopologyGroupBox->isChecked()) {
-			ProgStepBreak
-			continue; 
-		}
+		
 
 		try {
 			ccHObject* bd_model_obj = nullptr;
-			if (m_pbdrSettingLoD2Dlg->roofCDTRadioButton->isChecked()) {
-				bd_model_obj = LoD2FromFootPrint_PPP(bd_entity,
-					m_pbdrSettingLoD2Dlg->cdtMaxIterCheckBox->isChecked() ? m_pbdrSettingLoD2Dlg->cdtMaxIterSpinBox->value() : -1,
-					m_pbdrSettingLoD2Dlg->cdtHoleFillingCheckBox->isChecked(),
-					m_pbdrSettingLoD2Dlg->cdtFitFootprintCheckBox->isChecked(),
-					m_pbdrSettingLoD2Dlg->cdtDataPtsRatioDoubleSpinBox->value(),
-					m_pbdrSettingLoD2Dlg->cdtDataRatioDoubleSpinBox->value(),
-					m_pbdrSettingLoD2Dlg->cdtHOffsetDoubleSpinBox->value(),
+			if (m_pbdrSettingLoD2Dlg->roofTopologyGroupBox->isChecked()) {
+				if (m_pbdrSettingLoD2Dlg->roofCDTRadioButton->isChecked()) {
+					bd_model_obj = LoD2FromFootPrint_PPP(bd_entity,
+						m_pbdrSettingLoD2Dlg->cdtMaxIterCheckBox->isChecked() ? m_pbdrSettingLoD2Dlg->cdtMaxIterSpinBox->value() : -1,
+						m_pbdrSettingLoD2Dlg->cdtHoleFillingCheckBox->isChecked(),
+						m_pbdrSettingLoD2Dlg->cdtFitFootprintCheckBox->isChecked(),
+						m_pbdrSettingLoD2Dlg->cdtDataPtsRatioDoubleSpinBox->value(),
+						m_pbdrSettingLoD2Dlg->cdtDataRatioDoubleSpinBox->value(),
+						m_pbdrSettingLoD2Dlg->cdtHOffsetDoubleSpinBox->value(),
 
-					m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
-					m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value(),
-					m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
+						m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
+						m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value(),
+						m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
 
-					0.2, 0.1);
+						0.2, 0.1);
+				}
+				else {
+					bd_model_obj = LoD2FromFootPrint(bd_entity);
+				}
 			}
-			else {
-				bd_model_obj = LoD2FromFootPrint(bd_entity);
-			}
+			else bd_model_obj = baseObj->GetBlockGroup(GetBaseName(bd_entity->getName()));
 			
 			if (bd_model_obj) {
 				SetGlobalShiftAndScale(bd_model_obj);

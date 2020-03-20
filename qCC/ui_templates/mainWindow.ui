@@ -603,6 +603,7 @@
     <addaction name="actionSelectWorkingPlane"/>
     <addaction name="actionEditSelectedItem"/>
     <addaction name="actionBDRLoadModels"/>
+    <addaction name="actionBDRExportModels"/>
    </widget>
    <widget class="QMenu" name="menuSegmentation_2">
     <property name="title">
@@ -5321,6 +5322,11 @@ QTreeView::branch:open:has-children:has-siblings  {
   <action name="actionBDRLoadModels">
    <property name="text">
     <string>Load Models</string>
+   </property>
+  </action>
+  <action name="actionBDRExportModels">
+   <property name="text">
+    <string>Export Models</string>
    </property>
   </action>
  </widget>
