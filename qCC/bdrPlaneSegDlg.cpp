@@ -142,6 +142,7 @@ void bdrPlaneSegDlg::loadResults()
 		ProgStepBreak
 	}
 	ProgEnd
+	QDialog::reject();
 }
 
 void bdrPlaneSegDlg::setPointClouds(ccHObject::Container point_clouds)

@@ -119,6 +119,7 @@ public:
 							OBJECT_SENSOR_DRAW_IMAGE				,
 							OBJECT_SENSOR_DRAW_BASEAXIS				,
 							OBJECT_SENSOR_DRAW_FRUSTUM_FRAME		,
+							OBJECT_POLYGON_HOLE,
 	};
 
 	//! Default constructor

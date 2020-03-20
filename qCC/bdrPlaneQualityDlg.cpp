@@ -15,9 +15,10 @@ bdrPlaneQualityDlg::bdrPlaneQualityDlg(QWidget* parent)
 
 	connect(m_UI->buttonBox,					SIGNAL(accepted()), this, SLOT(exitSafe()));
 	connect(m_UI->buttonBox,					SIGNAL(rejected()), this, SLOT(exitSafe()));
-	connect(m_UI->calculateFlatnessToolButton,	&QAbstractButton::clicked, this, &bdrPlaneQualityDlg::onCalculateFlatness);
+	connect(m_UI->calculateToolButton,			&QAbstractButton::clicked, this, &bdrPlaneQualityDlg::onCalculate);
 	connect(m_UI->filtertoolButton,				&QAbstractButton::clicked, this, &bdrPlaneQualityDlg::onFilterPlane);
 	connect(m_UI->histogramToolButton,			&QAbstractButton::clicked, this, &bdrPlaneQualityDlg::onShowHistrogram);
+	connect(m_UI->facadeFilterToolButton,		&QAbstractButton::clicked, this, &bdrPlaneQualityDlg::onFilterFacade);
 	
 
 // 	connect(m_UI->buttonBox, SIGNAL(accepted()), this, SLOT(AcceptAndExit()));
@@ -29,16 +30,16 @@ void bdrPlaneQualityDlg::exitSafe()
 	m_planes.clear();
 }
 
-void bdrPlaneQualityDlg::onCalculateFlatness()
+void bdrPlaneQualityDlg::onCalculate()
 {
-	int mode = 0;
+	int flatMode = 0;
 	if (m_UI->flatAreaRadioButton->isChecked()) {
-		mode = 0;
+		flatMode = 0;
 	}
 	else if (m_UI->flatPeriRadioButton->isChecked()) {
-		mode = 1;
+		flatMode = 1;
 	}
-	CalculatePlaneQuality(m_planes, mode);
+	CalculatePlaneQuality(m_planes, flatMode);
 }
 
 void bdrPlaneQualityDlg::onFilterPlane()
@@ -79,12 +80,23 @@ size_t g_dist_bin_count = 20;
 
 void bdrPlaneQualityDlg::onShowHistrogram()
 {
+	QString qualityType;
+	if (m_UI->qualityFlatnessRadioButton->isChecked()) {
+		qualityType = QString("Flatness");
+	}
+	else if (m_UI->qualityAreaRadioButton->isChecked()) {
+		qualityType = QString("Area");
+	}
+	else if (m_UI->qualityRMSRadioButton->isChecked()) {
+		qualityType = QString("RMS");
+	}
+
 	std::vector<double> all_conf;
 	for (ccHObject* plane : m_planes) {
-		if (!plane->hasMetaData(QString("Flatness"))) { continue; }
+		if (!plane->hasMetaData(qualityType)) { continue; }
 
 		bool ok = false;
-		double flatness = plane->getMetaData(QString("Flatness")).toDouble(&ok);
+		double flatness = plane->getMetaData(qualityType).toDouble(&ok);
 		if (!ok) continue;
 		all_conf.push_back(flatness);
 	}
@@ -115,4 +127,37 @@ void bdrPlaneQualityDlg::onShowHistrogram()
 	}
 
 	hDlg->show();
+}
+
+void bdrPlaneQualityDlg::onFilterFacade()
+{
+	bool rooftop = m_UI->rooftopCheckBox->isChecked();
+	bool facade = m_UI->facadeCheckBox->isChecked();
+	CCVector3 normal = CCVector3(
+		m_UI->facadeNxDoubleSpinBox->value(),
+		m_UI->facadeNyDoubleSpinBox->value(),
+		m_UI->facadeNzDoubleSpinBox->value());
+
+	normal.normalize();
+	if (fabs(normal.norm()) < 1e-6) {
+		return;
+	}
+	for (ccHObject* plane : m_planes) {
+		ccHObject* plane_to_check = GetPlaneCloud(plane);
+		if (!plane_to_check) plane_to_check = plane;
+
+		if (rooftop && facade) {
+			plane_to_check->setEnabled(true);
+			continue;
+		}
+		if (!rooftop && !facade) {
+			plane_to_check->setEnabled(false);
+			continue;
+		}
+		ccPlane* planeObj = ccHObjectCaster::ToPlane(plane);
+		if (planeObj) {
+			bool vertical = planeObj->isVerticalToDirection(normal, m_UI->facadeAngleDoubleSpinBox->value());
+			plane_to_check->setEnabled((vertical && facade) || (!vertical && !facade));
+		}
+	}
 }

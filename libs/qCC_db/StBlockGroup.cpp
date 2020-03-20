@@ -38,13 +38,13 @@ StBlockGroup::~StBlockGroup()
 {
 }
 
-ccHObject::Container StBlockGroup::getValidFootPrints()
+ccHObject::Container StBlockGroup::getValidFootPrints(QString prefix)
 {
 	ccHObject::Container valid;
 	for (size_t i = 0; i < getChildrenNumber(); i++) {
 		ccHObject* child_fp = getChild(i);
 		if (!child_fp->isEnabled() || !child_fp->isA(CC_TYPES::ST_FOOTPRINT) || child_fp->getName().endsWith("-del")) continue;
-		if (child_fp->getName().startsWith("Footprint")) {
+		if (prefix.isEmpty() || child_fp->getName().startsWith(prefix)) {
 			valid.push_back(child_fp);
 		}
 	}

@@ -2143,20 +2143,31 @@ void ccPropertiesTreeDelegate::updateItem(QStandardItem * item)
 					else 
 						sensor->drawImage(true);
 				}
+
 				//! load image	
-				ProgStartNorm_("get image thumb", sens.size())
-				for (ccCameraSensor* cam : sens) {
-					if (!cam->getImage(true, false).isNull())
-						cam->drawImage(true);
-					ProgStepBreak
+				if (need_thumb_load) {
+					ProgStartNorm_("get image thumb", sens.size())
+						for (ccCameraSensor* cam : sens) {
+							if (!cam->getImage(true, true).isNull())
+								cam->drawImage(true);
+							ProgStepBreak
+						}
+					ProgEnd
 				}
-				ProgEnd
 			}			
 		}
 		else {
 			ccCameraSensor* sensor = ccHObjectCaster::ToCameraSensor(m_currentObject);
 			if (sensor)	{
-				sensor->drawImage(item->checkState() == Qt::Checked);
+				if (item->checkState() == Qt::Checked) {
+					if (!sensor->getImage(true, true).isNull())	{
+						sensor->drawImage(true);
+					}
+					else {
+						item->setCheckState(Qt::Unchecked);
+					}
+				}
+				else sensor->drawImage(false);
 			}
 		}
 	}
@@ -2181,7 +2192,28 @@ void ccPropertiesTreeDelegate::updateItem(QStandardItem * item)
 	}
 	redraw = true;
 	break;
+	case OBJECT_POLYGON_HOLE:
+	{
+		if (m_currentObject->isA(CC_TYPES::ST_FOOTPRINT)) {
+			StFootPrint* fp = ccHObjectCaster::ToStFootPrint(m_currentObject);
+			if (fp) {
+				fp->setHoleState(item->checkState() == Qt::Checked);
+			}
+		}
+		else if (m_currentObject->isA(CC_TYPES::ST_BLOCK)) {
+			StBlock* block = ccHObjectCaster::ToStBlock(m_currentObject);
+			if (block) {
+				double bottom = block->getBottomHeight();
+				double top = block->getTopHeight();
+				block->setTopHeight(bottom);
+				block->setBottomHeight(top);
+			}
+		}
 	}
+	redraw = true;
+	break;
+	}
+	
 
 	if (redraw)
 	{
@@ -2883,6 +2915,8 @@ void ccPropertiesTreeDelegate::fillWithStFootPrint(const StFootPrint *_obj)
 
 	//"Update planes" button
 	appendRow(ITEM(tr("Update planes")), PERSISTENT_EDITOR(OBJECT_UPDATE_FOOTPRINT_PLANES), true);
+
+	appendRow(ITEM(tr("Hole")), CHECKABLE_ITEM(false, OBJECT_POLYGON_HOLE));
 
 	appendRow(ITEM(tr("Stippling")), CHECKABLE_ITEM(false, OBJECT_MESH_STIPPLING));
 

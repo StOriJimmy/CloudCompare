@@ -836,13 +836,16 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vecto
 		}
 		group->setName(getPrimGroupNameByCloudName(entity_cloud->getName()));
 	}
-	
-	if (todo_cloud && unassigned_points) {
-		std::vector<stocker::Point_Normal> uss = *unassigned_points;
+
+	std::vector<stocker::Point_Normal> uss;
+	if (unassigned_points) {
+		uss = *unassigned_points;
+	}
+	if (todo_cloud && !uss.empty()) {
 		if (todo_cloud->reserveThePointsTable(uss.size())) {
 			todo_cloud->reserveTheNormsTable();
 			todo_cloud->reserveTheRGBTable();
-			for (stocker::Point_Normal pt : *unassigned_points) {
+			for (stocker::Point_Normal pt : uss) {
 				todo_cloud->addPoint(CCVector3(vcgXYZ(pt.first)));
 				todo_cloud->addNorm(CCVector3(vcgXYZ(pt.second)));
 			}
@@ -855,7 +858,8 @@ StPrimGroup* parsePlaneSegmentationResult(ccPointCloud* entity_cloud, std::vecto
 		QFileInfo path_info = QFileInfo(entity_cloud->getPath());
 		if (path_info.exists()) {
 			QString path = path_info.absolutePath() + "/" + path_info.completeBaseName() + ".prim.ply";
-			SavePlaneParaMesh(path.toStdString(), *planes, planes_points, *unassigned_points);
+
+			SavePlaneParaMesh(path.toStdString(), *planes, planes_points, uss);
 		}
 	}
 	if (group) entity_cloud->setEnabled(false);
@@ -907,7 +911,7 @@ ccHObject* PlaneSegmentationRgGrow(ccHObject* entity, bool overwrite,
 		point_cloud.push_back(Vec3d(pt.x, pt.y, pt.z));
 	}
 	builder_3d4em.SetBuildingPoints(point_cloud);
-	builder_3d4em.SetPlaneSegOption(min_pts, distance_epsilon, seed_raius, growing_radius);
+	builder_3d4em.SetPlaneSegOption(min_pts, distance_epsilon, seed_raius, growing_radius, 5);
 	builder_3d4em.PlaneSegmentation();
 	std::vector<Contour3d> pp_3d4em = builder_3d4em.GetSegmentedPoints();
 
@@ -1515,7 +1519,7 @@ ccHObject* PlaneFrameOptimization(ccHObject* planeObj, stocker::FrameOption opti
 #endif
 }
 
-ccHObject * PlaneFrameLineGrow(ccHObject * planeObj, double alpha, double intersection, double minpts, double min_area, bool skip_small_area)
+ccHObject * PlaneFrameLineGrow(ccHObject * planeObj, double alpha, double intersection, double min_area, bool skip_small_area, bool regularize)
 {
 	ccHObject* point_cloud_obj = GetPlaneCloud(planeObj);
 	if (!point_cloud_obj) return nullptr;
@@ -1524,40 +1528,57 @@ ccHObject * PlaneFrameLineGrow(ccHObject * planeObj, double alpha, double inters
 
 	vector<vector<Contour3d>> frames_to_add;
 	
+	
 	std::vector<stocker::Outline3d> outlines = GetPlanarOutlines(planeObj, BDDB_OUTLINE_PREFIX);
 
 	if (outlines.empty()) {
 		Contour3d plane_points = GetPointsFromCloud3d(point_cloud_obj);
-		vector<Contour3d> frame;
-		PolygonGeneralizationLineGrow_Plane(plane_points, frame, alpha, intersection, 2, false);
-		frames_to_add.push_back(frame);
-	}
-	else {
-		for (stocker::Outline3d outline : outlines) {
-			if (outline.empty() || outline[0].isHole) {
-				continue;
-			}
+		vector<vector<stocker::Contour3d>> contours_points = stocker::GetPlanePointsOutline(plane_points, alpha, false, 2);
 
-			std::vector<Contour3d> frame;
-			for (size_t i = 0; i < outline.size(); i++) {
-				Contour3d sub_frame;
-				vector<Contour3d> sub_frames_temp;
-				stocker::Polygon3d contour = outline[i];
-
-				Contour3d contour_points = ToContour(contour, 0);
-				if (!PolygonGeneralizationLineGrow_Contour(contour_points, sub_frames_temp, intersection, min_area, skip_small_area))
-					continue;
-				
-				sub_frame = sub_frames_temp.front();
-				Vec3d normal = stocker::GetPolygonNormal(sub_frame);
-				if (normal * Vec3d(0, 0, 1) < 0) {
-					std::reverse(sub_frame.begin(), sub_frame.end());
+		for (vector<stocker::Contour3d> contourVec : contours_points) {
+			stocker::Outline3d outline;
+			for (size_t i = 0; i < contourVec.size(); i++) {
+				stocker::Polygon3d poly = MakeLoopPolylinefromContour(contourVec[i]);
+				if (i != 0) {
+					poly.isHole = true;
 				}
-				frame.push_back(sub_frame);
+				outline.push_back(poly);
 			}
-
-			frames_to_add.push_back(frame);
+			outlines.push_back(outline);
 		}
+
+// 		vector<Contour3d> frame;
+// 		PolygonGeneralizationLineGrow_Plane(plane_points, frame, alpha, intersection, 2, false);
+// 		frames_to_add.push_back(frame);
+	}
+
+	if (outlines.empty())
+		return nullptr;
+
+	for (stocker::Outline3d outline : outlines) {
+		if (outline.empty() || outline[0].isHole) {
+			continue;
+		}
+
+		std::vector<Contour3d> frame;
+		for (size_t i = 0; i < outline.size(); i++) {
+			Contour3d sub_frame;
+			vector<Contour3d> sub_frames_temp;
+			stocker::Polygon3d contour = outline[i];
+
+			Contour3d contour_points = ToContour(contour, 0);
+			if (!PolygonGeneralizationLineGrow_Contour(contour_points, sub_frames_temp, intersection, min_area, skip_small_area, regularize))
+				continue;
+
+			sub_frame = sub_frames_temp.front();
+			Vec3d normal = stocker::GetPolygonNormal(sub_frame);
+			if (normal * Vec3d(0, 0, 1) < 0) {
+				std::reverse(sub_frame.begin(), sub_frame.end());
+			}
+			frame.push_back(sub_frame);
+		}
+
+		frames_to_add.push_back(frame);
 	}
 	
 	ccHObject* plane_frame = AddOutlinesAsChild(frames_to_add, BDDB_PLANEFRAME_PREFIX, point_cloud_obj);
@@ -1607,7 +1628,7 @@ bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVecto
 	
 	for (stocker::ImageUnit & image_unit : image_units) {
 		Vec3d view_pos = image_unit.GetViewPos();
-		image_unit.m_camera.SetViewPoint(view_pos + baseObj->global_shift);
+		image_unit.m_camera.SetViewPoint((view_pos + baseObj->global_shift)*baseObj->global_scale);
 	}
 	texture_mapping.setImages(image_units);
 	//! collect polygons, roof and facade
@@ -1995,21 +2016,139 @@ ccHObject::Container GenerateFootPrints_PP(ccHObject* prim_group, double ground)
 	return foot_print_objs;
 }
 
-ccHObject::Container GenerateFootPrints(ccHObject* prim_group, double ground, double alpha, double max_intersection, double min_area)
+ccHObject::Container GenerateBuildingFootPrints(ccHObject* prim_group,
+	double ground, double alpha,
+	double max_intersection, double min_area,
+	bool regularize, double reg_angle,
+	bool scdt)
+{
+	Contour3d points;
+	ccHObject::Container foot_print_objs;
+	if (prim_group->isA(CC_TYPES::ST_PRIMGROUP)) {
+		ccHObject::Container facades;
+		ccHObject::Container primObjs = ccHObjectCaster::ToStPrimGroup(prim_group)->getValidPlanes(); GetNonVerticalPlaneClouds(prim_group, 15, &facades);
+		std::vector<stocker::Contour3d> planes_points = GetPointsFromCloudInsidePolygonsXY(primObjs, stocker::Polyline3d(), DBL_MAX, true);
+		for (auto pp : planes_points) {
+			points.insert(points.end(), pp.begin(), pp.end());
+		}
+	}
+	else if (prim_group->isA(CC_TYPES::POINT_CLOUD)) {
+		ccPointCloud* pcObj = ccHObjectCaster::ToPointCloud(prim_group);
+		points = GetPointsFromCloud3d(pcObj, false);
+	}
+	if (points.empty()) {
+		return foot_print_objs;
+	}
+
+	for (auto & p : points) {
+		p.Z() = ground;
+	}
+
+	std::vector<stocker::Outline3d> outlines;
+	std::vector<std::vector<stocker::Contour3d>> contours_points = stocker::GetPlanePointsOutline(points, alpha, false, 2);
+	for (std::vector<stocker::Contour3d> contourVec : contours_points) {
+		stocker::Outline3d outline;
+		for (size_t i = 0; i < contourVec.size(); i++) {
+			stocker::Polygon3d poly = stocker::MakeLoopPolylinefromContour(contourVec[i]);
+			if (i != 0) {
+				poly.isHole = true;
+			}
+			outline.push_back(poly);
+		}
+		outlines.push_back(outline);
+	}
+
+	vector<vector<Contour3d>> frames_to_add;
+	for (stocker::Outline3d outline : outlines) {
+		if (outline.empty() || outline[0].isHole) {
+			continue;
+		}
+
+		std::vector<Contour3d> frame;
+		for (size_t i = 0; i < outline.size(); i++) {
+			Contour3d sub_frame;
+			vector<Contour3d> sub_frames_temp;
+			stocker::Polygon3d contour = outline[i];
+
+			Contour3d contour_points = ToContour(contour, 0);
+			if (!PolygonGeneralizationLineGrow_Contour(contour_points, sub_frames_temp, max_intersection, min_area, false, regularize, reg_angle))
+				continue;
+
+			sub_frame = sub_frames_temp.front();
+			Vec3d normal = stocker::GetPolygonNormal(sub_frame);
+			if (normal * Vec3d(0, 0, 1) < 0) {
+				std::reverse(sub_frame.begin(), sub_frame.end());
+			}
+			frame.push_back(sub_frame);
+		}
+		frames_to_add.push_back(frame);
+	}
+	StBlockGroup* block_group = nullptr;
+	BDBaseHObject* baseObj = GetRootBDBase(prim_group);
+	if (baseObj) {
+		block_group = baseObj->GetBlockGroup(GetBaseName(prim_group->getName()));
+	}
+
+	int fpnum(0);
+	if (block_group) {
+		fpnum = GetMaxNumberExcludeChildPrefix(block_group, BDDB_BDFOOTPRINT_PREFIX) + 1;
+	}
+
+	for (vector<Contour3d> frame : frames_to_add) {
+		QString name = BDDB_BDFOOTPRINT_PREFIX + QString::number(fpnum);
+
+		for (size_t i = 0; i < frame.size(); i++) {
+			
+			StFootPrint* footptObj = AddPolygonAsFootprint(frame[i], name, ccColor::magenta, true);
+			if (!footptObj) { continue; }
+			footptObj->setComponentId(fpnum);
+			if (i != 0)	{
+				footptObj->setHoleState(true);
+			}
+
+			footptObj->setHighest(ground);
+			footptObj->setBottom(ground);
+			footptObj->setLowest(ground);
+			
+			if (block_group) block_group->addChild(footptObj);
+			foot_print_objs.push_back(footptObj);
+		}
+		fpnum++;
+	}
+
+	return foot_print_objs;
+}
+
+ccHObject::Container GenerateFootPrints(ccHObject* prim_group, double ground, double alpha, 
+	double compo_distance, double compo_minpts,
+	double max_intersection, double min_area)
 {
 	ccHObject::Container foot_print_objs;
 	BDBaseHObject* baseObj = GetRootBDBase(prim_group);
 	if (!baseObj) { return foot_print_objs; }
 
 	//! skip walls
-	ccHObject::Container primObjs = GetNonVerticalPlaneClouds(prim_group, 15);
-
-	std::vector<stocker::Contour3d> planes_points = GetPointsFromCloudInsidePolygonsXY(primObjs, stocker::Polyline3d(), DBL_MAX, true);
+	ccHObject::Container primObjs;
+	std::vector<stocker::Contour3d> planes_points;
+	{
+		primObjs = GetNonVerticalPlaneClouds(prim_group, 15);
+		ccHObject::Container primTemps;
+		for (ccHObject* primObj : primObjs) {
+			Contour3d plane_pts = GetPointsFromCloud3d(GetPlaneCloud(primObj));
+			if (plane_pts.size() > compo_minpts) {
+				primTemps.push_back(primObj);
+				planes_points.push_back(plane_pts);
+			}
+		}
+		swap(primObjs, primTemps);
+	}
+	
+	//= GetPointsFromCloudInsidePolygonsXY(primObjs, stocker::Polyline3d(), DBL_MAX, true);
 	if (planes_points.empty()) { return foot_print_objs; }
 
 	std::vector<Contour3d> footprints;
 	std::vector<std::vector<Contour3d>> fps_planes;
-	if (!DeriveRoofLayerFootPrints(planes_points, footprints, fps_planes, alpha, 1, 50, 50, max_intersection, min_area))
+	if (!DeriveRoofLayerFootPrints(planes_points, footprints, fps_planes, alpha, compo_distance, compo_minpts, compo_minpts, max_intersection, min_area))
 	if (footprints.size() != fps_planes.size()) {
 		return foot_print_objs;
 	}
@@ -2110,7 +2249,7 @@ ccHObject* LoD1FromFootPrint_Planar(ccHObject* entity)
 	return block_entity;
 }
 
-ccHObject* LoD1FromFootPrint(ccHObject* buildingObj)
+ccHObject* LoD1FromFootPrint(ccHObject* buildingObj, bool flat)
 {	
 	BDBaseHObject* baseObj = GetRootBDBase(buildingObj);
 	if (!baseObj) {
@@ -2145,10 +2284,14 @@ ccHObject* LoD1FromFootPrint(ccHObject* buildingObj)
 
 		std::vector<CCVector3> top_points;
 		//std::vector<CCVector3> bottom_points;
-		for (auto & pt : foot_print_points) {
-			top_points.push_back(CCVector3(pt.x, pt.y, height));
-			//bottom_points.push_back(CCVector3(pt.x, pt.y, ground));
+
+		if (flat) {
+			for (auto & pt : foot_print_points) {
+				top_points.push_back(CCVector3(pt.x, pt.y, height));
+			}
 		}
+		else top_points = foot_print_points;
+		
 		StBlock* block_entity = StBlock::Create(top_points, ground);
 		if (block_entity) {
 			block_entity->setName(BDDB_BLOCK_PREFIX + QString::number(++biggest));
@@ -2607,7 +2750,7 @@ bool PackPlaneFrames(ccHObject* buildingObj, int max_iter, bool cap_hole, double
 			poly_partition.m_data_ratio = data_ratio;
 
 			//TODO: should give outlines rather than polygons
-			poly_partition.setPolygon(planes_frames, planes_points);
+			poly_partition.setPolygon(planes_frames, planes_points, false, true);
 
 			poly_partition.setFacades(facade_projected);
 
@@ -2653,8 +2796,12 @@ bool PackPlaneFrames(ccHObject* buildingObj, int max_iter, bool cap_hole, double
 	return true;
 }
 
-bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, double ptsnum_ratio, double data_ratio, double sharp_weight)
+bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, 
+	double ptsnum_ratio, double data_ratio, double sharp_weight)
 {
+	MainWindow* win = MainWindow::TheInstance();
+	if (!win) return false;
+		
 	try {
 		BDBaseHObject* baseObj = GetRootBDBase(buildingObj); if (!baseObj) return false;
 		QString building_name = buildingObj->getName();
@@ -2665,35 +2812,68 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 		if (!prim_group_obj || !blockgroup_obj) { return false; }
 
 		//! get footprints
-		ccHObject::Container footprints = blockgroup_obj->getValidFootPrints();
+		ccHObject::Container footprints = blockgroup_obj->getValidFootPrints(BDDB_FOOTPRINT_PREFIX);
+		ccHObject::Container master_fp = blockgroup_obj->getValidFootPrints(BDDB_BDFOOTPRINT_PREFIX);
+
+		if (footprints.empty() && master_fp.empty()) {
+			return false;
+		}
+		if (footprints.empty())	{
+			swap(footprints, master_fp);
+		}
+
+		stocker::Outline2d master_footprint;
+		for (ccHObject* ent : master_fp) {
+			StFootPrint* ftObj = ccHObjectCaster::ToStFootPrint(ent);
+
+			Contour3d ft_pts = ccToPoints3<CCVector3, stocker::Vec3d>(ftObj->getPoints(true), false);
+			if (ft_pts.size() < 3) continue;
+
+			stocker::Polygon2d poly(stocker::MakeLoopPolylinefromContour(Contour3dTo2d(ft_pts)));
+			poly.isHole = ftObj->isHole();
+			master_footprint.push_back(poly);
+		}
+
 		std::vector<std::vector<Contour3d>> layers_planes_points;
 		std::vector<stocker::Contour3d> footprints_points;
 		IndexVector footprints_original_index;
+
+		ccHObject::Container horizon_planes, vertical_planes;
+		horizon_planes = GetNonVerticalPlaneClouds(prim_group_obj, 15, &vertical_planes);
 		
-		ccHObject* main_footprint = nullptr;
+		stocker::Outline2d holes;
 		for (size_t i = 0; i < footprints.size(); ++i) {
 			StFootPrint* ftObj = ccHObjectCaster::ToStFootPrint(footprints[i]); if (!ftObj) continue;
 
-			if (ftObj->getName() == BDDB_FOOTPRINT_PREFIX) {
-				if(!main_footprint) main_footprint = ftObj;
-				continue;
+			if (ftObj->isHole()) {
+				Contour3d ft_pts = ccToPoints3<CCVector3, stocker::Vec3d>(ftObj->getPoints(true), false);
+				if (ft_pts.size() < 3) continue;
+
+				stocker::Polygon2d hole(stocker::MakeLoopPolylinefromContour(Contour3dTo2d(ft_pts)));
+				hole.isHole = true;
+				master_footprint.push_back(hole);
 			}
+			
+			Contour3d ft_pts = ccToPoints3<CCVector3, stocker::Vec3d>(ftObj->getPoints(true), false);
+			if (ft_pts.size() < 3) continue;
+
 			QStringList plane_names = ftObj->getPlaneNames();
 			std::vector<Contour3d> planes_points;
-			for (auto & pl_name : plane_names) {
-				ccPlane* pl_entity = prim_group_obj->getPlaneByName(pl_name); if (!pl_entity) continue;
-				if (!isVertical(pl_entity, 15)) {
-					ccPointCloud* plane_cloud = GetPlaneCloud(pl_entity); if (!plane_cloud) continue;
-					planes_points.push_back(GetPointsFromCloud3d(plane_cloud));
+			if (plane_names.empty()) {
+				planes_points = GetPointsFromCloudInsidePolygonsXY(horizon_planes, 
+					MakeLoopPolylinefromContour(ft_pts), DBL_MAX, true);
+			}
+			else {
+				for (auto & pl_name : plane_names) {
+					ccPlane* pl_entity = prim_group_obj->getPlaneByName(pl_name); if (!pl_entity) continue;
+					if (!isVertical(pl_entity, 15)) {
+						ccPointCloud* plane_cloud = GetPlaneCloud(pl_entity); if (!plane_cloud) continue;
+						planes_points.push_back(GetPointsFromCloud3d(plane_cloud));
+					}
 				}
 			}
-			layers_planes_points.push_back(planes_points);
-
-			Contour3d ft_pts;
-			for (auto & pt : ftObj->getPoints(true)) {
-				ft_pts.emplace_back(pt.x, pt.y, pt.z);
-			}
-			if (ft_pts.size() < 3) continue;
+			
+			layers_planes_points.push_back(planes_points);			
 
 			footprints_points.push_back(ft_pts);
 			footprints_original_index.push_back(i);
@@ -2715,6 +2895,7 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 
 		std::vector<stocker::Contour3d> footprints_points_pp;
 		IndexVector footprints_pp_index;
+
 		{
 			std::vector<Polyline3d> polygons;
 			std::vector<stocker::Polygon2d> polygons_2d;
@@ -2748,9 +2929,11 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 			poly_partition.m_data_ratio = data_ratio;
 			poly_partition.m_smooth_ints_radio = sharp_weight;
 			poly_partition.m_ints_thre = 0;
+
+			poly_partition.setFootprint(master_footprint);
 			
 			//TODO: should give outlines rather than polygons //! yes give polygons ok, if need holes support, use setFootprint
-			poly_partition.setPolygon(polygons, polygons_points, true, false);
+			poly_partition.setPolygon(polygons, polygons_points, true, true);
 
 			stocker::SimpleSaveToPly("d:/projected.ply", Contour3d(), ToPolyline3d(facade_projected));
 			stocker::Polyline2d facade_clustered = stocker::ClusterSegments(facade_projected, 1, 0.1);
@@ -2775,8 +2958,9 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 		if (footprints_points_pp.empty() || footprints_points_pp.size() != footprints_pp_index.size()) return false;
 
 		for (size_t i = 0; i < footprints.size(); i++) {
-			footprints[i]->setEnabled(false);
-			footprints[i]->setName("del-" + footprints[i]->getName());
+			win->removeFromDB(footprints[i]);
+// 			footprints[i]->setEnabled(false);
+// 			footprints[i]->setName("del-" + footprints[i]->getName());
 		}
 		int biggest = GetMaxNumberExcludeChildPrefix(blockgroup_obj, BDDB_FOOTPRINT_PREFIX);
 		for (size_t i = 0; i < footprints_points_pp.size(); i++) {
@@ -2793,7 +2977,15 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 			}
 			size_t original_index = footprints_original_index[footprints_pp_index[i]];
 			StFootPrint* ftOriObj = ccHObjectCaster::ToStFootPrint(footprints[original_index]);
-			if (ftOriObj) footptObj->setPlaneNames(ftOriObj->getPlaneNames());
+			if (ftOriObj) {
+				footptObj->setHighest(ftOriObj->getBottom());
+				footptObj->setBottom(ftOriObj->getBottom());
+				footptObj->setLowest(ftOriObj->getBottom());
+
+				footptObj->setPlaneNames(ftOriObj->getPlaneNames()); 
+				footptObj->setGlobalShift(ftOriObj->getGlobalShift());
+				footptObj->setGlobalScale(ftOriObj->getGlobalScale());
+			}
 			blockgroup_obj->addChild(footptObj);
 		}
 	}
@@ -2808,6 +3000,7 @@ bool PackFootprints_PPP(ccHObject* buildingObj, int max_iter, bool cap_hole, dou
 ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity, 
 	int max_iter, 
 	bool cap_hole,
+	bool fit_footprint,
 	double ptsnum_ratio, double data_ratio, 
 	double ints_thre, 
 	double alpha, double min_area, double max_intersection,
@@ -2864,7 +3057,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 		double ground_height = ftObj->getBottom();
 
 		Polyline3d footprint_polygon = GetPolygonFromPolyline(ftObj);
-
+		Contour3d footprint_contour = ToContour(footprint_polygon, 0);
 		//! collect planes
 		ccHObject::Container primObjs;
 		QStringList plane_names = ftObj->getPlaneNames();
@@ -2917,7 +3110,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 		if (planes_points.empty()) {
 			// TODO: LOD1
 			std::vector<CCVector3> top_points;
-			for (auto pt : ToContour(footprint_polygon, 0)) {
+			for (auto pt : footprint_contour) {
 				top_points.push_back(CCVector3(pt.X(), pt.Y(), pt.Z()));
 			}
 			StBlock* block_entity = StBlock::Create(top_points, ground_height);
@@ -2930,7 +3123,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 		std::vector<stocker::Contour3d> result_planes_frames;
 		IndexVector result_planes_index;
 		if (planes_frames.size() == 1) {
-			result_planes_frames.push_back(ToContour(footprint_polygon, 0));
+			result_planes_frames.push_back(footprint_contour);
 			result_planes_index.push_back(0);
 		}
 		else //! pack planes
@@ -2939,7 +3132,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 
 			std::string output_dir;
 			if (!buildingObj->getPath().isEmpty()) {
-				output_dir = QFileInfo(buildingObj->getPath()).absoluteFilePath().toStdString() + "/footprints/" + ftObj->getName().toStdString();
+				output_dir = QFileInfo(buildingObj->getPath()).absolutePath().toStdString() + "/footprints/" + ftObj->getName().toStdString();
 			}
 			else {
 				output_dir = QFileInfo(QString::fromStdString(build_unit->file_path.ori_points)).absolutePath().toStdString() + "/footprints/" + ftObj->getName().toStdString();
@@ -2951,6 +3144,12 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 			poly_partition.m_run_cap_hole = cap_hole;
 			poly_partition.m_data_pts_ratio = ptsnum_ratio;
 			poly_partition.m_data_ratio = data_ratio;
+
+			if (fit_footprint) {
+				stocker::Outline2d outline;
+				outline.push_back(ToPolyline2d(footprint_polygon));
+				poly_partition.setFootprint(outline);
+			}
 
 			poly_partition.setPolygon(planes_frames, planes_points, true, true);
 
@@ -2977,6 +3176,7 @@ ccHObject* LoD2FromFootPrint_PPP(ccHObject* entity,
 		//! parse result to footprint
 		for (size_t i = 0; i < result_planes_frames.size(); i++) {
 			Contour3d roof_points = result_planes_frames[i];
+			//roof_points = ToContour(MakeLoopPolylinefromContour(roof_points, 0.001), 0);
 			size_t roof_plane_index = result_planes_index[i];
 			std::vector<CCVector3> top_points;
 			for (auto & pt : roof_points) {

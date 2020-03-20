@@ -1119,6 +1119,10 @@ void MainWindow::connectActions()
 
 	connect(m_UI->actionBDProjectLoad,				&QAction::triggered, this, &MainWindow::doActionBDProjectLoad);
 	connect(m_UI->actionBDProjectSave,				&QAction::triggered, this, &MainWindow::doActionBDProjectSave);
+	connect(m_UI->actionBDRLoadModels,				&QAction::triggered, this, &MainWindow::doActionBDRLoadModels);
+	connect(m_UI->actionBDRExportModels,			&QAction::triggered, this, &MainWindow::doActionBDRExportModels);
+	
+	
 
 	connect(m_UI->openImageProjToolButton,			&QAbstractButton::clicked, this, &MainWindow::doActionBDImagesLoad);
 	connect(m_UI->actionBDImagesLoad,				&QAction::triggered, this, &MainWindow::doActionBDImagesLoad);
@@ -12621,7 +12625,7 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 			std::cout << "file: " << point_path.absoluteFilePath().toStdString() << std::endl;
 		}
 		std::cout << "loading " << files.size() << " files" << std::endl;
-		ccHObject::Container loaded = loadFiles(files, 1);
+		ccHObject::Container loaded = loadFiles(files, -1);
 		std::cout << loaded.size() << " files loaded" << std::endl;
 		
 		bd_grp = new BDBaseHObject(prj_name);
@@ -12635,7 +12639,8 @@ ccHObject* MainWindow::LoadBDReconProject(QString Filename)
 				continue;
 			}
 
-			QString building_name = names[i];
+			int index = has_origin_cloud ? i - 1 : i;
+			QString building_name = names[index];
 			StBuilding* building = new StBuilding(building_name);
 
 			newGroup->setName(building_name + BDDB_ORIGIN_CLOUD_SUFFIX);
@@ -12907,6 +12912,170 @@ void MainWindow::doActionBDProjectSave()
 		dispToConsole(e.what(), ERR_CONSOLE_MESSAGE);
 		return;
 	}	
+}
+
+void MainWindow::doActionBDRLoadModels()
+{
+	ccHObject::Container building_entites;
+	for (ccHObject* ent : getSelectedEntities()) {
+		ccHObject::Container bds = GetBuildingEntitiesBySelected(ent);
+		building_entites.insert(building_entites.end(), bds.begin(), bds.end());
+	}
+	if (building_entites.empty())
+		return;
+	
+	QMessageBox message_box(QMessageBox::Question,
+		tr("Overwrite?"),
+		tr("Overwrite if model is exist?"),
+		QMessageBox::Yes | QMessageBox::No,
+		this);
+	bool overwrite = (message_box.exec() == QMessageBox::Yes);
+	
+	ProgStartNorm("Load models", building_entites.size())
+	for (ccHObject* bd_entity : building_entites) {
+		BDBaseHObject* baseObj = GetRootBDBase(bd_entity);
+
+		QString building_name = GetBaseName(bd_entity->getName());
+		//! check for footprints
+		StBlockGroup* blockGroup = baseObj->GetBlockGroup(building_name); 
+		stocker::BuildUnit* sp = baseObj->GetBuildingSp(building_name.toStdString());
+		if (!blockGroup || !sp) { ProgStepBreak continue; }
+
+		if (blockGroup->getChildrenNumber() > 0 && !overwrite) {
+			ProgStepBreak
+			continue;
+		}
+
+		QString bin_file = QString::fromStdString(ExcludeExt(sp->file_path.ori_points) + ".bin");
+		if (QFileInfo(bin_file).exists()) {
+			std::cout << "start loading " << bin_file.toStdString() << std::endl;
+			QStringList files; files.append(bin_file);
+			ccHObject::Container loaded;
+			try	{
+				loaded = loadFiles(files);
+			}
+			catch (const std::exception& e) {
+				std::cout << "internal error!" << std::endl;
+				ProgStepBreak
+				continue;
+			}
+			ccHObject* newGroup = loaded.empty() ? nullptr : loaded.front();
+
+			if (newGroup) {
+				blockGroup->setMetaData(newGroup->metaData());
+				blockGroup->removeAllChildren();
+				newGroup->transferChildren(*blockGroup);
+
+				delete newGroup;
+				newGroup = nullptr;
+			}
+		}
+		addToDB(blockGroup, false, false, false, false);
+		ProgStepBreak
+	}
+	ProgEnd
+	refreshAll();
+}
+
+#include "cork_parser.hpp"
+#include "PlyFilter.h"
+void MainWindow::doActionBDRExportModels()
+{
+	ccHObject::Container building_entites;
+	for (ccHObject* ent : getSelectedEntities()) {
+		ccHObject::Container bds = GetBuildingEntitiesBySelected(ent);
+		building_entites.insert(building_entites.end(), bds.begin(), bds.end());
+	}
+	if (building_entites.empty())
+		return;
+
+	QMessageBox message_box(QMessageBox::Question,
+		tr("CSG?"),
+		tr("Export CSG?"),
+		QMessageBox::Yes | QMessageBox::No,
+		this);
+	bool exportCSG = (message_box.exec() == QMessageBox::Yes);
+
+	ProgStartNorm("Export models", building_entites.size())
+	for (ccHObject* bd_entity : building_entites) {
+		try	{
+			BDBaseHObject* baseObj = GetRootBDBase(bd_entity);
+
+			QString building_name = GetBaseName(bd_entity->getName());
+			//! check for footprints
+			StBlockGroup* blockGroup = baseObj->GetBlockGroup(building_name);
+			stocker::BuildUnit* sp = baseObj->GetBuildingSp(building_name.toStdString());
+			if (!blockGroup || !sp) { ProgStepBreak continue; }
+
+			if (blockGroup->getChildrenNumber() == 0) {
+				ProgStepBreak
+					continue;
+			}
+
+			QString bin_file = QString::fromStdString(ExcludeExt(sp->file_path.ori_points) + ".bin");
+			QString mesh_file = QString::fromStdString(ExcludeExt(sp->file_path.ori_points) + "_model.ply");
+
+			FileIOFilter::SaveParameters parameters;
+			{
+				parameters.alwaysDisplaySaveDialog = false;
+				parameters.parentWidget = nullptr;
+			}
+
+			//specific case: BIN format			
+			FileIOFilter::SaveToFile(blockGroup, bin_file, parameters, BinFilter::GetFileFilter());
+
+
+			if (exportCSG) {
+				ccHObject::Container models_temp;
+				blockGroup->filterChildren(models_temp, true, CC_TYPES::PRIMITIVE, false);
+				std::vector<ccMesh*> models;
+				for (ccHObject* model : models_temp) {
+					if (model->isEnabled())	{
+						ccMesh* m = ccHObjectCaster::ToMesh(model);
+						if (m) { models.push_back(m); }
+					}
+				}
+				if (models.size() < 2) {
+					ProgStepBreak continue;
+				}
+
+				ccMesh* mesh = models.front();
+				CorkMesh corkMesh;
+				if (!ToCorkMesh(mesh, corkMesh)) {
+					ProgStepBreak continue;
+				}
+				CSGBoolOpParameters s_params;
+				for (size_t i = 0; i < models.size(); i++) {
+					try	{
+						CorkMesh thismesh;
+						if (!ToCorkMesh(models[i], thismesh)) continue;
+
+						computeUnion(corkMesh, thismesh);
+					}
+					catch (const std::exception&)
+					{
+						continue;
+					}
+				}
+				ccMesh* result = FromCorkMesh(corkMesh);
+				if (result)	{
+					result->setName("ModelMesh");
+					blockGroup->addChild(result);
+					result->showNormals(true);
+					result->setDisplay(mesh->getDisplay());
+					MainWindow::TheInstance()->addToDB(result, CC_TYPES::DB_BUILDING, false, false);
+					FileIOFilter::SaveToFile(result, mesh_file, parameters, "PLY mesh (*.ply)");
+				}
+			}
+		}
+		catch (...) {
+			ProgStepBreak continue;
+		}
+
+		ProgStepBreak
+	}
+	ProgEnd
+	refreshAll();
 }
 
 void MainWindow::doActionBDImagesLoad()
@@ -13747,41 +13916,67 @@ void MainWindow::doActionBDPrimPlaneFrame()
 	if (!haveSelection()) return;
 
 	QStringList methods;
+	methods.append("linegrow from polygon");
+	methods.append("linegrow from plane points");
+
+	methods.append("convexhull from polygon");
+	methods.append("convexhull from plane points");
+
 	methods.append("optimization");
-	methods.append("linegrow");
 	methods.append("houghline");
-	methods.append("convexhull");
+	
 	bool ok;
 	QString used_method = QInputDialog::getItem(this, "Boundary extraction", "method", methods, 0, false, &ok);
 	if (!ok) return;
 
-	double linegrow_alpha(0.5), linegrow_intersection(1), linegrow_minpts(10);
-	if (used_method == "linegrow") {		
-		ccAskThreeDoubleValuesDlg paraDlg("alpha", "intersection", "minpts", 0, 1.0e12, linegrow_alpha, linegrow_intersection, linegrow_minpts, 6, "line grow", this);
-		if (!paraDlg.exec()) {
+	double linegrow_alpha(0.5), linegrow_intersection(1);
+	double linegrow_minarea(2); bool linegrow_regularize(false);
+	double linegrow_reg_angle(10);
+	if (used_method.contains("linegrow")) {
+
+		if (!m_pbdrSettingLoD2Dlg) {
+			m_pbdrSettingLoD2Dlg = new bdrSettingLoD2Dlg();
+			m_pbdrSettingLoD2Dlg->setModal(false);
+			m_pbdrSettingLoD2Dlg->setWindowModality(Qt::NonModal);
+			m_pbdrSettingLoD2Dlg->setWindowFlags(Qt::WindowStaysOnTopHint);
+		}
+		if (!m_pbdrSettingLoD2Dlg->exec()) {
 			return;
 		}
+		linegrow_regularize = m_pbdrSettingLoD2Dlg->regularizeCheckBox->isChecked();
+		linegrow_alpha = m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value();
+		linegrow_intersection = m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value();
+		linegrow_minarea = m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value();
+		linegrow_reg_angle = m_pbdrSettingLoD2Dlg->regularizeAngleDoubleSpinBox->value();
 	}
 
 	ccHObject *entity = getSelectedEntities().front();
 
 	BDBaseHObject* baseObj = GetRootBDBase(entity);
-	if (!baseObj) {
-		ccHObject::Container polygons = GetEnabledObjFromGroup(entity, CC_TYPES::POLY_LINE, true, true);
+	if (used_method.contains("polygon")) {
+		ccHObject::Container polygons;
+		if (entity->isA(CC_TYPES::POLY_LINE)) {
+			polygons.push_back(entity);
+		}
+		else {
+			polygons = GetEnabledObjFromGroup(entity, CC_TYPES::POLY_LINE, true, true);
+		}
 
 		for (ccHObject* polygon : polygons)	{
 			stocker::Polyline3d poly = GetPolygonFromPolyline(polygon);
 			std::vector<stocker::Contour3d> contours;
-			if (used_method == "convexhull") {
+			if (used_method.contains("convexhull")) {
 				stocker::PlaneUnit plane_unit = stocker::FormPlaneUnit(stocker::ToContour(poly, 3), "temp", true);
 				contours.push_back(plane_unit.convex_hull_prj);
 			}
-			else if (used_method == "linegrow")	{
-				stocker::PolygonGeneralizationLineGrow_Contour(stocker::ToContour(poly, 3), contours, 0, false, linegrow_intersection);
+			else if (used_method.contains("linegrow"))	{
+				stocker::PolygonGeneralizationLineGrow_Contour(stocker::ToContour(poly, 3), contours, 
+					linegrow_intersection, linegrow_minarea, false, linegrow_regularize, linegrow_reg_angle);
 			}
 
 			if (contours.empty()) continue;
-			ccHObject* new_poly = AddPolygonAsPolyline(contours.front(), polygon->getName(), ccColor::Generator::Random(), true);
+			stocker::Polyline3d poly_contour = MakeLoopPolylinefromContour(contours.front(), 1);
+			ccHObject* new_poly = AddPolygonAsPolyline(poly_contour, polygon->getName(), ccColor::Generator::Random(), true);
 			if (!new_poly) continue;
 			polygon->getParent()->addChild(new_poly);
 			polygon->setName("del-" + polygon->getName());
@@ -13801,8 +13996,8 @@ void MainWindow::doActionBDPrimPlaneFrame()
 	
 	for (auto & planeObj : plane_container) {
 		try	{
-			if (used_method == "linegrow") {
-				ccHObject* frame = PlaneFrameLineGrow(planeObj, linegrow_alpha, linegrow_intersection, linegrow_minpts, 2, false);
+			if (used_method.contains("linegrow")) {
+				ccHObject* frame = PlaneFrameLineGrow(planeObj, linegrow_alpha, linegrow_intersection, linegrow_minarea, false, linegrow_regularize);
 				if (frame) { SetGlobalShiftAndScale(frame); addToDB(frame, planeObj->getDBSourceType(), false, false); }
 			}
 			else if (used_method == "optimization") {
@@ -14803,6 +14998,17 @@ void MainWindow::doActionBDFootPrintAuto()
 		ccConsole::Error("No building in selection!");
 		return;
 	}
+
+	if (!m_pbdrSettingLoD2Dlg) {
+		m_pbdrSettingLoD2Dlg = new bdrSettingLoD2Dlg();
+		m_pbdrSettingLoD2Dlg->setModal(false);
+		m_pbdrSettingLoD2Dlg->setWindowModality(Qt::NonModal);
+		m_pbdrSettingLoD2Dlg->setWindowFlags(Qt::WindowStaysOnTopHint);
+	}
+	if (!m_pbdrSettingLoD2Dlg->exec()) {
+		return;
+	}
+
 	ProgStartNorm("Generate footprints", building_entites.size())
 	for (ccHObject* entity : building_entites) {
 		StBuilding* building = GetParentBuilding(entity);
@@ -14817,16 +15023,25 @@ void MainWindow::doActionBDFootPrintAuto()
 			dispToConsole(s_no_project_error, ERR_CONSOLE_MESSAGE);
 			return;
 		}
-		StPrimGroup* prim_group = baseObj->GetPrimitiveGroup(building_name);
+		ccHObject* prim_group = baseObj->GetOriginPointCloud(building_name, false); 
 		if (!prim_group) {
-			dispToConsole("generate primitives first!", ERR_CONSOLE_MESSAGE);
-			return;
+			prim_group = baseObj->GetPrimitiveGroup(building_name);
+			if (!prim_group) {
+				ProgStepBreak
+			}
 		}
 
 		try {
 			stocker::BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
 			if (!build_unit) throw std::runtime_error("invalid building");
-			ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit->ground_height, 0.8, 0.8, 2);
+			ccHObject::Container footprints = GenerateBuildingFootPrints(prim_group,
+				build_unit->ground_height + baseObj->global_shift.Z(),
+				m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
+				m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
+				m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value(),
+				m_pbdrSettingLoD2Dlg->regularizeCheckBox->isChecked(),
+				m_pbdrSettingLoD2Dlg->regularizeAngleDoubleSpinBox->value(),
+				m_pbdrSettingLoD2Dlg->outlineCDTCheckBox->isChecked());
 			for (ccHObject* ft : footprints) {
 				if (ft && ft->isA(CC_TYPES::ST_FOOTPRINT)) {
 					SetGlobalShiftAndScale(ft);
@@ -14891,7 +15106,7 @@ void MainWindow::doActionBDFootPrintManual()
 	}
 	stocker::BuildUnit* _build = baseObj->GetBuildingSp(building_name.toStdString());
 	if (!_build) return;
-	double ground = _build->ground_height;
+	double ground = _build->ground_height + baseObj->global_shift.Z();
 
 	if (!m_seTool)
 	{
@@ -15145,13 +15360,21 @@ void MainWindow::doActionBDLoD1Generation()
 	if (building_entites.empty()) {
 		return;
 	}
+
+	QMessageBox message_box(QMessageBox::Question,
+		tr("Flat"),
+		tr("Flat Rooftop?"),
+		QMessageBox::Ok | QMessageBox::Cancel,
+		this);
+	bool flat = (message_box.exec() == QMessageBox::Ok);
+
 	ProgStartNorm("lod1 generation", building_entites.size())
 	for (ccHObject* bd_entity : building_entites) {
 		StBuilding* building = ccHObjectCaster::ToStBuilding(bd_entity);
 		if (!building) { continue; }
 
 		try {
-			ccHObject* bd_model_obj = LoD1FromFootPrint(building);
+			ccHObject* bd_model_obj = LoD1FromFootPrint(building, flat);
 			if (bd_model_obj) {
 				SetGlobalShiftAndScale(bd_model_obj);
 				bd_model_obj->setDisplay_recursive(building->getDisplay());
@@ -15250,10 +15473,11 @@ void MainWindow::doActionBDLoD2Generation()
 		BDBaseHObject* baseObj = GetRootBDBase(bd_entity);
 
 		if (bd_entity->isA(CC_TYPES::ST_BUILDING)) {
-			QString building_name = bd_entity->getName();
+			QString building_name = GetBaseName(bd_entity->getName());
 			//! check for footprints
 			StBlockGroup* blockGroup = baseObj->GetBlockGroup(building_name);
 			if (!blockGroup) {
+				ProgStepBreak
 				continue;
 			}
 			ccHObject::Container fts = GetEnabledObjFromGroup(blockGroup, CC_TYPES::ST_FOOTPRINT, true, false);
@@ -15295,17 +15519,37 @@ void MainWindow::doActionBDLoD2Generation()
 					StPrimGroup* prim_group = baseObj->GetPrimitiveGroup(building_name);
 					if (!prim_group) {
 						dispToConsole("generate primitives first!", ERR_CONSOLE_MESSAGE);
-						return;
+						ProgStepBreak
+						continue;;
 					}
 
 					try {
 						stocker::BuildUnit* build_unit = baseObj->GetBuildingSp(building_name.toStdString());
 						if (!build_unit) {
 							dispToConsole("invalid building");
+							ProgStepBreak
 							continue;
 						}
-						ccHObject::Container footprints = GenerateFootPrints(prim_group, build_unit->ground_height, 
+						ccHObject::Container footprints;
+						if (m_pbdrSettingLoD2Dlg->masterFootprintCheckBox->isChecked())	{
+							ccHObject* pc = baseObj->GetOriginPointCloud(building_name, false);
+							if (!pc) {
+								pc = prim_group;
+							}
+							footprints = GenerateBuildingFootPrints(pc,
+								build_unit->ground_height + baseObj->global_shift.Z(),
+								m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
+								m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
+								m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value(),
+								m_pbdrSettingLoD2Dlg->regularizeCheckBox->isChecked(),
+								m_pbdrSettingLoD2Dlg->regularizeAngleDoubleSpinBox->value(),
+								m_pbdrSettingLoD2Dlg->outlineCDTCheckBox->isChecked());
+						}
+						ccHObject::Container footprints2 = GenerateFootPrints(prim_group, 
+							build_unit->ground_height + baseObj->global_shift.Z(),
 							m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
+							m_pbdrSettingLoD2Dlg->fpRoofLayerCompoDistDoubleSpinBox->value(),
+							m_pbdrSettingLoD2Dlg->fpRoofLayerCompoMinPtsSpinBox->value(),
 							m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
 							m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value());
 						for (ccHObject* ft : footprints) {
@@ -15325,6 +15569,7 @@ void MainWindow::doActionBDLoD2Generation()
 				}
 				catch (...)
 				{
+					ProgStepBreak
 					continue;
 				}
 				if (m_pbdrSettingLoD2Dlg->footprintPolygonPartitionGroupBox->isChecked()) {
@@ -15339,35 +15584,58 @@ void MainWindow::doActionBDLoD2Generation()
 			}
 		}
 		
-		if (!m_pbdrSettingLoD2Dlg->roofTopologyGroupBox->isChecked()) {
-			ProgStepBreak
-			continue; 
-		}
+		
 
 		try {
 			ccHObject* bd_model_obj = nullptr;
-			if (m_pbdrSettingLoD2Dlg->roofCDTRadioButton->isChecked()) {
-				bd_model_obj = LoD2FromFootPrint_PPP(bd_entity,
-					m_pbdrSettingLoD2Dlg->cdtMaxIterCheckBox->isChecked() ? m_pbdrSettingLoD2Dlg->cdtMaxIterSpinBox->value() : -1,
-					m_pbdrSettingLoD2Dlg->cdtHoleFillingCheckBox->isChecked(),
-					m_pbdrSettingLoD2Dlg->cdtDataPtsRatioDoubleSpinBox->value(),
-					m_pbdrSettingLoD2Dlg->cdtDataRatioDoubleSpinBox->value(),
-					m_pbdrSettingLoD2Dlg->cdtHOffsetDoubleSpinBox->value(),
+			if (m_pbdrSettingLoD2Dlg->roofTopologyGroupBox->isChecked()) {
+				if (m_pbdrSettingLoD2Dlg->roofCDTRadioButton->isChecked()) {
+					bd_model_obj = LoD2FromFootPrint_PPP(bd_entity,
+						m_pbdrSettingLoD2Dlg->cdtMaxIterCheckBox->isChecked() ? m_pbdrSettingLoD2Dlg->cdtMaxIterSpinBox->value() : -1,
+						m_pbdrSettingLoD2Dlg->cdtHoleFillingCheckBox->isChecked(),
+						m_pbdrSettingLoD2Dlg->cdtFitFootprintCheckBox->isChecked(),
+						m_pbdrSettingLoD2Dlg->cdtDataPtsRatioDoubleSpinBox->value(),
+						m_pbdrSettingLoD2Dlg->cdtDataRatioDoubleSpinBox->value(),
+						m_pbdrSettingLoD2Dlg->cdtHOffsetDoubleSpinBox->value(),
 
-					m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
-					m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value(),
-					m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
+						m_pbdrSettingLoD2Dlg->alphaDoubleSpinBox->value(),
+						m_pbdrSettingLoD2Dlg->simplifyMinAreaDoubleSpinBox->value(),
+						m_pbdrSettingLoD2Dlg->simplifyIntersectionDoubleSpinBox->value(),
 
-					0.2, 0.1);
+						0.2, 0.1);
+				}
+				else {
+					bd_model_obj = LoD2FromFootPrint(bd_entity);
+				}
 			}
-			else {
-				bd_model_obj = LoD2FromFootPrint(bd_entity);
-			}
+			else bd_model_obj = baseObj->GetBlockGroup(GetBaseName(bd_entity->getName()));
 			
 			if (bd_model_obj) {
 				SetGlobalShiftAndScale(bd_model_obj);
 				bd_model_obj->setDisplay_recursive(bd_entity->getDisplay());
 				addToDB(bd_model_obj, baseObj->getDBSourceType());
+
+				//////////////////////////////////////////////////////////////////////////
+				if (bd_entity->isA(CC_TYPES::ST_BUILDING)) {
+					QString building_name = GetBaseName(bd_entity->getName());
+					//! check for footprints
+					StBlockGroup* blockGroup = baseObj->GetBlockGroup(building_name);
+					stocker::BuildUnit* sp = baseObj->GetBuildingSp(building_name.toStdString());
+
+					if (sp) {
+						
+						QString path = QString::fromStdString(ExcludeExt(sp->file_path.ori_points) + ".bin");
+						
+						FileIOFilter::SaveParameters parameters;
+						{
+							parameters.alwaysDisplaySaveDialog = false;
+							parameters.parentWidget = MainWindow::TheInstance();
+						}
+
+						//specific case: BIN format			
+						CC_FILE_ERROR result = FileIOFilter::SaveToFile(bd_model_obj, path, parameters, BinFilter::GetFileFilter());
+					}
+				}
 			}
 		}
 		catch (const std::exception& e) {

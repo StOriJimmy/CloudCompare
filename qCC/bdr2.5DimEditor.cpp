@@ -24,6 +24,7 @@
 #include <QFrame>
 #include <QSettings>
 #include <QCoreApplication>
+#include <QImage>
 
 //System
 #include <assert.h>
@@ -164,10 +165,7 @@ void bdr2Point5DimEditor::create2DView(QFrame * parentFrame)
 void bdr2Point5DimEditor::clearAll()
 {
 	if (m_cursor_cross) {
-		if (m_glWindow)
-			m_glWindow->removeFromOwnDB(m_cursor_cross);
-		delete m_cursor_cross;
-		m_cursor_cross = nullptr;
+		m_cursor_cross->setVisible(false);
 	}
 	if (m_image) {
 		if (m_glWindow)
@@ -239,7 +237,7 @@ void bdr2Point5DimEditor::setAssociate3DView(ccGLWindow * win)
 	m_associate_3DView = win;
 }
 
-void bdr2Point5DimEditor::setImage(QString image_path)
+void bdr2Point5DimEditor::setImage(QString image_path, const int * width, const int* height, const QString * name)
 {
 	if (m_image) {
 		if (m_glWindow)
@@ -251,7 +249,20 @@ void bdr2Point5DimEditor::setImage(QString image_path)
 	m_image->setDisplayType(ccImage::IMAGE_DISPLAY_2P5D);
 	m_image->setDisplay(m_glWindow);
 	QString error;
-	m_image->load(image_path, error);
+	if (!m_image->load(image_path, error)) {
+		if (width && *width > 0 && height && *height > 0 && name) {
+			QImage img(*width, *height, QImage::Format_RGB32);
+			img.fill(Qt::lightGray);
+			m_image->setData(img, false);
+			m_image->setName(*name);
+			m_image->setEnabled(true);
+		}
+		else {
+			delete m_image;
+			m_image = nullptr;
+		}
+	}
+	
 	m_glWindow->addToOwnDB(m_image);
 	//ZoomFit();	// called outside
 }
@@ -285,8 +296,8 @@ void bdr2Point5DimEditor::setImageAndCamera(ccCameraSensor * cam)
 	for (ccHObject* poly : cur_polylines) {
 		poly->setVisible(true);
 	}
-
-	setImage(cam->imagePath());
+	const ccCameraSensor::IntrinsicParameters& params = cam->getIntrinsicParameters();
+	setImage(cam->imagePath(), &params.arrayWidth, &params.arrayHeight, &cam->getName());
 	m_image->setAssociatedSensor(cam);
 }
 
@@ -389,7 +400,7 @@ ccHObject* bdr2Point5DimEditor::projectToImage(ccHObject * obj)
 		entity_in_image_2d->setLocked(false);
 		cam->addChild(entity_in_image_2d);
 		MainWindow* win = MainWindow::TheInstance(); assert(win);
-		win->addToDB_Image(entity_in_image_2d, true, false, true, true);
+		win->addToDB_Image(entity_in_image_2d, false, false, false, true);
 	}
 	return entity_in_image_2d;
 }

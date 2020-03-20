@@ -709,6 +709,9 @@ ccColorScale::Shared ccColorScalesManager::Create(DEFAULT_SCALES scaleType)
 			ccColor::Rgb rgb = ccColor::Generator::Random();
 			scale->insert(ccColorScaleElement(i / 255.0, qRgb((int)rgb.r, (int)rgb.g, (int)rgb.b)), false);
 		}
+		scale->setAbsolute(0, 100000000.00000000);
+		scale->customLabels().insert(0);
+		scale->customLabels().insert(100000000.00000000);
 		break;
 	}
 	case BROWN_YELLOW:

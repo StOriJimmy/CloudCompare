@@ -115,6 +115,8 @@ protected slots:
 	//! To capture overridden shortcuts (pause button, etc.)
 	void onShortcutTriggered(int);
 
+	void doExportSegmentationPolyline();
+
 protected:
 
 	//! Whether to allow or not to exort the current segmentation polyline

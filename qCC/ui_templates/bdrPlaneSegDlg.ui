@@ -548,21 +548,28 @@
          <property name="rightMargin">
           <number>6</number>
          </property>
-         <item row="1" column="0">
+         <item row="0" column="0">
           <widget class="QLabel" name="label_6">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
            <property name="text">
             <string>growing radius</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="2">
-          <widget class="QDoubleSpinBox" name="GrowingRadiusDoubleSpinBox">
-           <property name="enabled">
-            <bool>false</bool>
+         <item row="0" column="1">
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
            </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="0" column="2">
+          <widget class="QDoubleSpinBox" name="GrowingRadiusDoubleSpinBox">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
              <horstretch>80</horstretch>
@@ -600,19 +607,6 @@
             <double>5.000000000000000</double>
            </property>
           </widget>
-         </item>
-         <item row="1" column="1">
-          <spacer name="horizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
          </item>
         </layout>
        </widget>
@@ -1019,22 +1013,6 @@
     <hint type="destinationlabel">
      <x>172</x>
      <y>182</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>PlaneSegATPSRadioButton</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>PlaneRefineGroupBox</receiver>
-   <slot>setDisabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>25</x>
-     <y>182</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>158</x>
-     <y>434</y>
     </hint>
    </hints>
   </connection>

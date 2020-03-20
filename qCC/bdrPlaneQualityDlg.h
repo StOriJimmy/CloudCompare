@@ -22,9 +22,10 @@ private:
 
 protected slots:
 	void exitSafe();
-	void onCalculateFlatness();
+	void onCalculate();
 	void onFilterPlane();
 	void onShowHistrogram();
+	void onFilterFacade();
 
 public:
 	void setPlanes(ccHObject::Container planes) { m_planes = planes; }

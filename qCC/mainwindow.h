@@ -564,6 +564,9 @@ private slots:
 	void doActionBDProjectLoad();
 	void doActionBDProjectSave();
 
+	void doActionBDRLoadModels();
+	void doActionBDRExportModels();
+
 	/// image project
 	void doActionBDImagesLoad();
 	void doActionBDImagesToggle3DView();

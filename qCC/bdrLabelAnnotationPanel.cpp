@@ -32,8 +32,6 @@
 //System
 #include <assert.h>
 
-static CC_TYPES::DB_SOURCE s_dbSource;
-
 bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
 	: ccOverlayDialog(parent, Qt::Tool | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowStaysOnTopHint)
 	, m_UI(new Ui::bdrLabelAnnotationPanel )
@@ -63,6 +61,8 @@ bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
 // 	connect(actionUseExistingPolyline,			&QAction::triggered,	this,	&bdrLabelAnnotationPanel::doActionUseExistingPolyline);
 // 	connect(actionExportSegmentationPolyline,	&QAction::triggered,	this,	&bdrLabelAnnotationPanel::doExportSegmentationPolyline);
 
+	connect(m_UI->exportPolygonToolButton,		&QToolButton::clicked,	this, &bdrLabelAnnotationPanel::doExportSegmentationPolyline);
+
 	for (size_t i = 0; i < LAS_LABEL::LABEL_END; ++i) {
 		m_UI->typeComboBox->addItem(LAS_LABEL::g_strLabelName[i]);
 		QPixmap px(18, 18);
@@ -80,7 +80,7 @@ bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
  	addOverridenShortcut(Qt::Key_Return); //return key for the "apply" button
  	addOverridenShortcut(Qt::Key_Delete); //delete key for the "apply and delete" button
  	addOverridenShortcut(Qt::Key_Tab);    //tab key to switch between rectangular and polygonal selection modes
- 	addOverridenShortcut(Qt::Key_C);      //'C' 
+ 	addOverridenShortcut(Qt::Key_E);      //'C' 
  	addOverridenShortcut(Qt::Key_I);      //'S' 
  	connect(this,								&ccOverlayDialog::shortcutTriggered, this, &bdrLabelAnnotationPanel::onShortcutTriggered);
 
@@ -108,8 +108,8 @@ bdrLabelAnnotationPanel::bdrLabelAnnotationPanel(QWidget* parent)
 
 void bdrLabelAnnotationPanel::allowExecutePolyline(bool state)
 {
-	m_UI->createEntityToolButton->setEnabled(state);
-	m_UI->setLabelToolButton->setEnabled(state);
+	//m_UI->createEntityToolButton->setEnabled(state);
+	//m_UI->setLabelToolButton->setEnabled(state);
 
  	if (state) {
  	}
@@ -120,7 +120,7 @@ void bdrLabelAnnotationPanel::allowExecutePolyline(bool state)
 
 void bdrLabelAnnotationPanel::allowStateChange(bool state)
 {
-	m_UI->selectionModeButton->setEnabled(state);
+	//m_UI->selectionModeButton->setEnabled(state);
 	//m_UI->typeComboBox->setEnabled(state);
 	//m_UI->filterToolButton->setEnabled(state);
 }
@@ -149,7 +149,8 @@ void bdrLabelAnnotationPanel::onShortcutTriggered(int key)
 		//inButton->click();
 		return;
 
-	case Qt::Key_O:
+	case Qt::Key_E:
+		m_UI->exportPolygonToolButton->click();
 		//outButton->click();
 		return;
 
@@ -436,11 +437,7 @@ bool bdrLabelAnnotationPanel::addEntity(ccHObject* entity)
 		for (unsigned i=0;i<entity->getChildrenNumber();++i)
 			result |= addEntity(entity->getChild(i));
 	}
-
-	if (result && getNumberOfValidEntities() == 1) {
-		s_dbSource = entity->getDBSourceType();
-	}
-
+	
 	return result;
 }
 
@@ -866,22 +863,29 @@ void bdrLabelAnnotationPanel::createEntity()
 {
 	if (!m_associatedWin)
 		return;
+	MainWindow* mainWin = MainWindow::TheInstance(); if (!mainWin) { return; }
 
-	if (!m_segmentationPoly)
-	{
-		ccLog::Error("No polyline defined!");
+	std::vector<ccPolyline*> segmentPolygons;
+
+	bool mode2d = false;
+	if (m_segmentationPoly && m_segmentationPoly->isClosed()) {
+		segmentPolygons.push_back(m_segmentationPoly);
+		mode2d = true;
+	}
+	else {
+		for (ccHObject* ent : mainWin->getSelectedEntities()) {
+			ccPolyline* poly = ccHObjectCaster::ToPolyline(ent);
+			if (poly) {
+				segmentPolygons.push_back(poly);
+			}
+		}
+	}
+	if (segmentPolygons.empty()) {
+		ccLog::Error("Define and/or close the segmentation polygon or choose existing polygons");
 		return;
 	}
 
-	if (!m_segmentationPoly->isClosed())
-	{
-		ccLog::Error("Define and/or close the segmentation polygon first! (right click to close)");
-		return;
-	}
-
-// 	if (!m_destination) {
-// 		return;
-// 	}
+	const int min_points = 15;
 
 	//viewing parameters
 	ccGLCameraParameters camera;
@@ -911,80 +915,93 @@ void bdrLabelAnnotationPanel::createEntity()
 			m_changed_baseobj.insert(destination);
 		}
 
-		//! create a new point cloud
-		
-		ccPointCloud* new_ent = new ccPointCloud();
-		new_ent->setGlobalScale(cloud->getGlobalScale());
-		new_ent->setGlobalShift(cloud->getGlobalShift());
+		for (ccPolyline* poly : segmentPolygons) {
 
-		int number = 0;
-		switch (m_UI->typeComboBox->currentIndex())
-		{
-		case LAS_LABEL::Building:
-		{
-			number = GetMaxNumberExcludeChildPrefix(destination, BDDB_BUILDING_PREFIX, CC_TYPES::ST_BUILDING) + 1;
-			new_ent->setName(BuildingNameByNumber(number));
-			break;
-		}
-		default:
-			break;
-		}
-		
-		//we project each point and we check if it falls inside the segmentation polyline
-// #if defined(_OPENMP)
-// #pragma omp parallel for
-// #endif
-		bool use_color = true;
-		for (int i = 0; i < static_cast<int>(cloudSize); ++i)
-		{
-// 			if (visibilityArray.size() == cloudSize && visibilityArray[i] != POINT_VISIBLE) {
-// 				continue;
-// 			}
-			const CCVector3* P3D = cloud->getPoint(i);
+			//! create a new point cloud
+			ccPointCloud* new_ent = new ccPointCloud();
+			new_ent->setGlobalScale(cloud->getGlobalScale());
+			new_ent->setGlobalShift(cloud->getGlobalShift());
 
-			CCVector3d Q2D;
-			bool pointInFrustrum = camera.project(*P3D, Q2D, true);
+			bool use_color = true;
+			for (int i = 0; i < static_cast<int>(cloudSize); ++i)
+			{
+				const CCVector3* P3D = cloud->getPoint(i);
 
-			CCVector2 P2D(static_cast<PointCoordinateType>(Q2D.x - half_w),
-				static_cast<PointCoordinateType>(Q2D.y - half_h));
+				CCVector3d Q2D;
+				bool pointInFrustrum = camera.project(*P3D, Q2D, true);
 
-			bool pointInside = pointInFrustrum && CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, m_segmentationPoly);
-
-			if (!pointInside) { continue; }
-			new_ent->addPoint(*P3D);
-			
-			if (use_color) {
-				if (cloud->hasColors() && !new_ent->hasColors()) {
-					use_color = new_ent->reserveTheRGBTable();
+				if (!pointInFrustrum)	{
+					continue;
 				}
-			}
-			if (use_color)
-				new_ent->addRGBColor(cloud->getPointColor(i));
-		}
-		new_ent->setPointSize(2);
 
-		int seg_index = new_ent->addScalarField("Segmentation");
-		if (seg_index >= 0) {
-			new_ent->showColors(false);
-			new_ent->showSF(true);
-			new_ent->setCurrentScalarField(seg_index);
+				CCVector2 P2D(static_cast<PointCoordinateType>(Q2D.x - half_w),
+					static_cast<PointCoordinateType>(Q2D.y - half_h));
+				
+				bool pointInside(false);
+				if (mode2d)	{
+					pointInside = CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, poly);
+				}
+				else {
+					std::vector<CCVector2> poly_vertices;
+					for (CCVector3 p : poly->getPoints(false)) {
+						CCVector3d pq2d;
+						camera.project(p, pq2d);
+						poly_vertices.push_back(CCVector2(pq2d.x - half_w, pq2d.y - half_h));
+					}
+					pointInside = CCLib::ManualSegmentationTools::isPointInsidePoly(P2D, poly_vertices);
+				}
 
-			CCLib::ScalarField* sf = new_ent->getScalarField(seg_index);
-			if (sf) {
-				sf->fill(number);
+				if (!pointInside) { continue; }
+				new_ent->addPoint(*P3D);
+
+				if (use_color) {
+					use_color = cloud->hasColors() && (new_ent->hasColors() || (!new_ent->hasColors() && new_ent->reserveTheRGBTable()));
+				}
+				if (use_color)
+					new_ent->addRGBColor(cloud->getPointColor(i));
 			}
-		}
-		else {
-			new_ent->showColors(true);
-			new_ent->showSF(false);
-		}
-		
-		bool created = false;
-		switch (m_UI->typeComboBox->currentIndex())
-		{
-		case LAS_LABEL::Building:
-		{
-			if (new_ent->size() > 15) {
+			if (new_ent->size() < min_points) {
+				delete new_ent;
+				new_ent = nullptr;
+				continue;
+			}
+
+			int number = 0;
+			switch (m_UI->typeComboBox->currentIndex())
+			{
+			case LAS_LABEL::Building:
+			{
+				number = GetMaxNumberExcludeChildPrefix(destination, BDDB_BUILDING_PREFIX, CC_TYPES::ST_BUILDING) + 1;
+				new_ent->setName(BuildingNameByNumber(number));
+				break;
+			}
+			default:
+				break;
+			}
+
+			new_ent->setPointSize(2);
+
+			int seg_index = new_ent->addScalarField("Segmentation");
+			if (seg_index >= 0) {
+				CCLib::ScalarField* sf = new_ent->getScalarField(seg_index);
+				if (sf) {
+					sf->fill(number);
+				}
+
+				new_ent->showColors(false);
+				new_ent->showSF(true);
+				new_ent->setCurrentScalarField(seg_index);
+				new_ent->setCurrentDisplayedScalarField(seg_index);
+			}
+			else {
+				new_ent->showColors(true);
+				new_ent->showSF(false);
+			}
+
+			switch (m_UI->typeComboBox->currentIndex())
+			{
+			case LAS_LABEL::Building:
+			{
 				ccHObject* new_building_folder = new ccHObject(new_ent->getName() + BDDB_ORIGIN_CLOUD_SUFFIX);
 				new_building_folder->addChild(new_ent);
 				StBuilding* new_building_obj = new StBuilding(new_ent->getName());
@@ -994,24 +1011,16 @@ void bdrLabelAnnotationPanel::createEntity()
 
 				destination->addChild(new_building_obj);
 				MainWindow::TheInstance()->addToDB(new_building_obj, destination->getDBSourceType());
-				created = true;
+
+				break;
 			}
-			
-			break;
-		}
-		default:
-			ccLog::Error("not supported yet");
-			break;
-		}
-		
-		if (!created) {
-			if (!new_ent) {
-				delete new_ent;
-				new_ent = nullptr;
+			default:
+				ccLog::Error("not supported yet");
+				break;
 			}
-			continue;
-		}
-		m_somethingHasChanged = true;
+
+			m_somethingHasChanged = true;
+		}		
 	}
 
 	m_UI->razButton->setEnabled(true);
@@ -1110,4 +1119,109 @@ void bdrLabelAnnotationPanel::setSegmentMode(SegmentMode mode)
 // 	default:
 // 		break;
 // 	}
+}
+
+void bdrLabelAnnotationPanel::doExportSegmentationPolyline()
+{
+	MainWindow* mainWindow = MainWindow::TheInstance();
+	if (mainWindow && m_segmentationPoly)
+	{
+		bool mode2D = false;
+#ifdef ALLOW_2D_OR_3D_EXPORT
+		QMessageBox messageBox(0);
+		messageBox.setWindowTitle("Choose export type");
+		messageBox.setText("Export polyline in:\n - 2D (with coordinates relative to the screen)\n - 3D (with coordinates relative to the segmented entities)");
+		QPushButton* button2D = new QPushButton("2D");
+		QPushButton* button3D = new QPushButton("3D");
+		messageBox.addButton(button2D, QMessageBox::AcceptRole);
+		messageBox.addButton(button3D, QMessageBox::AcceptRole);
+		messageBox.addButton(QMessageBox::Cancel);
+		messageBox.setDefaultButton(button3D);
+		messageBox.exec();
+		if (messageBox.clickedButton() == messageBox.button(QMessageBox::Cancel))
+		{
+			//process cancelled by user
+			return;
+		}
+		mode2D = (messageBox.clickedButton() == button2D);
+#endif
+
+		ccPolyline* poly = new ccPolyline(*m_segmentationPoly);
+
+		//if the polyline is 2D and we export the polyline in 3D, we must project its vertices
+		if (!mode2D)
+		{
+			//get current display parameters
+			ccGLCameraParameters camera;
+			m_associatedWin->getGLCameraParameters(camera);
+			const double half_w = camera.viewport[2] / 2.0;
+			const double half_h = camera.viewport[3] / 2.0;
+
+			//project the 2D polyline in 3D
+			CCLib::GenericIndexedCloudPersist* vertices = poly->getAssociatedCloud();
+			ccPointCloud* verticesPC = dynamic_cast<ccPointCloud*>(vertices);
+			if (verticesPC)
+			{
+				for (unsigned i = 0; i < vertices->size(); ++i)
+				{
+					CCVector3* Pscreen = const_cast<CCVector3*>(verticesPC->getPoint(i));
+					CCVector3d Pd(half_w + Pscreen->x, half_h + Pscreen->y, 0/*Pscreen->z*/);
+					CCVector3d Q3D;
+					camera.unproject(Pd, Q3D);
+					*Pscreen = CCVector3::fromArray(Q3D.u);
+				}
+				verticesPC->invalidateBoundingBox();
+			}
+			else
+			{
+				delete poly;
+				poly = nullptr;
+				return;
+			}
+
+			//export Global Shift & Scale info (if any)
+			bool hasGlobalShift = false;
+			CCVector3d globalShift(0, 0, 0);
+			double globalScale = 1.0;
+			{
+				for (QSet<ccHObject*>::const_iterator it = m_toSegment.constBegin(); it != m_toSegment.constEnd(); ++it)
+				{
+					ccShiftedObject* shifted = ccHObjectCaster::ToShifted(*it);
+					bool isShifted = (shifted && shifted->isShifted());
+					if (isShifted)
+					{
+						globalShift = shifted->getGlobalShift();
+						globalScale = shifted->getGlobalScale();
+						hasGlobalShift = true;
+						break;
+					}
+				}
+			}
+
+			if (hasGlobalShift && m_toSegment.size() != 1)
+			{
+				hasGlobalShift = (QMessageBox::question(MainWindow::TheInstance(), "Apply Global Shift", "At least one of the segmented entity has been shifted. Apply the same shift to the polyline?", QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes);
+			}
+
+			if (hasGlobalShift)
+			{
+				poly->setGlobalShift(globalShift);
+				poly->setGlobalScale(globalScale);
+			}
+		}
+
+		QString polyName = QString("Polygon");
+		poly->setName(polyName);
+		poly->setEnabled(false); //we don't want it to appear while the segmentation mode is enabled! (anyway it's 2D only...)
+		poly->set2DMode(mode2D);
+		poly->setColor(ccColor::yellow); //we use a different color so as to differentiate them from the active polyline!
+
+		//save associated viewport
+		cc2DViewportObject* viewportObject = new cc2DViewportObject(polyName + QString(" viewport"));
+		viewportObject->setParameters(m_associatedWin->getViewportParameters());
+		viewportObject->setDisplay(m_associatedWin);
+		poly->addChild(viewportObject);
+
+		mainWindow->addToDB(poly, CC_TYPES::DB_BUILDING, false, false, false);
+	}
 }

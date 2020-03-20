@@ -532,6 +532,7 @@ bool bdr3DGeometryEditPanel::linkWith(ccGLWindow* win)
 bool bdr3DGeometryEditPanel::start()
 {
 	assert(m_editPolyVer && m_editPoly && m_refPlane);
+	m_refPlanePanel->initWithPlane(m_refPlane);
 
 	connect(MainWindow::TheInstance()->db_building(), &ccDBRoot::selectionChanged, this, &bdr3DGeometryEditPanel::echoSelectChange);
 
@@ -1712,12 +1713,12 @@ bool doPerformBooleanOp()
 			break;
 
 		case CSG_INTERSECT:
-			computeDifference(*s_params.corkA, *s_params.corkB);
+			computeIntersection(*s_params.corkA, *s_params.corkB);
 			//s_params.corkA->boolIsct(*s_params.corkB);
 			break;
 
 		case CSG_DIFF:
-			computeIntersection(*s_params.corkA, *s_params.corkB);
+			computeDifference(*s_params.corkA, *s_params.corkB);
 			//s_params.corkA->boolDiff(*s_params.corkB);
 			break;
 
