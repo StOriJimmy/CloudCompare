@@ -15732,7 +15732,8 @@ void MainWindow::doActionBDTextureMapping()
 			ProgStart("Texture mapping")
 			try {
 				ccHObject::Container bds = GetBuildingEntitiesBySelected(entity);
-				TextureMappingBuildings(bds, nullptr, g_refineLength, g_samplingGrid, g_max_tex_view);
+				ccHObject::Container cameras = GetEnabledObjFromGroup(m_imageRoot->getRootEntity(), CC_TYPES::CAMERA_SENSOR);
+				TextureMappingBuildings(bds, cameras, nullptr, g_refineLength, g_samplingGrid, g_max_tex_view, true);
 			}
 			catch (const std::exception& e)	{
 				dispToConsole(QString::fromStdString(e.what()), ERR_CONSOLE_MESSAGE);
