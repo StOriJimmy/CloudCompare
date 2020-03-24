@@ -264,6 +264,12 @@ public:
 						double pickHeight = 2.0,
 						bool autoComputeOctree = false);
 
+	bool rectPicking(const CCVector2d& clickPos,
+						const ccGLCameraParameters& camera,
+						std::vector<int>& selectedPointIndex,
+						double pickWidth = 2.0,
+						double pickHeight = 2.0);
+
 protected:
 	//inherited from ccHObject
 	bool toFile_MeOnly(QFile& out) const override;

@@ -457,6 +457,103 @@ bool ccGenericPointCloud::pointPicking(	const CCVector2d& clickPos,
 	return (nearestPointIndex >= 0);
 }
 
+//#define _PARALLEL
+#ifdef _PARALLEL
+#include <ppl.h>
+#include <concurrent_vector.h>
+#endif // _PARALLEL
+
+bool ccGenericPointCloud::rectPicking(const CCVector2d & clickPos, const ccGLCameraParameters & camera, std::vector<int>& selectedPointIndex, double pickWidth, double pickHeight)
+{
+	selectedPointIndex.clear();
+
+
+	//back project the clicked point in 3D
+	CCVector3d clickPosd(clickPos.x, clickPos.y, 0);
+	CCVector3d X(0, 0, 0);
+	if (!camera.unproject(clickPosd, X))
+	{
+		return false;
+	}
+
+	//warning: we have to handle the relative GL transformation!
+	ccGLMatrix trans;
+	bool noGLTrans = !getAbsoluteGLTransformation(trans);
+
+	//visibility table (if any)
+	const ccGenericPointCloud::VisibilityTableType* visTable = isVisibilityTableInstantiated() ? &getTheVisibilityArray() : nullptr;
+
+	//scalar field with hidden values (if any)
+	ccScalarField* activeSF = nullptr;
+	if (sfShown()
+		&& isA(CC_TYPES::POINT_CLOUD)
+		&& !visTable //if the visibility table is instantiated, we always display ALL points
+		)
+	{
+		ccPointCloud* pc = static_cast<ccPointCloud*>(this);
+		ccScalarField* sf = pc->getCurrentDisplayedScalarField();
+		if (sf && sf->mayHaveHiddenValues() && sf->getColorScale())
+		{
+			//we must take this SF display parameters into account as some points may be hidden!
+			activeSF = sf;
+		}
+	}
+
+#ifdef _PARALLEL
+	Concurrency::parallel_for(0, static_cast<int>(size()), [&](int i)
+#else
+	for (int i = 0; i < static_cast<int>(size()); ++i)
+#endif
+	{
+		//we shouldn't test points that are actually hidden!
+		if ((!visTable || visTable->at(i) == POINT_VISIBLE)
+			&& (!activeSF || activeSF->getColor(activeSF->getValue(i))))
+	{
+		const CCVector3* P = getPoint(i);
+
+		CCVector3d Q2D;
+		if (noGLTrans)
+		{
+			if (!camera.project(*P, Q2D, true))
+			{
+				// Point is not in frustum
+#ifdef _PARALLEL
+				return;
+#else
+				continue;
+#endif
+			}
+		}
+		else
+		{
+			CCVector3 P3D = *P;
+			trans.apply(P3D);
+			if (!camera.project(P3D, Q2D, true))
+			{
+				// Point is not in frustrum
+#ifdef _PARALLEL
+				return;
+#else
+				continue;
+#endif
+			}
+		}
+
+		if (fabs(Q2D.x - clickPos.x) <= pickWidth
+			&& fabs(Q2D.y - clickPos.y) <= pickHeight)
+		{
+			selectedPointIndex.push_back(i);
+		}
+		}
+		}
+#ifdef _PARALLEL
+	);
+#endif
+	
+
+	return !selectedPointIndex.empty();
+}
+
 CCLib::ReferenceCloud* ccGenericPointCloud::getTheVisiblePoints(const VisibilityTableType* visTable/*=nullptr*/, bool silent/*=false*/) const
 {
 	if (!visTable)

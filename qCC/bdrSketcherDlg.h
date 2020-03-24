@@ -107,12 +107,13 @@ public:
 
 protected:
 
-	void undo();
-	bool reset(bool askForConfirmation = true);
-	void apply();
-	void cancel();
+	enum POLYLINE_TYPE
+	{
+		FOOTPRINT_NORMAL,	// polygon counterclockwise
+		FOOTPRINT_HOLE,		// polygon clockwise
+		POLYLINE_OPEN,		// polyline
+	};
 
-	void enableSketcherEditingMode(bool);
 	enum SketchObjectMode {
 		SO_POINT,
 		SO_POLYLINE,
@@ -126,6 +127,100 @@ protected:
 		SO_NPOLYGON,
 		SO_RECTANGLE,
 	};
+
+	//! Imported entity
+	template<class EntityType = ccHObject> struct SketcherObject
+	{
+		//! Default constructor
+		SketcherObject()
+			: entity(0)
+			, originalDisplay(nullptr)
+			, isInDB(false)
+			, backupColorShown(false)
+			, backupWidth(1)
+			, isModified(false)
+		{}
+
+		//! Copy constructor
+		SketcherObject(const SketcherObject& section)
+			: entity(section.entity)
+			, originalDisplay(section.originalDisplay)
+			, isInDB(section.isInDB)
+			, backupColorShown(section.backupColorShown)
+			, backupWidth(section.backupWidth)
+			, isModified(section.isModified)
+		{
+			backupColor = section.backupColor;
+		}
+
+		//! Constructor from an entity
+		SketcherObject(EntityType* e, bool alreadyInDB)
+			: entity(e)
+			, originalDisplay(e->getDisplay())
+			, isInDB(alreadyInDB)
+		{
+#if 0
+			//specific case: polylines
+			if (e->isA(CC_TYPES::POLY_LINE))
+			{
+				ccPolyline* poly = reinterpret_cast<ccPolyline*>(e);
+
+				//backup color
+				backupColor = poly->getColor();
+				backupColorShown = poly->colorsShown();
+				//backup thickness
+				backupWidth = poly->getWidth();
+			}
+			if (e->isA(CC_TYPES::ST_FOOTPRINT))
+			{
+				StFootPrint* poly = reinterpret_cast<StFootPrint*>(e);
+				//backup color
+				backupColor = poly->getColor();
+				backupColorShown = poly->colorsShown();
+				//backup thickness
+				backupWidth = poly->getWidth();
+
+				if (!poly->isClosed()) {
+					type = POLYLINE_OPEN;
+				}
+				else {
+					//! hole state
+					if (poly->isHole()) type = FOOTPRINT_HOLE;
+					else type = FOOTPRINT_NORMAL;
+				}
+			}
+#endif
+		}
+
+		bool operator ==(const SketcherObject& ie) { return entity == ie.entity; }
+
+		EntityType* entity;
+		ccHObject* projected_from;
+		ccGenericGLDisplay* originalDisplay;
+		bool isInDB;
+		bool isModified;
+
+		//backup info (for polylines only)
+		ccColor::Rgb backupColor;
+		bool backupColorShown;
+		PointCoordinateType backupWidth;
+
+		//! for footprint only
+		POLYLINE_TYPE type;
+
+		SketchObjectMode soMode;
+	};
+
+	//! Section
+	using Section = SketcherObject<ccHObject>;
+
+	void undo();
+	bool reset(bool askForConfirmation = true);
+	void apply();
+	void cancel();
+
+	void enableSketcherEditingMode(bool);
+	
 	void createSketchObject(SketchObjectMode mode);
 	QToolButton* getCurrentSOButton();
 
@@ -159,10 +254,13 @@ protected:
 	struct SOPickingParams;
 	void startCPUPointPicking(const SOPickingParams& params);
 
+	void startCPURectPicking(const SOPickingParams & params, std::vector<PickingVertex<Section>>& selected);
+
 	void echoMouseMoved(int x, int y, Qt::MouseButtons buttons);
 	void echoItemPicked(ccHObject* entity, unsigned subEntityID, int x, int y, const CCVector3& P, const CCVector3d& uvw);
 	void echoButtonReleased();
 	void entitySelected(ccHObject*);
+	void echoRectangleSelected(const int & x, const int & y, const int & w, const int & h);
 
 	///< polyline
 	void addPointToPolyline(int x, int y);
@@ -190,98 +288,7 @@ protected:
 	//! Creates (if necessary) and returns a group to store entities in the main DB
 	ccHObject* getExportGroup(unsigned& defaultGroupID, const QString& defaultName);
 
-	enum POLYLINE_TYPE
-	{
-		FOOTPRINT_NORMAL,	// polygon counterclockwise
-		FOOTPRINT_HOLE,		// polygon clockwise
-		POLYLINE_OPEN,		// polyline
-	};
-
-	//! Imported entity
-	template<class EntityType = ccHObject> struct SketcherObject
-	{
-		//! Default constructor
-		SketcherObject()
-			: entity(0)
-			, originalDisplay(nullptr)
-			, isInDB(false)
-			, backupColorShown(false)
-			, backupWidth(1)
-			, isModified(false)
-		{}
-		
-		//! Copy constructor
-		SketcherObject(const SketcherObject& section)
-			: entity(section.entity)
-			, originalDisplay(section.originalDisplay)
-			, isInDB(section.isInDB)
-			, backupColorShown(section.backupColorShown)
-			, backupWidth(section.backupWidth)
-			, isModified(section.isModified)
-		{
-			backupColor = section.backupColor;
-		}
-		
-		//! Constructor from an entity
-		SketcherObject(EntityType* e, bool alreadyInDB)
-			: entity(e)
-			, originalDisplay(e->getDisplay())
-			, isInDB(alreadyInDB)
-		{
-#if 0
-			//specific case: polylines
-			if (e->isA(CC_TYPES::POLY_LINE))
-			{
-				ccPolyline* poly = reinterpret_cast<ccPolyline*>(e);
-				
-				//backup color
-				backupColor = poly->getColor();
-				backupColorShown = poly->colorsShown();
-				//backup thickness
-				backupWidth = poly->getWidth();
-			}
-			if (e->isA(CC_TYPES::ST_FOOTPRINT))
-			{
-				StFootPrint* poly = reinterpret_cast<StFootPrint*>(e);
-				//backup color
-				backupColor = poly->getColor();
-				backupColorShown = poly->colorsShown();
-				//backup thickness
-				backupWidth = poly->getWidth();
-
-				if (!poly->isClosed()) {
-					type = POLYLINE_OPEN;
-				}
-				else {
-					//! hole state
-					if (poly->isHole()) type = FOOTPRINT_HOLE;
-					else type = FOOTPRINT_NORMAL;
-				}
-			}
-#endif
-		}
-
-		bool operator ==(const SketcherObject& ie) { return entity == ie.entity; }
-				
-		EntityType* entity;
-		ccHObject* projected_from;
-		ccGenericGLDisplay* originalDisplay;
-		bool isInDB;
-		bool isModified;
-
-		//backup info (for polylines only)
-		ccColor::Rgb backupColor;
-		bool backupColorShown;
-		PointCoordinateType backupWidth;
-
-		//! for footprint only
-		POLYLINE_TYPE type;
-
-		SketchObjectMode soMode;
-	};
-
-	//! Section
-	using Section = SketcherObject<ccHObject>;
+	
 
 	//! Releases a polyline
 	/** The polyline is removed from display. Then it is
