@@ -282,7 +282,7 @@ MainWindow::MainWindow()
 #ifdef BBRELEASE
 	m_UI->menuHelp->menuAction()->setVisible(false);
 	m_UI->menu3DViews->menuAction()->setVisible(false);
-	m_UI->menuTools->menuAction()->setVisible(false);
+	//m_UI->menuTools->menuAction()->setVisible(false);
 #endif // BBRELEASE
 
 	// Set up dynamic menus

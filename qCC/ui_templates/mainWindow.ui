@@ -44,7 +44,10 @@
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>&amp;File</string>
+     <string>文件</string>
+    </property>
+    <property name="toolTipsVisible">
+     <bool>true</bool>
     </property>
     <addaction name="actionOpen"/>
     <addaction name="actionSave"/>
@@ -58,7 +61,7 @@
    </widget>
    <widget class="QMenu" name="menuDisplay">
     <property name="title">
-     <string>&amp;Display</string>
+     <string>视图显示</string>
     </property>
     <widget class="QMenu" name="menuToolbars">
      <property name="title">
@@ -141,7 +144,7 @@
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
-     <string>Edit</string>
+     <string>编辑</string>
     </property>
     <widget class="QMenu" name="menuScalarFields">
      <property name="title">
@@ -382,7 +385,7 @@
    </widget>
    <widget class="QMenu" name="menuTools">
     <property name="title">
-     <string>Tools</string>
+     <string>工具</string>
     </property>
     <widget class="QMenu" name="menuSegmentation">
      <property name="title">
@@ -517,7 +520,7 @@
    </widget>
    <widget class="QMenu" name="menuBDRecon">
     <property name="title">
-     <string>BDRecon</string>
+     <string>模型重建</string>
     </property>
     <widget class="QMenu" name="menuPrimitive">
      <property name="title">
@@ -607,11 +610,11 @@
    </widget>
    <widget class="QMenu" name="menuSegmentation_2">
     <property name="title">
-     <string>Segmentation</string>
+     <string>语义分割</string>
     </property>
     <widget class="QMenu" name="menuSettings">
      <property name="title">
-      <string>Settings</string>
+      <string>设置</string>
      </property>
      <addaction name="actionSettingsGroundFiltering"/>
      <addaction name="actionSettingsClassification"/>
@@ -627,7 +630,7 @@
    </widget>
    <widget class="QMenu" name="menuSchedule">
     <property name="title">
-     <string>Schedule</string>
+     <string>任务调度</string>
     </property>
     <addaction name="actionScheduleProjectID"/>
     <addaction name="actionScheduleGCServer"/>
@@ -635,7 +638,7 @@
    </widget>
    <widget class="QMenu" name="menuImage">
     <property name="title">
-     <string>ImagePro</string>
+     <string>影像处理</string>
     </property>
     <addaction name="actionImageLiDARRegistration"/>
     <addaction name="actionRegistrationEditor"/>
@@ -692,7 +695,7 @@
         <enum>QTabWidget::West</enum>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="Database">
         <attribute name="icon">
@@ -4555,7 +4558,12 @@ QTreeView::branch:open:has-children:has-siblings  {
     <string>Plane Segmentation</string>
    </property>
    <property name="iconText">
-    <string>Plane</string>
+    <string>平面分割</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>9</pointsize>
+    </font>
    </property>
   </action>
   <action name="actionGotoNextZoom">
@@ -4871,7 +4879,7 @@ QTreeView::branch:open:has-children:has-siblings  {
   </action>
   <action name="actionShowBestImage">
    <property name="text">
-    <string>Show Best Image</string>
+    <string>显示视角最优影像</string>
    </property>
    <property name="shortcut">
     <string>I</string>
@@ -4879,7 +4887,7 @@ QTreeView::branch:open:has-children:has-siblings  {
   </action>
   <action name="actionShowSelectedImage">
    <property name="text">
-    <string>Show Selected Image</string>
+    <string>显示当前选中影像</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
@@ -4893,7 +4901,7 @@ QTreeView::branch:open:has-children:has-siblings  {
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Image Viewer</string>
+    <string>影像编辑窗口</string>
    </property>
    <property name="shortcut">
     <string>F8</string>
@@ -4903,8 +4911,11 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
    <property name="text">
-    <string>Image Overlay</string>
+    <string>影像三维显示</string>
    </property>
   </action>
   <action name="actionBDPrimPointProjection">
@@ -5102,7 +5113,7 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/groundfiltering.png</normaloff>:/CC/Stocker/images/stocker/groundfiltering.png</iconset>
    </property>
    <property name="text">
-    <string>Ground Filtering</string>
+    <string>地面点滤波</string>
    </property>
    <property name="iconText">
     <string>Filter</string>
@@ -5113,6 +5124,11 @@ QTreeView::branch:open:has-children:has-siblings  {
    <property name="statusTip">
     <string>segment ground points and off-ground points</string>
    </property>
+   <property name="font">
+    <font>
+     <pointsize>9</pointsize>
+    </font>
+   </property>
   </action>
   <action name="actionClassificationBatch">
    <property name="icon">
@@ -5120,7 +5136,7 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/classification.png</normaloff>:/CC/Stocker/images/stocker/classification.png</iconset>
    </property>
    <property name="text">
-    <string>Classification</string>
+    <string>点云分类</string>
    </property>
    <property name="iconText">
     <string>Classify</string>
@@ -5130,6 +5146,11 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="statusTip">
     <string>point classification</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>9</pointsize>
+    </font>
    </property>
    <property name="iconVisibleInMenu">
     <bool>true</bool>
@@ -5141,7 +5162,7 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/buildingblack.png</normaloff>:/CC/Stocker/images/stocker/buildingblack.png</iconset>
    </property>
    <property name="text">
-    <string>Building Segmentation</string>
+    <string>单体化</string>
    </property>
    <property name="iconText">
     <string>Building</string>
@@ -5151,6 +5172,11 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="statusTip">
     <string>single building segmentation</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>9</pointsize>
+    </font>
    </property>
   </action>
   <action name="actionBuildingSegmentEditor">
@@ -5174,13 +5200,18 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/editor2.png</normaloff>:/CC/Stocker/images/stocker/editor2.png</iconset>
    </property>
    <property name="text">
-    <string>Manual Annotation</string>
+    <string>人工标注</string>
    </property>
    <property name="iconText">
-    <string>Label</string>
+    <string>标注</string>
    </property>
    <property name="toolTip">
     <string>Manual Annotation</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>9</pointsize>
+    </font>
    </property>
    <property name="shortcut">
     <string>L</string>
@@ -5195,7 +5226,7 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/setting.png</normaloff>:/CC/Stocker/images/stocker/setting.png</iconset>
    </property>
    <property name="text">
-    <string>Ground Filtering</string>
+    <string>地面点滤波</string>
    </property>
   </action>
   <action name="actionSettingsClassification">
@@ -5207,7 +5238,7 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/setting.png</normaloff>:/CC/Stocker/images/stocker/setting.png</iconset>
    </property>
    <property name="text">
-    <string>Classification</string>
+    <string>点云分类</string>
    </property>
   </action>
   <action name="actionSettingsBuildingSeg">
@@ -5219,7 +5250,7 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/setting.png</normaloff>:/CC/Stocker/images/stocker/setting.png</iconset>
    </property>
    <property name="text">
-    <string>Building Segmentation</string>
+    <string>单体化</string>
    </property>
   </action>
   <action name="actionAutomaticLoD2Generation">
@@ -5255,10 +5286,15 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/registration.png</normaloff>:/CC/Stocker/images/stocker/registration.png</iconset>
    </property>
    <property name="text">
-    <string>Registration</string>
+    <string>配准</string>
    </property>
    <property name="iconText">
-    <string>Register</string>
+    <string>配准</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>9</pointsize>
+    </font>
    </property>
   </action>
   <action name="actionScheduleGCServer">
@@ -5277,13 +5313,18 @@ QTreeView::branch:open:has-children:has-siblings  {
      <normaloff>:/CC/Stocker/images/stocker/editor2.png</normaloff>:/CC/Stocker/images/stocker/editor2.png</iconset>
    </property>
    <property name="text">
-    <string>Registration Editor</string>
+    <string>配准交互</string>
    </property>
    <property name="iconText">
-    <string>Editor</string>
+    <string>交互</string>
    </property>
    <property name="statusTip">
     <string>Registration Editor</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>9</pointsize>
+    </font>
    </property>
   </action>
   <action name="actionBDPrimPlaneQuality">
@@ -5298,10 +5339,15 @@ QTreeView::branch:open:has-children:has-siblings  {
     <string>PlaneQuality</string>
    </property>
    <property name="iconText">
-    <string>Quality</string>
+    <string>筛选</string>
    </property>
    <property name="toolTip">
     <string>Calculate Plane Quality, filter by quality</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>9</pointsize>
+    </font>
    </property>
    <property name="iconVisibleInMenu">
     <bool>true</bool>
@@ -5317,6 +5363,14 @@ QTreeView::branch:open:has-children:has-siblings  {
    </property>
    <property name="text">
     <string>Primitive</string>
+   </property>
+   <property name="iconText">
+    <string>3D几何</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>9</pointsize>
+    </font>
    </property>
   </action>
   <action name="actionBDRLoadModels">
@@ -5519,6 +5573,38 @@ QTreeView::branch:open:has-children:has-siblings  {
     <hint type="destinationlabel">
      <x>160</x>
      <y>774</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>toggleImageView3DToolButton</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>actionImageOverlay</receiver>
+   <slot>setChecked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>120</x>
+     <y>128</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionImageOverlay</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>toggleImageView3DToolButton</receiver>
+   <slot>setChecked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>120</x>
+     <y>128</y>
     </hint>
    </hints>
   </connection>
