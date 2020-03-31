@@ -809,6 +809,8 @@ signals:
 	**/
 	void buttonReleased();
 
+	void rectangleSelected(const int & x, const int & y, const int & w, const int & h);
+
 	void doubleClicked(const CCVector3d & P);
 
 	//! Signal emitted during 3D pass of OpenGL display process

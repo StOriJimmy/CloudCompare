@@ -113,8 +113,8 @@ ccHObject* PlaneFrameLineGrow(ccHObject* planeObj, double alpha, double intersec
 
 bool FastPlanarTextureMapping(ccHObject * planeObj);
 
-bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices = nullptr,
-	double refine_length = 3, double sampling_grid = 0.5f, int max_view = 3);
+bool TextureMappingBuildings(ccHObject::Container buildings, ccHObject::Container cameras, stocker::IndexVector* task_indices = nullptr,
+	double refine_length = 3, double sampling_grid = 0.5f, int max_view = 3, bool skip_nonexist = true);
 
 bool TextureMappingPlanes(ccHObject::Container primObjs, stocker::IndexVector* task_indices = nullptr, 
 	double refine_length = 3, double sampling_grid = -1.0f, int max_view = 3);

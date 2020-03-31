@@ -4658,6 +4658,8 @@ void ccGLWindow::mouseReleaseEvent(QMouseEvent *event)
 
 				PickingParameters params(ENTITY_RECT_PICKING, pickX + width() / 2, height() / 2 - pickY, pickW, pickH);
 				startPicking(params);
+
+				emit rectangleSelected(pickX + width() / 2, height() / 2 - pickY, pickW, pickH);
 			}
 
 			event->accept();

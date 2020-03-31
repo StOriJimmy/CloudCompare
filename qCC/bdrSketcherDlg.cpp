@@ -311,6 +311,7 @@ bool bdrSketcher::linkWith(ccGLWindow* win)
 		connect(m_associatedWin, &ccGLWindow::itemPicked, this, &bdrSketcher::echoItemPicked);
 		connect(m_associatedWin, &ccGLWindow::buttonReleased, this, &bdrSketcher::echoButtonReleased);
 		connect(m_associatedWin, &ccGLWindow::entitySelectionChanged, this, &bdrSketcher::entitySelected);
+		connect(m_associatedWin, &ccGLWindow::rectangleSelected, this, &bdrSketcher::echoRectangleSelected);
 
 		//import sections in current display
 		for (auto & section : m_sections)
@@ -518,15 +519,28 @@ struct bdrSketcher::SOPickingParams {
 	SOPickingParams(
 		int _clickedPosX = 0,
 		int _clickedPosY = 0,
-		int _pickRadius = 5)
+		int _pickRadiusX = 5)
 		: clickedPosX(_clickedPosX)
 		, clickedPosY(_clickedPosY)
-		, pickRadius(_pickRadius)
+		, pickRadiusX(_pickRadiusX)
+		, pickRadiusY(_pickRadiusX)
+	{}
+
+	SOPickingParams(
+		int _clickedPosX = 0,
+		int _clickedPosY = 0,
+		int _pickRadiusX = 5,
+		int _pickRadiusY = 5)
+		: clickedPosX(_clickedPosX)
+		, clickedPosY(_clickedPosY)
+		, pickRadiusX(_pickRadiusX)
+		, pickRadiusY(_pickRadiusY)
 	{}
 
 	int clickedPosX;
 	int clickedPosY;
-	int pickRadius;
+	int pickRadiusX;
+	int pickRadiusY;
 };
 
 void bdrSketcher::startCPUPointPicking(const SOPickingParams& params)
@@ -570,8 +584,8 @@ void bdrSketcher::startCPUPointPicking(const SOPickingParams& params)
 					camera,
 					nearestPointIndex,
 					nearestSquareDist,
-					params.pickRadius,
-					params.pickRadius,
+					params.pickRadiusX,
+					params.pickRadiusY,
 					false))
 				{
 					if (nearestElementIndex < 0 || (nearestPointIndex >= 0 && nearestSquareDist < nearestElementSquareDist))
@@ -601,10 +615,75 @@ void bdrSketcher::startCPUPointPicking(const SOPickingParams& params)
 	changePickingCursor();
 }
 
+void bdrSketcher::startCPURectPicking(const SOPickingParams& params, std::vector<PickingVertex<Section>> & selected)
+{
+	if (!m_pickingVertex || m_pickingVertex->picking_repo.empty()) return;
+
+	//! save processPickingResult to picking vertex
+
+	ccGLCameraParameters camera;
+	m_associatedWin->getGLCameraParameters(camera);
+	CCVector2d clickedPos(params.clickedPosX, params.clickedPosY);
+
+	ccHObject* nearestEntity = nullptr;
+	CCVector3* nearestPoint = nullptr;
+	int nearestElementIndex = -1;
+	double nearestElementSquareDist = -1.0;
+
+	//! for mesh triangle
+	CCVector3d nearestPointBC(0, 0, 0);
+
+	SectionPool toProcess = m_pickingVertex->picking_repo;
+
+	while (!toProcess.empty()) {
+		ccHObject* ent = toProcess.back().entity;
+		bool isindb = toProcess.back().isInDB;
+		toProcess.pop_back();
+		if (!ent->isEnabled()) continue;
+
+		if (ent->isDisplayedIn(m_associatedWin)) {
+			if (ent->isKindOf(CC_TYPES::POINT_CLOUD)) {
+				ccGenericPointCloud* cloud = static_cast<ccGenericPointCloud*>(ent);
+
+				int nearestPointIndex = -1;
+				double nearestSquareDist = 0.0;
+
+				if (ent == m_pickingVertex->selectedEntitiy && m_pickingVertex->selectedVertIndex >= 0) {
+					nearestPointIndex = m_pickingVertex->selectedVertIndex;
+				}
+
+				std::vector<int> selectedPointIndices;
+				if (cloud->rectPicking(clickedPos,
+					camera,
+					selectedPointIndices,
+					params.pickRadiusX,
+					params.pickRadiusY))
+				{
+
+					for (auto index : selectedPointIndices) {
+						PickingVertex<Section> selectedVertex;
+
+						selectedVertex.selectedEntitiy = cloud;
+						selectedVertex.selectedVert = const_cast<CCVector3*>(cloud->getPoint(index)); ;
+						selectedVertex.selectedVertIndex = index;
+
+						selected.push_back(selectedVertex);
+					}
+				}
+			}
+		}
+
+		// add children
+		for (unsigned i = 0; i < ent->getChildrenNumber(); ++i) {
+			toProcess.push_back(Section(ent->getChild(i), isindb));
+		}
+	}
+}
+
 void bdrSketcher::echoMouseMoved(int x, int y, Qt::MouseButtons buttons)
 {
 	CCVector3d clickedPos(x, m_associatedWin->glHeight() - 1 - y, 0);
-	SOPickingParams params(clickedPos.x, clickedPos.y, m_associatedWin->getPickingRadius());
+	SOPickingParams params(clickedPos.x, clickedPos.y, m_associatedWin->getPickingRadius(), m_associatedWin->getPickingRadius());
 
 	ccGLCameraParameters camera;
 	m_associatedWin->getGLCameraParameters(camera);
@@ -715,6 +794,30 @@ void bdrSketcher::echoButtonReleased()
 	}
 }
 
+void bdrSketcher::echoRectangleSelected(const int & x, const int & y, const int & w, const int & h)
+{
+	bool something_changed = false;
+	if (1)//delete state
+	{
+		if (m_state & PS_RUNNING)
+			return;
+		
+		if (m_selectedSO && m_pickingVertex && (m_state & PS_EDITING)) {
+			SOPickingParams params(x, m_associatedWin->glHeight() - 1 - y, w / 2, h / 2);
+			std::vector<PickingVertex<Section>>selected;
+			startCPURectPicking(params, selected);
+
+			for (PickingVertex<Section> sel : selected) {
+				if (deleteVertex(m_selectedSO->entity, sel.selectedEntitiy, sel.selectedVert, sel.selectedVertIndex)) {
+					something_changed = true;
+				}
+			}
+		}
+	}
+	if (something_changed && m_associatedWin) {
+		m_associatedWin->redraw();
+	}
+}
 
 void bdrSketcher::selectSketcherObject(Section* poly, bool autoRefreshDisplay/*=true*/)
 {
@@ -787,7 +890,7 @@ void bdrSketcher::deleteSelectedPolyline()
 
 	Section* selectedPoly = m_selectedSO;
 
-	//deslect polyline before anything
+	//deselect polyline before anything
 	selectSketcherObject(nullptr, false);
 
 	releasePolyline(selectedPoly);

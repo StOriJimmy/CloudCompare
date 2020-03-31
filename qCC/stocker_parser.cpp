@@ -1615,7 +1615,8 @@ bool FastPlanarTextureMapping(ccHObject* planeObj)
 	return true;
 }
 
-bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVector* task_indices, double refine_length, double sampling_grid, int max_view)
+bool TextureMappingBuildings(ccHObject::Container buildings, ccHObject::Container cameras,
+	stocker::IndexVector* task_indices, double refine_length, double sampling_grid, int max_view, bool skip_nonexist)
 {
 	if (buildings.empty()) return false;
 	BDBaseHObject* baseObj = GetRootBDBase(buildings.front());
@@ -1624,11 +1625,27 @@ bool TextureMappingBuildings(ccHObject::Container buildings, stocker::IndexVecto
 	stocker::TextureMapping texture_mapping;
 	texture_mapping.setOutputDir(baseObj->getPath().toStdString() + "models");
 	
-	std::vector<stocker::ImageUnit> image_units = baseObj->GetImageData();
+	std::vector<stocker::ImageUnit> image_units_temp = baseObj->GetImageData();
+
+	std::vector<stocker::ImageUnit> image_units;
 	
-	for (stocker::ImageUnit & image_unit : image_units) {
+	for (stocker::ImageUnit & image_unit : image_units_temp) {
+		if (!cameras.empty()) {
+			auto cam_find = std::find_if(cameras.begin(), cameras.end(), [=](ccHObject* cam) {
+				return cam->getName().toStdString() == image_unit.GetName().Str();
+			});
+			if (cam_find == cameras.end()) {
+				continue;
+			}
+		}
+
+		if (skip_nonexist && !IsExist(image_unit.m_path.c_str())) {
+			continue;
+		}
 		Vec3d view_pos = image_unit.GetViewPos();
 		image_unit.m_camera.SetViewPoint((view_pos + baseObj->global_shift)*baseObj->global_scale);
+
+		image_units.push_back(image_unit);
 	}
 	texture_mapping.setImages(image_units);
 	//! collect polygons, roof and facade
